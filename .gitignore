@@ -35,3 +35,7 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+
+core/lib/elasticsearch*
+core/lib/jre*
+scrap.txt

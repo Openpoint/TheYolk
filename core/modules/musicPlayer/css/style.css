@@ -1,0 +1,217 @@
+body,html{
+	position:relative;
+	height:100%;
+	font-family:sans-serif;
+	background:#302B22;
+}
+#playframe{
+	position:relative;
+	width:100%;
+	height:100%;
+	overflow:hidden;
+}
+#topmen{
+	width:100%;
+	background:#302B22;
+	color:white;
+}
+#playwindow{
+
+	overflow-x:hidden;
+	overflow-y:scroll;
+	background:url('../images/playBack.png');
+	background-attachment: local;
+	position:relative;
+}
+#loading{
+	position:absolute;
+	background:#302B22;
+	color:white;
+	top:0;
+	left:0;
+	right:0;
+	bottom:0;
+	z-index:20;
+	display:flex;
+	flex-direction:column;
+	justify-content:center;
+	text-align:center;
+}
+
+#sidebar{
+	position:absolute;
+	right:0;
+	background:gray;	
+}
+#tracks{
+	position:relative;
+}
+.track.even{
+	background:white;
+}
+.track.odd{
+	background:#E7E7E7;
+}
+.track .play{
+	opacity:.25;
+	transition:opacity .5s;
+}
+.track .play:hover{
+	opacity: .8;
+}
+.track.playing .play,
+.track.paused .play{
+	opacity:1;
+
+}
+.track .title{
+	padding-bottom:8px;
+	font-weight:600;
+}
+.track .artist,
+.track .album{
+	font-weight:200;
+	font-size:.85em;
+	padding:4px 0;
+	cursor:pointer;
+}
+.info .row{
+	position:relative;
+	opacity:.85
+}
+.info .pinned.row{
+	color:Tomato;
+	opacity:1;
+}
+.info .cancel{
+	display:none;
+	font-size:20px;
+	left:-25px;
+	top:-1px;
+	position:absolute;
+}
+.info .pinned .cancel{
+	display:inline-block;
+
+}
+.track.playing .inner,
+.track.paused .inner{
+	display:none;	
+}
+#playing .play.icon{
+	color:Tomato;
+}
+
+#playing{
+
+	width:100%;	
+	position:absolute;
+	
+}
+#playing .Top{
+	box-shadow:0px 4px 5px 0px rgba(50, 50, 50, 0.58);
+}
+#playing .Bottom{
+	box-shadow:0px -4px 5px 0px rgba(50, 50, 50, 0.58);
+}
+#playing .inner{
+	display:block;
+	background:#302B22;
+	color:white;
+	
+}
+ 
+.track .above, 
+.track .below{
+	display:flex;
+	flex-direction:row;
+	align-items:flex-end;
+}
+.track .below{
+	align-items:flex-start;	
+}
+.track .above .icons{
+	width:50px;
+	height:50px;
+	padding:10px 30px 5px 5px;
+	cursor:pointer;
+}
+.track .below .icons{
+	width:50px;
+	height:50px;
+	padding:10px 30px 5px 5px;
+}
+#playing .scroll{
+	cursor:pointer;
+	font-size:20px;
+	position:absolute;
+	right:10px;
+	align-self:center;
+	color:Tomato;
+}
+#playing .next .nextTrack{
+	cursor:url('../images/playHover.ico') 16 16,auto;
+}
+#playing .next{
+	
+	color:tomato;
+	position:absolute;
+	right:100px;
+	font-size:.95em;
+	opacity:.85;
+	padding-bottom:8px;
+	display:flex;
+	flex-direction:row;
+	align-items:center;
+}
+#playing .next .icon{
+	font-size:1.5em;
+	padding:0 5px;
+	cursor:pointer;
+}
+.track .below .info{
+	padding-top:5px;
+}
+.track .above .icon{
+	font-size:50px;
+}
+.track.playing .Top,
+.track.paused .Top{
+	position:fixed;
+	top:30px;
+	left:0;
+	width:calc(100% - 315px);
+	z-index:10;
+	transition:none;
+
+}
+.track.playing .Bottom,
+.track.paused .Bottom{
+	position:fixed;
+	bottom:0;
+	left:0;
+	width:calc(100% - 315px);
+	z-index:10;
+	transition:none;
+}
+
+.track .progressBar{
+	position:relative;
+	width:100%;	
+	background:rgba(0,0,0,.3);
+	cursor:wait;
+}
+.track .progress{
+	height:100%;
+	pointer-events: none;
+	background:lime;
+	width:0;
+	transition:width 2s linear;
+}
+.track .progress.noAni{
+	transition:none!important;
+}
+.track.paused .progress{
+	background:Tomato;
+}
+

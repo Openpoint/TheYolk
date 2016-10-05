@@ -1,0 +1,15 @@
+{
+  "name": "player",
+  "version": "0.1.0",
+  "main": "main.js",
+  "dependencies": {
+    "angular": "^1.5.8",
+    "angular-animate": "^1.5.8",
+    "angular-route": "^1.5.8",
+    "elasticsearch": "^11.0.1",
+    "jquery": "^3.1.0",
+    "jsmediatags": "^3.2.1",
+    "request": "^2.75.0"
+  },
+  "devDependencies": {}
+}
