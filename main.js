@@ -63,10 +63,13 @@ app.on('activate', () => {
 // code. You can also put them in separate files and require them here.
 
 //Start the elasticsearch server
-var installPath = process.cwd();
-process.env.JAVA_HOME = path.join(boot.root,'/lib/jre1.8.0_101');
-
-const elasticsearch = spawn(path.join(boot.root,'core/lib/elasticsearch-2.4.0/bin/elasticsearch'),['--cluster.name=player','--node.name=test']);
+process.env.JAVA_HOME = path.join(boot.root,'core/lib/jre1.8.0_101');
+var elasticpath = path.join(boot.root,'core/lib/elasticsearch-2.4.0/bin/elasticsearch');
+var elasticoptions = [
+	'--cluster.name=player',
+	'--node.name=test'
+]
+const elasticsearch = spawn(elasticpath,elasticoptions);
 
 boot.coreProcesses.forEach(function(file){
 	require(file);

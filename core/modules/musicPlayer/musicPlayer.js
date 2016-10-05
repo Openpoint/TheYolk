@@ -2,11 +2,17 @@
 
 var define = {
 	extends:false,
-	require:['utils'],
-	core_process:[
+	require:[
+		//load services from external modules
+		'utils'
+	], 
+	core_process:[ 
+		//starts with the core process in a Node scope
 		'fileTools',
 		'musicbrainz'
 	],
+	db_index:"music_player",
+	module_name:"musicPlayer",
 	settings:{
 		paths:{
 			musicDir:"",

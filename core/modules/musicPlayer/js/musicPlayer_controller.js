@@ -4,42 +4,51 @@ angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy',
 function($scope,$timeout,dims,utils,lazy) {
 	
+	
+
+		
 	$scope.lib={};
 	$scope.lib.tracks=[];
 	
+	const db_index = window.Yolk.modules.musicPlayer.config.db_index;
+	const mod_name = window.Yolk.modules.musicPlayer.config.module_name;
 	const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
+	
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
 		ipcRenderer.send('dBase', false);
 	};
 	
-	utils = new utils('musicPlayer');
-	utils.boot('music_player',['local','internetarchive','jamendo']).then(function(db){
+	utils = new utils(mod_name);
+	utils.boot(db_index,['local','internetarchive','jamendo']).then(function(db){
+		
+		//database is ready - move it to scope
 		$scope.db = db;
 		
 		//load settings
-		utils.settings('local').then(function(settings){
+		utils.settings('music').then(function(settings){
 
 					
 			$timeout(function(){
 				$scope.settings = settings;	
 				$scope.dbReady = true;
 				$scope.settings_loaded = true;
-			});
 			
-			//load local music files from database
-			if(settings.paths.musicDir){
-				$scope.db.fetch(utils.index_root+'.local').then(function(data){
-					ipcRenderer.send('verify', {
-						dir:settings.paths.musicDir, 
-						tracks:data
+			
+				//load local music files from database
+				if(settings.paths.musicDir){
+					$scope.db.fetch(db_index+'.local').then(function(data){
+						ipcRenderer.send('verify', {
+							dir:settings.paths.musicDir, 
+							tracks:data
+						});
+
+						$scope.lib.tracks=data;
+						//$scope.lazy.refresh($('#playwindow').scrollTop());
 					});
-					$scope.lib.tracks=data;
-					$scope.lazy.refresh();
-					//$scope.$apply();
-				});
-			}			
+				}
+			});			
 		});		
 		
 		/*
@@ -67,13 +76,13 @@ function($scope,$timeout,dims,utils,lazy) {
 	
 	$scope.$watch('settings',function(newVal,oldVal){
 		if(newVal!==oldVal && $scope.settings_loaded){
-			$scope.db.update(utils.index_root+'.settings.local',newVal);
+			$scope.db.update(db_index+'.settings.music',newVal);
 		}		
 	},true);
 	
 	$scope.$watch('lib.tracks',function(newVal,oldVal){
 		if(newVal!==oldVal){
-			console.log($scope.lib.tracks);
+			$scope.lazy.refresh($('#playwindow').scrollTop());
 		}		
 	});
 	
@@ -106,7 +115,30 @@ function($scope,$timeout,dims,utils,lazy) {
 		});
 	});
 	ipcRenderer.on('verify',function(event,data){
-		console.log(data);
+		
+		if(data.remove.length){
+			var body = [];
+			data.remove.forEach(function(track){
+				body.push({
+					delete:{ 
+						_index:db_index,
+						 _type:'local', 
+						 _id:track.id
+					}
+				});
+				$scope.lib.tracks = $scope.lib.tracks.filter(function(ltrack){
+					if(ltrack.id !== track.id){
+						return true;
+					}
+				});
+			});
+			console.log(body);
+			$scope.db.client.bulk({
+				body:body
+			},function(err,data){
+				console.log(data);
+			})
+		}
 	})	
 }])
 
