@@ -15,10 +15,14 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.progressHeight = 10;
 		this.playingHeight = this.trackHeight+this.progressHeight;
 		this.paddingTop = 0;
-		this.chunk = 0;			
+		this.chunk = 0;
+		watchScroll();
+		
 	}
-	lazy.prototype.refresh = function(sTop){
+	
 
+	
+	lazy.prototype.refresh = function(sTop){
 		if(sTop){
 			var top = sTop;
 		}else{				
@@ -26,11 +30,11 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			this.chunk = 0;
 			$('#playwindow').scrollTop(top);
 		}
-		
 		this.step(top);
 		this.getPos();
 
 	}
+	
 	lazy.prototype.scroll = function(sTop){
 		
 		this.chunk = Math.floor((sTop || $('#playwindow').scrollTop()) / this.chunkHeight);
@@ -44,15 +48,15 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		if(sTop){
 			$timeout(function(){
 				$('#playwindow').scrollTop(sTop);
-			});
-			
+			});			
 		}
 	}
+
 	lazy.prototype.step = function(sTop){
 		this.winHeight = $scope.dims.playwindowHeight;
 		this.Step = Math.ceil(this.winHeight/this.trackHeight);
 		this.chunkHeight = this.Step*this.trackHeight;
-		this.libSize = $scope.lib.tracks.length;
+		//this.libSize is got from the tracks_filter filter
 		this.scroll(sTop);
 	}
 	
@@ -146,31 +150,32 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		$('#playwindow').animate({scrollTop:scroll},1000,'swing');
 	}
 
-	
-	// watch for scrolling of the track list to update position of playing track
-	var scrollfix;
-	$('#playwindow').scroll(function(e){
-		$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
-		var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();		
-		
-		if(
-			scrollTop > $scope.lazy.chunkHeight*($scope.lazy.chunk+1) ||
-			scrollTop < $scope.lazy.chunkHeight*($scope.lazy.chunk)
-		){
-			//$scope.lazy.scroll();
-			scrollTop = $('#playwindow').scrollTop();
-			$scope.lazy.playPos(scrollTop);					
+	var watchScroll = function(){
 
-				
-		}else{
-			$scope.lazy.playPos(scrollTop);	
-		}
-		
-		scrollfix = $timeout(function(){
-			$scope.lazy.scroll();
-			$scope.lazy.playPos(scrollTop,true);				
-		},100);			
-	});
+		// watch for scrolling of the track list
+		var scrollfix;
+		$('#playwindow').scroll(function(e){
+
+			$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
+			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();		
 			
+			if(
+				scrollTop > $scope.lazy.chunkHeight*($scope.lazy.chunk+1) ||
+				scrollTop < $scope.lazy.chunkHeight*($scope.lazy.chunk)
+			){
+				scrollTop = $('#playwindow').scrollTop();
+				$scope.lazy.playPos(scrollTop);					
+					
+			}else{
+				$scope.lazy.playPos(scrollTop);	
+			}
+			
+			scrollfix = $timeout(function(){
+				$scope.tracks.Filter();
+				$scope.lazy.playPos(scrollTop,true);
+				$scope.scrolling =false;				
+			},100);			
+		});
+	}		
 	return lazy;
 }])

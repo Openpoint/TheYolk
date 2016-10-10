@@ -78,7 +78,8 @@ ft.getDir=function(dir){
 					var track = {
 						path:dir,
 						file:file,
-						id:id
+						id:id,
+						filter:{}
 					};					
 					self.tracks.push(track);
 				}				
@@ -207,13 +208,14 @@ ipcMain.on('getDir', (event, dir) => {
 })
 
 ipcMain.on('verify', (event, data) => {
+	event.sender.send('log',data);
 	ft.sender = event.sender;
 
 	for(var key in ft.watchers){
 		ft.watchers[key].close();
 	}
 	ft.watchers = {};
-	ft.watch(data.dir);
+	//ft.watch(data.dir);
 	ft.rootDir = data.dir;
 	//ft.allTracks = data.tracks;
 

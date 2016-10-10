@@ -1,7 +1,7 @@
 'use strict'
 var path = require('path');
 
-angular.module('yolk').factory('utils',['$q', function elastic($q) {
+angular.module('yolk').factory('utils',['$q', function($q) {
 	var elastic = require(path.join(window.Yolk.root,'core/lib/elasticsearch.js'));
 	var utils = function(module){
 		this.module = module;
@@ -55,7 +55,12 @@ angular.module('yolk').factory('utils',['$q', function elastic($q) {
 		var self = this;
 		
 		return new $q(function(resolve,reject){
-			self.db.fetch(self.index_root+'.settings.'+type).then(function(data){					
+			self.db.fetch(self.index_root+'.settings.'+type).then(function(data){
+
+				if(!data){
+					console.log('weird bug');
+					return;
+				}					
 				if(data && data.length){
 					resolve(data[0]);					
 				}else{					

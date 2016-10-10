@@ -19,7 +19,7 @@
 				var head  = document.getElementsByTagName('head')[0];
 				$('head [id^=inject]').remove();
 				var modname = window.location.hash.split('/')[1];
-				//config.modules.forEach(function(module){
+
 				for(var key in config.modules){
 					var module = config.modules[key];
 					if(module.name === modname && module.css && module.css.length){
@@ -44,9 +44,12 @@
 			
 			for(var key in config.modules){
 				var module = config.modules[key];
+				
+				//load the controllers
 				if(module.controller){
 					require(module.controller)
 				}
+				//load the services
 				if(module.services && module.services.length){
 					module.services.forEach(function(service){
 						try{
@@ -54,29 +57,23 @@
 						}
 						catch(error){
 							console.error(service+'\n', error)
+						}
+						
+					})
+				}
+				//load the filters
+				if(module.filters && module.filters.length){
+					module.filters.forEach(function(filter){
+						try{
+							require(filter)
+						}
+						catch(error){
+							console.error(filter+'\n', error)
 						}
 						
 					})
 				}
 			}
-			/*
-			config.modules.forEach(function(module){
-				if(module.controller){
-					require(module.controller)
-				}
-				if(module.services && module.services.length){
-					module.services.forEach(function(service){
-						try{
-							require(service)
-						}
-						catch(error){
-							console.error(service+'\n', error)
-						}
-						
-					})
-				}
-			})
-			*/
 		})
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);

@@ -64,6 +64,7 @@ app.on('activate', () => {
 
 //Start the elasticsearch server
 process.env.JAVA_HOME = path.join(boot.root,'core/lib/jre1.8.0_101');
+
 var elasticpath = path.join(boot.root,'core/lib/elasticsearch-2.4.0/bin/elasticsearch');
 var elasticoptions = [
 	'--cluster.name=player',
@@ -71,11 +72,15 @@ var elasticoptions = [
 ]
 const elasticsearch = spawn(elasticpath,elasticoptions);
 
+
 boot.coreProcesses.forEach(function(file){
 	require(file);
 })
 
-
+ipcMain.on('track_relay', (event, data) => {
+	event.sender.send('track',data);
+	//event.sender.send('track'.data);
+})
 ipcMain.on('return', (event, req) => {
 	switch(req) {
 		case 'config':

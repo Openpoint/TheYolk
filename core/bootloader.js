@@ -141,6 +141,20 @@ bootloader.prototype.configs  = function(module){
 						module.services.push(path.join(file,fil));
 					}
 				});
+			}
+			//get the angular filters
+			file = path.join(pt,'js','filters')
+			
+			if(isThere('dir',file)){			
+				var filters = fs.readdirSync(file);			
+				filters.forEach(function(fil){
+					if(isThere('file',path.join(file,fil)) && checkEnd('_filter.js',fil)){
+						if(!module.filters){
+							module.filters = [];
+						}
+						module.filters.push(path.join(file,fil));
+					}
+				});
 			}			
 		});
 		

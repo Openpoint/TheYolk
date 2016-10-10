@@ -70,14 +70,15 @@ body,html{
 }
 .track .artist,
 .track .album{
-	font-weight:200;
-	font-size:.85em;
-	padding:4px 0;
+
 	cursor:pointer;
 }
 .info .row{
 	position:relative;
-	opacity:.85
+	opacity:.85;
+	font-weight:200;
+	font-size:.85em;
+	padding:4px 0;
 }
 .info .pinned.row{
 	color:Tomato;
@@ -215,3 +216,45 @@ body,html{
 	background:Tomato;
 }
 
+#search{
+	position:relative;
+}
+#search input{
+	width:100%;
+	height:100%;
+	display:block;
+	margin:0;
+	border:none;
+	padding:20px;
+	box-sizing:border-box;
+}
+
+.anchor{
+	width:100%;
+	text-align:center;
+	box-sizing:border-box;
+	color:white;
+	border:1px solid white;
+
+	padding:10px;
+	cursor:pointer;
+}
+.anchor.active.dead{
+	cursor:default;
+}
+.anchor.active.dead .cancel{
+	opacity:.4;
+}
+.anchor.active{
+	background:Tomato;
+}
+.anchor .cancel{
+	display:block;
+	opacity:0;
+	position:absolute;
+	left:15px;
+	transition:opacity .5s;
+}
+.anchor.active .cancel{
+	opacity:1;
+}
