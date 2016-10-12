@@ -66,7 +66,8 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		$timeout(function(){
 			if($scope.lib.playing && $scope.lib.playing.state){
 				$scope.lib.playing.spacer=false;
-				var i = $scope.lib.tracks.indexOf($scope.lib.playing);
+				//var i = $scope.lib.tracks.indexOf($scope.lib.playing);
+				var i = $scope.lib.playing.filter.pos;
 				if(i >= 0){
 					$scope.lib.playing.top = i*$scope.lazy.trackHeight;
 					$scope.lib.playing.index=i;
@@ -104,7 +105,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 					//console.log('top');
 					$('#playing .inner').css({
 						position:'fixed',
-						top:$scope.dims.menHeight,
+						top:$scope.dims.menHeight+$scope.dims.searchHeight,
 						bottom:'auto'
 					}).addClass('Top').removeClass('Bottom');
 					$scope.lib.playing.Top = true;

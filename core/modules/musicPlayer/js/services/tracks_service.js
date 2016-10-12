@@ -1,10 +1,13 @@
 "use strict"
 angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,$filter,$timeout) {
 	var $scope;
-	var init;
 	var body = [];
 	var q = [];
 	var Process;
+
+
+
+
 	
 	var tracks = function(scope){
 		$scope = scope;
@@ -62,32 +65,28 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			},500);			
 		});		
 	};
-	tracks.prototype.getTracks = function(types){
+	/*
+	tracks.prototype.getTracks = function(){
+		var types = $scope.sources;
 		if(types.length){
-			var q = []
+			var q = '';
 			types.filter(function(type){
 				q=q+'_type:'+type+' ';
 			});
+			console.log(q);
 			
+			if($scope.searchTerm && $scope.searchTerm.length){
+				console.log($scope.search.searchString($scope.searchTerm));
+				
+			}
+				
 			$scope.db.fetch($scope.db_index,q).then(function(data){
 				//console.log(data);
 				$scope.allTracks = data;
 				$scope.tracks.Filter();
 				$scope.lazy.refresh();
 				
-				if(types.indexOf('local') > -1 && !init && $scope.settings.paths.musicDir){
-					init = true;
-					var local = data.filter(function(track){
-						if(track.type === 'local'){
-							return true;
-						}
-					});
-					console.log(local.length);
-					ipcRenderer.send('verify', {
-						dir:$scope.settings.paths.musicDir, 
-						tracks:local
-					});					
-				};
+
 			
 			})
 		}else{
@@ -96,14 +95,26 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			$scope.lazy.refresh();			
 		}
 	}
+	* */
 	tracks.prototype.Filter = function(){
-
+		$scope.lib.tracks = $filter('tracks')($scope);
 		if($scope.allTracks.length){
-			$scope.lib.tracks = $filter('tracks')($scope.allTracks,$scope.lazy,$scope.pinned,$scope.search);
+			//$scope.lib.tracks = $filter('tracks')($scope);
 		}else{
-			$scope.lib.tracks = [];
+			//$scope.lib.tracks = [];
 		}
 		
+	}
+	tracks.prototype.checkLocal = function(index){
+		if($scope.settings.paths.musicDir){
+			$scope.db.fetch($scope.db_index,'_type:'+index).then(function(data){
+
+				ipcRenderer.send('verify', {
+					dir:$scope.settings.paths.musicDir, 
+					tracks:data
+				});				
+			})					
+		}
 	}
 	tracks.prototype.verify = function(data){
 

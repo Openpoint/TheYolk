@@ -53,21 +53,20 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 						$scope.jamendo.pop().then(function(data){
 							$scope.allTracks = data;
 							$scope.tracks.Filter();
-						});
-						
-						break;					
+						});						
+						break;
+					case 'torrents':
+						$scope.sources.push('torrents');
+						break;
+										
 				}				
 			});
-
-			if($scope.sources.length){
-				$scope.tracks.getTracks($scope.sources);
-			}else{
-				$scope.allTracks = [];
-				$scope.tracks.Filter();
-			}		
+			//$scope.tracks.getTracks();
+			$scope.search.go();		
 			return;
-		}else if($scope.pinned.sources[0] !== 'suggestions'){
-			console.log($scope.pinned.sources);
+			
+		}else{
+
 			if(type === 'artist'){
 				$scope.pinned.album = false;
 			}else{

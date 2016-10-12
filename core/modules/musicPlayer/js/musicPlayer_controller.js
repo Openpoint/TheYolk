@@ -3,8 +3,8 @@
 
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$timeout','dims','utils','lazy','audio','jamendo','tracks','search','pin',
-function($scope,$timeout,dims,utils,lazy,audio,jamendo,tracks,search,pin) {	
+'$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','tracks','search','pin',
+function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,search,pin) {	
 
 	const mod_name = 'musicPlayer';
 	const {ipcRenderer} = require('electron');
@@ -15,7 +15,8 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,tracks,search,pin) {
 	$scope.pin = new pin($scope);
 	$scope.lazy = new lazy($scope);
 	$scope.tracks = new tracks($scope);
-	$scope.jamendo = new jamendo($scope);		
+	$scope.jamendo = new jamendo($scope);
+	$scope.internetarchive = new internetarchive($scope);		
 	$scope.dims = new dims($scope);
 	
 	$scope.dims.update();	
@@ -32,7 +33,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,tracks,search,pin) {
 	$scope.db_index = window.Yolk.modules[mod_name].config.db_index;
 	$scope.utils = new utils(mod_name);
 	//Boot the database, indexes and settings
-	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive']).then(function(db){
+	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive','torrents']).then(function(db){
 
 		//database is ready - copy it to scope
 		$scope.db = db;
@@ -47,11 +48,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,tracks,search,pin) {
 				$scope.settings = settings;	
 				$scope.dbReady = true;
 				$scope.settings_loaded = true;
-						
-				//load local music files from database
-				if(settings.paths.musicDir){
-					$scope.tracks.getTracks($scope.sources);
-				}
+				$scope.tracks.checkLocal('local');				
 			});			
 		});	
 	});

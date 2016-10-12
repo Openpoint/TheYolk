@@ -10,6 +10,7 @@
 	</div>
 	<div id='search' ng-show='dbReady && settings.paths.musicDir' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
 		<input ng-model="searchTerm" type='text' />
+		<div id='mask' ng-if='!sources.length'></div>
 	</div>
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
 		<div id = 'loading' class='ani-fOut' ng-if="!dbReady || !settings.paths.musicDir">
@@ -33,7 +34,7 @@
 							<div class='icons' ng-click="audio.play(track)">
 								<div class='play icon icon-play'></div>
 							</div>
-							<div class='title'>{{::track.metadata.title || track.file}}</div>							
+							<div class='title'>{{track.filter.pos}} {{::track.metadata.title || track.file}}</div>							
 						</div>	
 						<div class='below'>	
 							<div class='icons'>
@@ -85,7 +86,7 @@
 							<div ng-show="lib.playing.state==='paused'" class='play icon icon-play'></div>
 							<div ng-show="lib.playing.state==='playing'" class='pause icon icon-pause'></div>
 						</div>
-						<div class='title'>{{lib.playing.metadata.title || lib.playing.file}}</div>
+						<div class='title'>{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
 						<div class='next' ng-if="lib.playing.Pinned">
 							<div class="icon icon-previous"></div>
 							<div class='nextTrack' ng-click="audio.play(lib.playing.index+1)">{{lib.tracks[lib.playing.index+1].metadata.title ||lib.tracks[0].metadata.title }}</div>

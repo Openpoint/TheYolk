@@ -29,7 +29,9 @@ angular.module('yolk').factory('audio',['$timeout',function($timeout) {
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
-
+		if(track.type === 'jamendo' || track.type === 'internetarchive'){
+			var source = track.file;
+		}
 		if(this.playing !== source){
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
