@@ -15,24 +15,29 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	function process(){
 		$scope.lib.loading=true;
 		q = q.filter(function(data){
+			if(data.data){
+				data = data.data;
+			}
 			var action = {index:{
 				_index:$scope.db_index,
-				_type:data.data.type,
-				_id:data.data.id
+				_type:data.type,
+				_id:data.id
 			}}
-			var info = data.data;
+			var info = data;
 			body.push(action);
 			body.push(info);
-			$scope.allTracks.push(info);
-					
+			$scope.allTracks.push(info);					
 		});
 
 		$scope.db.client.bulk({
 			body: body
 		},function(err,data){
-			console.log('batch');
-			$scope.tracks.Filter();
-			$scope.lazy.refresh($('#playwindow').scrollTop());
+			//console.log('batch');
+			$timeout(function(){
+				$scope.tracks.Filter();
+				$scope.lazy.refresh($('#playwindow').scrollTop());				
+			},1000);
+
 		})
 	};
 	tracks.prototype.add = function(data){

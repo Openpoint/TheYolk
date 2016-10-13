@@ -21,44 +21,41 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 	}
 	var timeout;	
 	ia.prototype.search = function(term){
-		$timeout.cancel(timeout);
+
+		
 		var query=term+' AND mediatype:audio AND collection:opensource_audio&fl[]=title,identifier,description,creator&rows=10&page=1&output=json';
 		var self = this;
-		timeout = $timeout(function(){
-			console.log(query);
-			return;					
-			$http({
-				method:'GET',
-				url: 'https://archive.org/advancedsearch.php?q='+query,
-			}).then(function successCallback(response){
-				var result = response.data.response.docs;
-				console.log(result);
-				/*
-				var thisQ = q.queries.shift();
-				if(!response.data.items.length && !q.meta.length){
-					self.search();
-				}
-				* */
-				if(result.length){
-					result.forEach(function(item){
-						/*
-						item = {
-							item:item,
-							filter:thisQ.filter
-						}
-						* */
+		$scope.iaTimer = $timeout(function(){
+			var id = $scope.search.compress(term);
+			id = crypto.createHash('sha1').update(id).digest('hex');
+			
+			//console.log(query);
+			
+			$scope.db.put($scope.db_index+'.search.'+id,{time:Date.now()}).then(function(data){
+				$http({
+					method:'GET',
+					url: 'https://archive.org/advancedsearch.php?q='+query,
+				}).then(function successCallback(response){
+					var result = response.data.response.docs;
 					
-						if(!q.meta.length){
-							q.meta.push(item);
-							//self.getMeta();
-						}else{
-							q.meta.push(item);
-						}
+					if(result.length){
+						result.forEach(function(item){						
+							if(!q.meta.length){
+								q.meta.push(item);
+								self.getMeta();
+							}else{
+								q.meta.push(item);
+							}
 
-					});
-				}
-			});
-		},1500);		
+						});
+					}
+				});
+
+			},function(err){
+				console.log(err.message);
+			});					
+
+		},2000);		
 	}
 	
 	ia.prototype.getFiles = function(data,root){
@@ -93,23 +90,27 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 				}
 				
 				if(ids.mb_recording_id){
-					console.log(track);
-					$scope.tracks.add(track);
-					return;
+					track.musicbrainz_id = ids.mb_recording_id;
+					//console.log(track);
+					//$scope.tracks.add(track);
+					//return;
+					/*
 					ipcRenderer.send('musicbrainz', {
 						id:ids.mb_recording_id,
 						track:track,
 						filter:self.filter
 					});
+					* */
+					ipcRenderer.send('musicbrainz',track);
 					
-				}else{
+				}else if(file.artist && file.title){
 					//no MusicBrainz ID found for the track
-					console.log(track);
-					$scope.tracks.add(track);
+					ipcRenderer.send('musicbrainz',track);
+					//$scope.tracks.add(track);
 				}
 			}else if(types.indexOf(path.extname(file.name).toLowerCase()) > -1 && file.artist && file.title){
-				console.log(track);
-				$scope.tracks.add(track);
+				ipcRenderer.send('musicbrainz',track);
+				//$scope.tracks.add(track);
 				//Not of playable type or does not contain MusicBrainz ID
 				//self.noExtid(file,filter,root);
 			}
@@ -134,11 +135,13 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 			filter:{},
 			type:'internetarchive'
 		}
+		/*
 		var track={
 			count:0,
 			total:0,
 			data:track
 		};
+		* */
 		return track;			
 	}
 	/*
@@ -173,7 +176,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 			}else if(q.queries.length){
 				//self.search();
 			}
-	
 			self.getFiles(response.data,src);
 		});		
 	}

@@ -10,39 +10,41 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		$scope.$watch('searchTerm',function(oldVal,newVal){
 			if(oldVal!==newVal){
 				$timeout.cancel(searchTime);
+				$timeout.cancel($scope.iaTimer);
 				searchTime = $timeout(function(){
 					self.go();								
 				},500);			
 			}
 		});
 	}
-	
+	search.prototype.compress = function(term){
+		return term.replace(/ /g,'').toLowerCase();
+	}
 	search.prototype.searchString = function(term){
 		
 		var q='';
-		var qia='';
+		var qia='(';
 		var fields = [
 			'artist','album','title'
 		];
 		var fields_ia = [
 			'title',
-			'identifier',
-			'description',
-			'creator'
+			'description'
 		];
 		var terms = {};
-		function compress(term){
-			return term.replace(/ /g,'').toLowerCase()+'~';
-		};
+
 		function clean(term){
 			fields.filter(function(field){
 				term = term.split(field+':')[0];
 			});
+			if (term){
+				term = strip(term);
+			}
 			return term;
 		};
 		function fuzzy(term){
 			var fuzzy = [];
-			term = term.trim();
+			term = strip(term);
 			fuzzy = term.split(' ');
 			fuzzy = fuzzy.join('~ ');
 			fuzzy = fuzzy.trim();
@@ -51,6 +53,20 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			}
 			return fuzzy;
 		}
+		function strip(term){
+			if(term){		
+				term = term.replace(/[^\w\s]/gi,'');
+				term=term.trim().toLowerCase();
+				term = term.replace(/ +(?= )/g,'');
+				if(term.length && term!==' ' && term !=='unknown'){
+					return term;
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
+		}
 		var prefix = clean(term);
 		fields.filter(function(field){
 			if(term.split(field+':')[1]){
@@ -58,25 +74,44 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			};
 		});
 		for(var term in terms){
-			
+			qia =qia+'(';
 			if(terms[term]){				
 				var fuzz = fuzzy(terms[term]);
 				q=q+'metadata.'+term+':('+fuzz+')^4 ';
 				fields_ia.filter(function(index){
-					if(index === 'identifier'){
-						qia = qia+index+':'+compress(terms[term])+'^4 ';
+					if(index === 'title'){
+						qia = qia+index+':"'+fuzz+'"^4 OR ';	
 					}else{
-						qia = qia+index+':"'+fuzz+'"^4 ';
+						qia = qia+index+':"'+fuzz+'" OR ';
 					}
-					
+										
 				});
+				qia = qia.trim();
+				var lastIndex = qia.lastIndexOf(" OR");
+				qia = qia.substring(0, lastIndex);
 				
 			}
-			
+			/*
+
+			* */
+			qia =qia+') OR ';			
 		}
+
+		if(qia.length > 1){
+			qia = qia.trim();
+			var lastIndex = qia.lastIndexOf(" OR");
+			qia = qia.substring(0, lastIndex);			
+		}
+
+		
 		if(prefix.length){
+			if(qia.length !== 1){
+				qia =qia+' OR '
+			}
 			q=q+fuzzy(prefix);
-			qia=qia+'description:"'+fuzzy(prefix)+'"';
+			qia=qia+'description:"'+fuzzy(prefix)+'" OR title:"'+fuzzy(prefix)+'"^4)';
+		}else{
+			qia=qia+')'
 		}
 
 		return {

@@ -23,6 +23,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,se
 	$scope.lib={};
 	$scope.lib.tracks=[];
 	$scope.allTracks;
+	$scope.progress={};
 	
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
@@ -33,7 +34,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,se
 	$scope.db_index = window.Yolk.modules[mod_name].config.db_index;
 	$scope.utils = new utils(mod_name);
 	//Boot the database, indexes and settings
-	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive','torrents']).then(function(db){
+	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive','torrents','search']).then(function(db){
 
 		//database is ready - copy it to scope
 		$scope.db = db;
@@ -72,7 +73,13 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,se
 	ipcRenderer.on('track',function(event,data){
 		$scope.tracks.add(data);
 	});
-	
+	ipcRenderer.on('progress',function(event,data){
+
+		$timeout(function(){
+			$scope.progress[data.type]=data.size;
+		});
+		
+	});	
 	ipcRenderer.on('verify',function(event,data){		
 		$scope.tracks.verify(data);
 	})	
