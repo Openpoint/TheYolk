@@ -20,63 +20,71 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	search.prototype.compress = function(term){
 		return term.replace(/ /g,'').toLowerCase();
 	}
+	search.prototype.sanitise = function(term){
+		term = term.replace(/[^\w\s]/gi,'')
+		term = term.replace(/ +(?= )/g,'');
+		return term.toLowerCase();
+	}
+	
+	var fields = ['artist','album','title'];
+	search.prototype.clean = function(term){
+		fields.filter(function(field){
+			term = term.split(field+':')[0];
+		});
+		if (term){
+			term = this.strip(term);
+		}
+		return term;
+	};
+	search.prototype.fuzzy = function(term){
+		var fuzzy = [];
+		term = this.strip(term);
+		fuzzy = term.split(' ');
+		fuzzy = fuzzy.join('~ ');
+		fuzzy = fuzzy.trim();
+		if(fuzzy[fuzzy.length -1] !== '~'){
+			fuzzy = fuzzy+'~';
+		}
+		return fuzzy;
+	}
+	search.prototype.strip = function(term){
+		if(term){		
+			term = term.replace(/[^\w\s]/gi,'');
+			term=term.trim().toLowerCase();
+			term = term.replace(/ +(?= )/g,'');
+			if(term.length && term!==' ' && term !=='unknown'){
+				return term;
+			}else{
+				return false;
+			}
+		}else{
+			return false;
+		}
+	}
+	
+	
 	search.prototype.searchString = function(term){
-		
+		var self = this;
 		var q='';
 		var qia='(';
-		var fields = [
-			'artist','album','title'
-		];
+
 		var fields_ia = [
 			'title',
 			'description'
 		];
 		var terms = {};
 
-		function clean(term){
-			fields.filter(function(field){
-				term = term.split(field+':')[0];
-			});
-			if (term){
-				term = strip(term);
-			}
-			return term;
-		};
-		function fuzzy(term){
-			var fuzzy = [];
-			term = strip(term);
-			fuzzy = term.split(' ');
-			fuzzy = fuzzy.join('~ ');
-			fuzzy = fuzzy.trim();
-			if(fuzzy[fuzzy.length -1] !== '~'){
-				fuzzy = fuzzy+'~';
-			}
-			return fuzzy;
-		}
-		function strip(term){
-			if(term){		
-				term = term.replace(/[^\w\s]/gi,'');
-				term=term.trim().toLowerCase();
-				term = term.replace(/ +(?= )/g,'');
-				if(term.length && term!==' ' && term !=='unknown'){
-					return term;
-				}else{
-					return false;
-				}
-			}else{
-				return false;
-			}
-		}
-		var prefix = clean(term);
+
+		var prefix = this.clean(term);
 		fields.filter(function(field){
 			if(term.split(field+':')[1]){
-				terms[field] = clean(term.split(field+':')[1]);
+				terms[field] = self.clean(term.split(field+':')[1]);
 			};
 		});
 		for(var term in terms){
 			qia =qia+'(';
 			if(terms[term]){				
-				var fuzz = fuzzy(terms[term]);
+				var fuzz = self.fuzzy(terms[term]);
 				q=q+'metadata.'+term+':('+fuzz+')^4 ';
 				fields_ia.filter(function(index){
 					if(index === 'title'){
@@ -108,8 +116,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			if(qia.length !== 1){
 				qia =qia+' OR '
 			}
-			q=q+fuzzy(prefix);
-			qia=qia+'description:"'+fuzzy(prefix)+'" OR title:"'+fuzzy(prefix)+'"^4)';
+			q=q+self.fuzzy(prefix);
+			qia=qia+'description:"'+self.fuzzy(prefix)+'" OR title:"'+self.fuzzy(prefix)+'"^4)';
 		}else{
 			qia=qia+')'
 		}
@@ -121,7 +129,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		
 	}
 	
-	search.prototype.go = function(){
+	search.prototype.go = function(stop_ia){
+
 		if(!$scope.sources.length){
 			return;
 		}
@@ -138,13 +147,16 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				q = q + more.q;
 				q = q +')'
 			}
-
-			$scope.internetarchive.search(more.qia);
+			if(!stop_ia){
+				$scope.internetarchive.search(more.qia);
+			}
+			
 		}
 		$scope.db.fetch($scope.db_index,q).then(function(data){
-			$scope.allTracks = data;						
-			$timeout(function(){
-				$scope.tracks.Filter();
+			$scope.allTracks = data;
+			$scope.tracks.Filter();						
+			$timeout(function(){				
+				$scope.lazy.refresh($('#playwindow').scrollTop());
 			});			
 		})
 

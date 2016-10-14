@@ -172,6 +172,7 @@
 		<div ng-click='db.nuke()'>NUKE!</div>
 		<div><a href='#/'>Home</a></div>
 		<div id = 'activity'>
+			<div ng-if="progress.internetarchive">Internetarchive:{{progress.internetarchive}}</div>
 			<div ng-if="progress.musicbrainz">Musicbrainz:{{progress.musicbrainz}}</div>
 		</div>
 	</div>

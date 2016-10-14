@@ -61,7 +61,6 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 										
 				}				
 			});
-			//$scope.tracks.getTracks();
 			$scope.search.go();		
 			return;
 			
@@ -81,12 +80,11 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 				}
 				
 				$scope.pinned[type] = name;
-				if($('#playwindow').scrollTop()){
-					$('#playwindow').scrollTop(0);
-				}else{
-					$scope.tracks.Filter();
-				}
-						
+				$('#playwindow').scrollTop(0);
+				$scope.tracks.Filter();
+				$timeout(function(){				
+					$scope.lazy.refresh($('#playwindow').scrollTop());
+				});		
 				
 				
 			}else{
@@ -95,11 +93,12 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 				
 				//$scope.scrolling = true;
 				$scope.tracks.Filter();
-				var top = $scope.pinned.scrollTop;
+
 				$timeout(function(){
-					$('#playwindow').scrollTop(top);
+					$scope.lazy.refresh($scope.pinned.scrollTop);
+					$scope.pinned.scrollTop = false;
 				});			
-				$scope.pinned.scrollTop = false;
+				
 				
 				
 			}			

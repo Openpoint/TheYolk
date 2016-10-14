@@ -128,9 +128,11 @@ ft.getDir=function(dir){
 ft.getTags=function(){
 	
 	var self = this;
+	/*
 	var send = function(data){
 		self.sender.send('track', data);
 	}
+	* */
 	
 	if(self.tracks.length > 0){
 		
@@ -146,11 +148,14 @@ ft.getTags=function(){
 
 				track.tagged = true;
 				track.type = 'local';
+				/*
 				send({
 					count:self.loaded - self.tracks.length,
 					total:self.loaded,
 					data:track
 				});
+				* */
+				self.sender.send('track', track);
 				if(self.dBase){
 					self.getTags();
 				}
@@ -158,11 +163,14 @@ ft.getTags=function(){
 			onError: function(error) {
 				track.tagged = false;
 				track.type = 'local';
+				/*
 				send({
 					count:self.loaded - self.tracks.length,
 					total:self.loaded,
 					data:track
 				});
+				* */
+				self.sender.send('track', track);
 				if(self.dBase){
 					self.getTags();
 				}

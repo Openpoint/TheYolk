@@ -18,12 +18,13 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 
 	var ia = function(scope){
 		$scope = scope;	
+		this.max_tracks = 100; //maximum amount of tracks in a found item - cuts out some strange crap
 	}
 	var timeout;	
 	ia.prototype.search = function(term){
 
 		
-		var query=term+' AND mediatype:audio AND collection:opensource_audio&fl[]=title,identifier,description,creator&rows=10&page=1&output=json';
+		var query=term+' AND mediatype:audio AND collection:opensource_audio&fl[]=title,identifier,description,creator&rows=200&page=1&output=json';
 		var self = this;
 		$scope.iaTimer = $timeout(function(){
 			var id = $scope.search.compress(term);
@@ -41,20 +42,22 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 					if(result.length){
 						result.forEach(function(item){						
 							if(!q.meta.length){
-								q.meta.push(item);
+								q.meta.unshift(item);
 								self.getMeta();
 							}else{
-								q.meta.push(item);
+								q.meta.unshift(item);
 							}
 
 						});
 					}
 				});
+				
+			
 
 			},function(err){
-				console.log(err.message);
+				//console.log(err.message);
 			});					
-
+			
 		},2000);		
 	}
 	
@@ -63,10 +66,31 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 		root = 'https://archive.org/download/'+root+'/';
 		
 		var self = this;
-		//self.filter = filter;
+		var goodfiles = [];
+		var sequential = [];
+		var seqCount = 0;
+		data.files.filter(function(file){
+			
+			if(types.indexOf(path.extname(file.name).toLowerCase()) > -1 && file.title){
+				var term = file.title.replace(/[^A-Za-z]/g,'');
+				if(sequential.indexOf(term) === -1){
+					sequential.push(term);
+				}else{
+					seqCount++
+				}
+				goodfiles.push(file);
+			}
+		});
+		//console.log('sequential:'+seqCount);
+		//console.log('goodfiles:'+goodfiles.length);
+		
+		//abort the batch if too many files or too many file repeats, ie a sequentional list of same name files
+		if(goodfiles.length > this.max_tracks || (seqCount && goodfiles.length - seqCount < 5)){
+			return;
+		}
 		
 		
-		data.files.forEach(function(file){
+		goodfiles.forEach(function(file){
 			//console.log(file);
 			var track = self.format(file,root);
 			if(types.indexOf(path.extname(file.name).toLowerCase()) > -1 && file['external-identifier'] && file['external-identifier'].length > 1){
@@ -91,33 +115,18 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 				
 				if(ids.mb_recording_id){
 					track.musicbrainz_id = ids.mb_recording_id;
-					//console.log(track);
-					//$scope.tracks.add(track);
-					//return;
-					/*
-					ipcRenderer.send('musicbrainz', {
-						id:ids.mb_recording_id,
-						track:track,
-						filter:self.filter
-					});
-					* */
 					ipcRenderer.send('musicbrainz',track);
 					
 				}else if(file.artist && file.title){
 					//no MusicBrainz ID found for the track
 					ipcRenderer.send('musicbrainz',track);
-					//$scope.tracks.add(track);
 				}
 			}else if(types.indexOf(path.extname(file.name).toLowerCase()) > -1 && file.artist && file.title){
+				//does not contain MusicBrainz ID
 				ipcRenderer.send('musicbrainz',track);
-				//$scope.tracks.add(track);
-				//Not of playable type or does not contain MusicBrainz ID
-				//self.noExtid(file,filter,root);
 			}
 			
 		});
-		
-		q.tracks
 	};
 	
 	ia.prototype.format=function(file,root){
@@ -135,35 +144,19 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 			filter:{},
 			type:'internetarchive'
 		}
-		/*
-		var track={
-			count:0,
-			total:0,
-			data:track
-		};
-		* */
+
 		return track;			
 	}
-	/*
-	ia.prototype.noExtid = function(track,filter,root){
-		if(filters[filter.funct](filter.value,track.artist)){
-			var track =  this.format(track,root);
 
-			ipcRenderer.send('MBtrack', {
-				track:track,
-				filter:filter
-			});
-		};			
-	}
-	* */
 	
 	//get the full details of the specific found item, including track file listing
 	ia.prototype.getMeta = function(){
 		var self = this;
 		//var src = q.meta[0].item;
 		var src = q.meta[0].identifier;
+
+		$scope.progress.internetarchive = q.meta.length
 		
-		//var filter = q.meta[0].filter;
 		var url = 'https://archive.org/metadata/'+src;
 		$http({
 			method:'GET',
@@ -171,6 +164,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',f
 		}).then(function successCallback(response){	
 			//console.log(response);
 			q.meta.shift();
+			$scope.progress.internetarchive = q.meta.length
 			if(q.meta.length){
 				self.getMeta();
 			}else if(q.queries.length){

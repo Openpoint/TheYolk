@@ -9,7 +9,7 @@
 const {ipcMain} = require('electron');
 const request = require('request');
 const path = require('path');
-const dbase = require(path.join(process.cwd(),'core/lib/elasticsearch.js'));
+//const dbase = require(path.join(process.cwd(),'core/lib/elasticsearch.js'));
 
 function fuzzy(term){
 	var fuzzy = [];
@@ -36,11 +36,12 @@ function strip(term){
 		return false;
 	}
 }
+/*
 var client;
 dbase.then(function(db){
 	var client = db.client;
 })
-	
+*/	
 var musicbrainz=function(){
 	this.mbq=[];
 	this.done = [];
@@ -79,7 +80,7 @@ musicbrainz.prototype.process = function(tt,track,type){
 			releases = item.releases
 		}
 		if(releases[0]){
-			self.sender.send('log',type);
+			//self.sender.send('log',type);
 			
 			track.metadata.artist=item['artist-credit'][0].artist.name;			
 			track.metadata.album = releases[0].title;
@@ -111,7 +112,7 @@ musicbrainz.prototype.process = function(tt,track,type){
 			});
 		}
 		catch(err){
-			self.sender.send('log',err);
+			//self.sender.send('log',err);
 		}
 		
 		//self.sender.send('log',type);
@@ -144,7 +145,7 @@ musicbrainz.prototype.submit = function(track,options,type){
 				}				
 			}
 			if(error){
-				self.sender.send('log',error.toJSON());
+				self.sender.send('log',error);
 			}
 		}
 		self.buffer--;
@@ -213,7 +214,7 @@ musicbrainz.prototype.pacer=function(){
 	}
 }
 musicbrainz.prototype.q = function(track){
-	this.mbq.push(track);
+	this.mbq.unshift(track);
 	if(!this.running){
 		this.pacer();
 	}
@@ -225,13 +226,10 @@ if(!mbz){
 //listen for incoming data
 ipcMain.on('musicbrainz', (event, track) => {
 	mbz.sender = event.sender;
-	mbz.q(track);
+	if(mbz.mbq.indexOf(track) === -1){
+		//mbz.sender.send('log',track);
+		mbz.q(track);
+	}
 	
-	//filters[data.filter.funct](data.filter.value)
 })
-/*
-ipcMain.on('MBtrack', (event, data) => {
-	event.sender.send('log','relay');
-	event.sender.send('MBtrack',data.track);
-})
-*/
+

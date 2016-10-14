@@ -34,6 +34,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,se
 	$scope.db_index = window.Yolk.modules[mod_name].config.db_index;
 	$scope.utils = new utils(mod_name);
 	//Boot the database, indexes and settings
+	$scope.data_sources = ['local','jamendo','internetarchive','torrents'];
 	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive','torrents','search']).then(function(db){
 
 		//database is ready - copy it to scope
@@ -49,7 +50,14 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,tracks,se
 				$scope.settings = settings;	
 				$scope.dbReady = true;
 				$scope.settings_loaded = true;
-				$scope.tracks.checkLocal('local');				
+				$scope.tracks.checkLocal('local');
+				
+				console.log('find bob');
+				$scope.db.fetch($scope.db_index,'(_type:local _type:jamendo _type:internetarchive _type:torrents ) AND metadata.title:(bob~ dylans~ dream~) AND metadata.artist:(bob~ dylan~)').then(function(data){
+					console.log(data);
+				});
+				
+								
 			});			
 		});	
 	});
