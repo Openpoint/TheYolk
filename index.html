@@ -78,7 +78,9 @@
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);
 		})
-
+		ipcRenderer.on('error',function(event,data){
+			console.error(data);
+		})
 	</script>
   </body>
 </html>

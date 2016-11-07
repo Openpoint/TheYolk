@@ -93,7 +93,8 @@ bootloader.prototype.configs  = function(module){
 	var self  = this;
 	if(module.config.core_process){
 		module.config.core_process.forEach(function(process){
-			var cp = path.join(module.path,'lib',process+'.js');
+			var cp = path.join(module.path,'lib','process',process+'.js');
+			console.log(cp);
 			if(isThere('file',cp)){
 				self.coreProcesses.push(cp);
 			}
@@ -102,7 +103,7 @@ bootloader.prototype.configs  = function(module){
 	if(!module.extends){
 		
 		//get the Angular controller
-		var file = path.join(module.path,'js',module.name+'_controller.js');
+		var file = path.join(module.path,'angular',module.name+'_controller.js');
 		if(isThere('file',file)){
 			module.controller = file;
 		}else{
@@ -129,7 +130,7 @@ bootloader.prototype.configs  = function(module){
 		}
 		load.forEach(function(pt){
 			//get the angular services
-			file = path.join(pt,'js','services')
+			file = path.join(pt,'angular','services')
 			
 			if(isThere('dir',file)){			
 				var services = fs.readdirSync(file);			
@@ -143,7 +144,7 @@ bootloader.prototype.configs  = function(module){
 				});
 			}
 			//get the angular filters
-			file = path.join(pt,'js','filters')
+			file = path.join(pt,'angular','filters')
 			
 			if(isThere('dir',file)){			
 				var filters = fs.readdirSync(file);			

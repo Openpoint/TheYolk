@@ -46,6 +46,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 					case 'online':
 						$scope.sources.push('jamendo');
 						$scope.sources.push('internetarchive');
+						$scope.sources.push('youtube');
 						break;
 						
 					case 'suggestions':
@@ -61,7 +62,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 										
 				}				
 			});
-			$scope.search.go();		
+			$scope.search.go(true);		
 			return;
 			
 		}else{

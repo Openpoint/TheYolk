@@ -8,20 +8,7 @@ const crypto = require('crypto');
 const jsmediatags = require("jsmediatags");
 const root = process.cwd();
 
-/*
-const dbinit = require(path.join(root,'core/lib/elasticsearch.js'));
-var db;
-dbinit.then(function(data){
-	db = data;
-})
-*/
-
-//var types=['.mp3','.wav','.ogg']; //allowed music file extensions
-
-var types = require('../musicPlayer.js').settings.fileTypes;
-
-
-
+var types = require('../../musicPlayer.js').settings.fileTypes;
 
 var ft = {
 	tracks:[],
@@ -148,13 +135,7 @@ ft.getTags=function(){
 
 				track.tagged = true;
 				track.type = 'local';
-				/*
-				send({
-					count:self.loaded - self.tracks.length,
-					total:self.loaded,
-					data:track
-				});
-				* */
+
 				self.sender.send('track', track);
 				if(self.dBase){
 					self.getTags();
@@ -163,13 +144,6 @@ ft.getTags=function(){
 			onError: function(error) {
 				track.tagged = false;
 				track.type = 'local';
-				/*
-				send({
-					count:self.loaded - self.tracks.length,
-					total:self.loaded,
-					data:track
-				});
-				* */
 				self.sender.send('track', track);
 				if(self.dBase){
 					self.getTags();
@@ -177,7 +151,7 @@ ft.getTags=function(){
 			}
 		});		
 	}else{
-		//self.init = false;
+
 		self.sender.send('log','finished tagging');
 		
 	}
@@ -202,7 +176,7 @@ ft.verify = function(tracks, dir){
 //event listeners
 ipcMain.on('getDir', (event, dir) => {
 
-	ft.dBase=true;
+	//ft.dBase=true;
 	ft.init = true;
 	ft.sender = event.sender;	
 	ft.loaded=0;
@@ -216,7 +190,6 @@ ipcMain.on('getDir', (event, dir) => {
 })
 
 ipcMain.on('verify', (event, data) => {
-	event.sender.send('log',data);
 	ft.sender = event.sender;
 
 	for(var key in ft.watchers){

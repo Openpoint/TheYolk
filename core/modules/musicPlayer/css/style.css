@@ -265,3 +265,16 @@ body,html{
 .anchor.active .cancel{
 	opacity:1;
 }
+
+
+#devinfo{
+	background:rgba(0,0,0,.75);
+	color:white;
+	font-family:monospace;
+	position:absolute;
+	top:100%;
+	padding:20px;
+	width:100%;
+	box-sizing:border-box;
+	overflow:hidden;
+}
