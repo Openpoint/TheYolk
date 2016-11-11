@@ -1,11 +1,4 @@
-'use strict'
-
-	try { 
-		throw Error('mess') 
-	} 
-	catch(err) {
-		console.log(err.message); 
-	}
+'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',
@@ -48,7 +41,51 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.utils = new utils(mod_name);
 	//Boot the database, indexes and settings
 	$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
-	$scope.utils.boot($scope.db_index,['local','jamendo','internetarchive','youtube','torrents','search']).then(function(db){
+	var Mapping={
+		type: "string",
+		analyzer: "english",
+		fields:{
+			raw:{
+				type:  "string",
+				index: "not_analyzed"
+			}
+		}
+	}
+	var mapping = {
+		properties:{
+			metadata:{
+				properties:{
+					title:Mapping,
+					artist:Mapping,
+					album:Mapping
+				}
+			}
+		}
+	}
+	var types=[
+		{
+			type:'local',
+			mapping:mapping
+		},{
+			type:'jamendo',
+			mapping:mapping
+		},{
+			type:'internetarchive',
+			mapping:mapping
+		},{
+			type:'youtube',
+			mapping:mapping
+		},{
+			type:'torrents',
+			mapping:mapping
+		},{
+			type:'search',
+			mapping:mapping
+		},		
+	]
+		
+	
+	$scope.utils.boot($scope.db_index,types).then(function(db){
 
 		//database is ready - copy it to scope
 		$scope.db = db;
@@ -58,7 +95,44 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		db.fetch($scope.db_index+'.youtube').then(function(data){
 			console.log(data);
 		});
-		*/
+		
+			
+
+
+
+		db.client.indices.putMapping({
+			index:'music_player',
+			type:'youtube',
+			update_all_types:true,
+			body:{
+				properties:{
+					//properties:{
+						metadata:{
+							properties:{
+								title:{
+									type:"string",
+									index:"not_analyzed"
+								}
+							}
+						}
+					//}
+				}
+			}
+		},function(resp,data){
+			console.log(resp);
+			console.log(data);
+		})
+
+*/
+
+		db.client.indices.getFieldMapping({
+			index:'music_player',
+			type:'local',
+			fields:'metadata.title'
+		},function(resp,data){
+			console.log(resp);
+			console.log(data);
+		})
 				
 		//load settings
 		$scope.utils.settings('music').then(function(settings){

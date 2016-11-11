@@ -7,7 +7,6 @@ angular.module('yolk').filter('tracks',[function() {
 		$scope = scope;
 		var tracks = $scope.allTracks;
 		var lazy = $scope.lazy;
-		var pinned = $scope.pinned;
 		var isPinned;
 	
 		var search = $scope.search;
@@ -23,13 +22,13 @@ angular.module('yolk').filter('tracks',[function() {
 			return tracks;
 		}
 
-		if(pinned.album){
+		if($scope.pinned.album){
 			isPinned = true;
-			tracks = filter('album',pinned.album);
+			tracks = filter('album',$scope.pinned.album);
 		}
-		if(pinned.artist){
+		if($scope.pinned.artist){
 			isPinned = true;
-			tracks = filter('artist',pinned.artist);
+			tracks = filter('artist',$scope.pinned.artist);
 		}
 
 		lazy.libSize = tracks.length;

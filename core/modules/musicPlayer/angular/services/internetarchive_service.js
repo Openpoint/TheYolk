@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('yolk').factory('internetarchive',['$http','$timeout','filters',function($http,$timeout,filters) {
+angular.module('yolk').factory('internetarchive',['$http','$timeout',function($http,$timeout) {
 	
 	const {ipcRenderer} = require('electron');
 	const path = require('path');

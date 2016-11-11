@@ -14,6 +14,25 @@ body,html{
 	width:100%;
 	background:#302B22;
 	color:white;
+	display:flex;
+	direction:row;
+	align-items:center;
+}
+#topmen a{
+	color:white;
+	text-decoration:none;
+}
+#topmen .icon{
+	width:50px;
+	padding:0 30px 0 5px;
+	cursor:pointer;
+	text-align:center;
+	font-size:20px;	
+}
+#topmen .item{
+	font-size:14px;
+	margin-right:10px;
+	cursor:pointer;
 }
 #playwindow{
 
@@ -65,12 +84,10 @@ body,html{
 
 }
 .track .title{
-	padding-bottom:8px;
 	font-weight:600;
 }
 .track .artist,
 .track .album{
-
 	cursor:pointer;
 }
 .info .row{
@@ -125,56 +142,77 @@ body,html{
 .track .above, 
 .track .below{
 	display:flex;
-	flex-direction:row;
+	flex-direction:row;		
+	height:60px;
+}
+.track .above{
 	align-items:flex-end;
+	padding-bottom:5px;
 }
 .track .below{
-	align-items:flex-start;	
+	align-items:flex-start;
+	padding-top:5px;
 }
-.track .above .icons{
+.track .icons{
 	width:50px;
-	height:50px;
-	padding:10px 30px 5px 5px;
+	padding:0 30px 0 5px;
 	cursor:pointer;
+	text-align:center;
 }
-.track .below .icons{
-	width:50px;
-	height:50px;
-	padding:10px 30px 5px 5px;
+.track .below .icons{	
+	font-size:40px;
+	opacity:.5;
+}
+.track .below .icons:hover{
+	opacity:1;
+}
+#widgets{
+	flex-grow:1;
+	align-self:stretch;
+	align-items:center;
+	display:flex;
+	flex-direction:row-reverse;
+	padding-bottom:5px;
 }
 #playing .scroll{
 	cursor:pointer;
 	font-size:20px;
-	position:absolute;
-	right:10px;
-	align-self:center;
+	width:40px;
+	text-align:center;
 	color:Tomato;
+	
+}
+.above .scroll{
+	padding-top:10px;
+	align-self:flex-start;
+}
+.below .scroll{
+	padding-bottom:10px;
+	align-self:flex-end;
 }
 #playing .next .nextTrack{
 	cursor:url('../images/playHover.ico') 16 16,auto;
+	padding:0 5px;
 }
 #playing .next{
 	
 	color:tomato;
-	position:absolute;
-	right:100px;
 	font-size:.95em;
 	opacity:.85;
-	padding-bottom:8px;
 	display:flex;
-	flex-direction:row;
+	flex-direction:row-reverse;
 	align-items:center;
+	flex-grow:1;
 }
 #playing .next .icon{
 	font-size:1.5em;
-	padding:0 5px;
 	cursor:pointer;
 }
 .track .below .info{
-	padding-top:5px;
+
 }
 .track .above .icon{
-	font-size:50px;
+	font-size:45px;
 }
 .track.playing .Top,
 .track.paused .Top{
@@ -218,6 +256,19 @@ body,html{
 
 #search{
 	position:relative;
+	display:flex;
+	direction:row;
+	align-items:center;
+	background:white;
+	border-bottom:1px solid #302B22;
+	
+}
+#search .icon{
+	width:50px;
+	padding:0 30px 0 5px;
+	text-align:center;
+	color:#302B22;
+	font-size:25px;	
 }
 #mask{
 	position:absolute;
@@ -234,9 +285,12 @@ body,html{
 	margin:0;
 	border:none;
 	padding:20px;
+	padding-left:0;
 	box-sizing:border-box;
 }
-
+#search input:focus {
+    outline-width: 0;
+}
 .anchor{
 	width:100%;
 	text-align:center;
@@ -277,4 +331,28 @@ body,html{
 	width:100%;
 	box-sizing:border-box;
 	overflow:hidden;
+}
+#youtube2{
+	position:relative;
+	width:100%;
+	height:100%;
+}
+#youtube-wrap{
+	width:100%;
+}
+#fullscreen_out{
+	cursor:pointer;
+	position:absolute;
+	top:50px;
+	left:50px;
+	color:white;
+	width:50px;
+	height:50px;
+	border-radius:50%;
+	background:rgba(0,0,0,.5);
+	display: flex;
+	flex-direction:row;
+	justify-content:center;
+	align-items:center;
+	font-size:40px;
 }

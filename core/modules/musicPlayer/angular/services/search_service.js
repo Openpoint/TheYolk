@@ -6,6 +6,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	
 	var search = function(scope){
 		$scope = scope;
+		$scope.sort = function(type){
+			$scope.sortby = 'metadata.'+type;
+		}
 		this.fields = tools.fields;
 		
 		var self = this;
@@ -89,8 +92,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				$scope.youtube.search($scope.searchTerm);
 			}			
 		}
-		//console.log(q);
-		$scope.db.fetch($scope.db_index,q).then(function(data){
+
+		$scope.db.fetch($scope.db_index,q,$scope.sortby).then(function(data){
 			$scope.allTracks = data;
 			$scope.tracks.Filter();						
 			$timeout(function(){				

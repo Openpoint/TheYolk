@@ -10,6 +10,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 	
 	//engages the database and returns a database handler object
 	utils.prototype.boot = function(index,ids){
+		console.log(ids);
 		
 		this.index_root = index;
 		var self = this;
@@ -28,12 +29,12 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 						resolve(db);
 					}
 				}
-				var check = function(index){
+				var check = function(index,mapping){
 					db.exists(index).then(function(exists){
 						if(exists){
 							res();
 						}else{
-							db.create(index).then(function(){
+							db.create(index,mapping).then(function(){
 								res();
 							});							
 						}
@@ -41,9 +42,8 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				}
 				check(index);
 				if(ids.length){
-					ids.forEach(function(id){
-						
-						check(index+'.'+id);
+					ids.forEach(function(id){						
+						check(index+'.'+id.type,id.mapping);
 					});
 				}				
 			});
