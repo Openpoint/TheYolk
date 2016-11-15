@@ -132,6 +132,7 @@ ft.getTags=function(){
 				track.metadata.title = tag.tags.title || self.tracks[self.q2].file;
 				track.metadata.artist =  tag.tags.artist;
 				track.metadata.album =  tag.tags.album;
+				track.date = Date.now();
 
 				track.tagged = true;
 				track.type = 'local';

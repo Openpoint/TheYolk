@@ -6,9 +6,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	
 	var search = function(scope){
 		$scope = scope;
-		$scope.sort = function(type){
-			$scope.sortby = 'metadata.'+type;
-		}
 		this.fields = tools.fields;
 		
 		var self = this;

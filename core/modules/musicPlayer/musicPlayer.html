@@ -1,28 +1,15 @@
 <script>
-	window.Yolk.getModule();
-	window.Yolk.youtube = {};	
+	console.log(window.Yolk)
+	window.Yolk.getModule();	
 </script>
 
 <div ng-controller="musicPlayer" id='playframe'>	
-	<script>
-		/*
-		function onYouTubeIframeAPIReady() {
-			
-			window.Yolk.youtube.player = new YT.Player('youtube', {
-				events: {
-				  'onReady': window.Yolk.youtube.onPlayerReady,
-				  'onStateChange': window.Yolk.youtube.onPlayerStateChange
-				}
-			});
-			console.log(window.Yolk.youtube.player)
-		}
-		*/
-	</script>
 	<div id='topmen' ng-style="{height:dims.menHeight}">
 			<div class='icon'><a class='icon-home' href='#/'></a></div>
-			<div class='item' ng-click="sort('title')">Title </div>
-			<div class='item' ng-click="sort('artist')">Artist </div>
-			<div class='item' ng-click="sort('album')">Album </div>	
+			<div class='item' ng-click="sort('metadata.title','raw')">Title</div>
+			<div class='item' ng-click="sort('metadata.artist','raw')">Artist</div>
+			<div class='item' ng-click="sort('metadata.album','raw')">Album</div>
+			<div class='item' ng-click="sort('date')">Recent</div>	
 	</div>
 	<div id='search' ng-show='dbReady && settings.paths.musicDir' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
 		<div class="icon icon-search"></div>
@@ -108,7 +95,7 @@
 						<div class='title'>{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
 						<div class='next' ng-if="lib.playing.Pinned">
 							<div class="icon icon-next"></div>
-							<div class='nextTrack' ng-click="audio.play(lib.playing.index+1)">{{lib.tracks[lib.playing.index+1].metadata.title ||lib.tracks[0].metadata.title }}</div>
+							<div class='nextTrack' ng-click="audio.play(nowTracks[lib.playing.filter.pos+1]||nowTracks[0])">{{nowTracks[lib.playing.filter.pos+1].metadata.title || nowTracks[0].metadata.title }}</div>
 							<div class="icon icon-previous"></div>
 							
 						</div>
@@ -165,7 +152,7 @@
 		-->
 		<div id='youtube-wrap' ng-show="lib.playing.youtube" ng-mousemove="fader()" ng-style="{height:dims.vidheight}">
 			<div id='youtube2'>
-				<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" nodeintegration preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
+				<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
 				<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
 					<div class='icon-fullscreen_out'></div>
 				</div>

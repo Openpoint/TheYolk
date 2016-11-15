@@ -5,6 +5,7 @@ angular.module('yolk').filter('tracks',[function() {
 	var $scope;
 	return function(scope){
 		$scope = scope;
+		
 		var tracks = $scope.allTracks;
 		var lazy = $scope.lazy;
 		var isPinned;
@@ -37,7 +38,7 @@ angular.module('yolk').filter('tracks',[function() {
 			tracks = $scope.allTracks;
 			lazy.libSize = tracks.length;
 		}
-		
+		$scope.nowTracks = tracks;
 		if(!lazy.Step){
 			lazy.step();
 		}else{

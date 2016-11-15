@@ -8,7 +8,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	
-	$scope.progress={};		
+	$scope.progress={};
+	$scope.Sortby={};
+
+			
 	$scope.audio = new audio($scope);
 	$scope.search = new search($scope);	
 	$scope.pin = new pin($scope);
@@ -23,6 +26,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.lib={};
 	$scope.lib.tracks=[];
 	$scope.allTracks;
+	
 	
 	
 	//stop scanning the local filesystem if window dies
@@ -84,47 +88,14 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		},		
 	]
 		
-	
 	$scope.utils.boot($scope.db_index,types).then(function(db){
 
 		//database is ready - copy it to scope
 		$scope.db = db;
 		ipcRenderer.send('dBase',true);
+		$scope.sort('metadata.title','raw');
 		
 		/*
-		db.fetch($scope.db_index+'.youtube').then(function(data){
-			console.log(data);
-		});
-		
-			
-
-
-
-		db.client.indices.putMapping({
-			index:'music_player',
-			type:'youtube',
-			update_all_types:true,
-			body:{
-				properties:{
-					//properties:{
-						metadata:{
-							properties:{
-								title:{
-									type:"string",
-									index:"not_analyzed"
-								}
-							}
-						}
-					//}
-				}
-			}
-		},function(resp,data){
-			console.log(resp);
-			console.log(data);
-		})
-
-*/
-
 		db.client.indices.getFieldMapping({
 			index:'music_player',
 			type:'local',
@@ -133,6 +104,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			console.log(resp);
 			console.log(data);
 		})
+		* */
 				
 		//load settings
 		$scope.utils.settings('music').then(function(settings){

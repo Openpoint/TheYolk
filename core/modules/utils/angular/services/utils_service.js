@@ -2,16 +2,14 @@
 var path = require('path');
 
 angular.module('yolk').factory('utils',['$q', function($q) {
-	var elastic = require(path.join(window.Yolk.root,'core/lib/elasticsearch.js'));
+	var elastic = require(path.join(window.Yolk.root,'core/lib/elasticsearch.js')).ping;
 	var utils = function(module){
 		this.module = module;
 		this.index_root;
 	};
 	
 	//engages the database and returns a database handler object
-	utils.prototype.boot = function(index,ids){
-		console.log(ids);
-		
+	utils.prototype.boot = function(index,ids){		
 		this.index_root = index;
 		var self = this;
 		
@@ -25,27 +23,59 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				
 				var res=function(){
 					count++
-					if(count === (ids.length || 0) +1){						
+					console.log(count+':'+ids.length);
+					if(count === ids.length){						
 						resolve(db);
 					}
 				}
 				var check = function(index,mapping){
-					db.exists(index).then(function(exists){
+					console.log('check');
+					var checked = db.exists(index);
+					checked.catch(function(err){
+						console.log(err);
+						check(index,mapping);
+					})
+					checked.then(function(exists){
+						console.log(exists);
+						
 						if(exists){
+							console.log('exists2');
 							res();
 						}else{
+							console.log('does not exist2');
 							db.create(index,mapping).then(function(){
 								res();
 							});							
 						}
 					});					
 				}
-				check(index);
-				if(ids.length){
-					ids.forEach(function(id){						
-						check(index+'.'+id.type,id.mapping);
-					});
-				}				
+				db.exists(index).then(function(exists){
+
+					if(exists){
+						console.log('exists');
+						go();
+					}else{
+						console.log('does not exist');
+						db.create(index).then(function(){
+							go();
+						});							
+					}
+				});
+				
+				function go(){
+
+					if(ids.length){
+						console.log('has length');
+						ids.forEach(function(id){	
+							console.log(id);					
+							new check(index+'.'+id.type,id.mapping);
+						});
+					}else{
+						console.log('does not have length');
+						resolve(db);
+					}					
+				}
+								
 			});
 		})
 	}

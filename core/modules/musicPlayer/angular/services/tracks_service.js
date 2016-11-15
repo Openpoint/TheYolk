@@ -9,6 +9,26 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	
 	var tracks = function(scope){
 		$scope = scope;
+		$scope.sort = function(type,field){
+			
+			var key = type.split('.').pop();
+			if(!$scope.Sortby[key]){
+				$scope.Sortby[key]={};
+			}
+			$scope.Sortby[key].term = type;
+			$scope.Sortby[key].field = field;
+			
+			if(!$scope.Sortby[key].dir){
+				$scope.Sortby[key].dir = 'asc'
+			}else if($scope.Sortby[key].dir === 'desc'){
+				$scope.Sortby[key].dir = 'asc'
+			}else{
+				$scope.Sortby[key].dir = 'desc'
+			}
+
+			$scope.sortby = $scope.Sortby[key];
+			$scope.search.go(true);			
+		}
 	}
 	
 	//timer to set sane pace for bulk database submissions

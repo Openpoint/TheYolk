@@ -6,7 +6,6 @@
 	<script>
 		window.$ = window.jQuery = require('jquery');
 	</script>
-	<script src='./core/lib/popcorn/popcorn-complete.min.js'></script>
 	<link rel="stylesheet" type="text/css" href="./core/reset.css">
   </head>
   <body>
@@ -17,15 +16,20 @@
 		ipcRenderer.on('config',function(event,data){
 			window.Yolk = config = data;
 			config.getModule=function(){
+				
 				var head  = document.getElementsByTagName('head')[0];
 				$('head [id^=inject]').remove();
 				var modname = window.location.hash.split('/')[1];
-
+				if(!modname){
+					modname = 'musicPlayer'
+				}
 				for(var key in config.modules){
 					var module = config.modules[key];
+					
 					if(module.name === modname && module.css && module.css.length){
 						var count = 0;
 						module.css.forEach(function(css){
+							
 							var link  = document.createElement('link');
 							link.rel  = 'stylesheet';
 							link.type = 'text/css';

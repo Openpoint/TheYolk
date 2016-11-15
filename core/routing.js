@@ -12,7 +12,8 @@ angular.module('yolk', [
 .config(['$routeProvider','$animateProvider', function ($routeProvider,$animateProvider) {
 	
 	$routeProvider.when('/', {
-		templateUrl:path.join(config.root,'core/yolk.html')
+		//templateUrl:path.join(config.root,'core/yolk.html')
+		templateUrl:path.join(config.root,'core/modules/musicPlayer/musicPlayer.html')
 	});
 	//config.modules.forEach(function(module){
 	for(var key in config.modules){

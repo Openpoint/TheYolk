@@ -12,7 +12,9 @@ const path = require('path');
 const tools = require('../tools/searchtools.js');
 const settings = require('../../musicPlayer.js');
 const mb_url="http://musicbrainz.org/ws/2/";
-const mb_query="inc=artist-credits+releases&fmt=json";
+const mb_query="inc=all&fmt=json";
+const disam = ['official','stereo','original']
+//const mb_query="inc=artist-credits+releases&fmt=json";
 
 var queries = [];
 var elastic;
@@ -42,26 +44,21 @@ musicbrainz.prototype.process = function(tt,track){
 	var self = this;
 	//var releases =[];
 	function verify(item){
-		/*
-		//scan through each found release for track and filter to criteria
-		item.releases.forEach(function(release){
-			try{
-				//if(release.status && release.status.toLowerCase() === status && self.english.indexOf(release.country) > -1){
-				if(release.status && release.status.toLowerCase() === status){
-					releases.push(release);
-				}				
-			}
-			catch(err){
-				eRRor(self.sender,err.meesage);
-			}
 
-		});
-		if (releases.length < 1 && track.musicbrainz_id){
-			releases = item.releases
-		}
-		*/
+		
 		//found a  release, add data to track metadata
-		if(item.releases[0]){		
+		if(item.releases[0]){
+			//self.sender.send('log',item);	
+			if(item.tags && item.tags.length){
+				var tags=[];
+				item.tags.forEach(function(tag){
+					if(tag.name){
+						tags.push(tag.name);
+					}
+				});
+				//self.sender.send('log',tags);
+				track.tags=tags;
+			}	
 			track.metadata.artist=item['artist-credit'][0].artist.name;	
 			if(track.type !== 'youtube'){
 				track.metadata.album = item.releases[0].title;
@@ -74,6 +71,7 @@ musicbrainz.prototype.process = function(tt,track){
 				});
 			}
 			//self.sender.send('log',track);
+			track.date = Date.now();
 			elastic.put(settings.db_index+'.'+track.type+'.'+track.id,track).then(function(data){},function(err){
 				eRRor(self.sender,err);
 			});
@@ -91,13 +89,43 @@ musicbrainz.prototype.process = function(tt,track){
 	};
 	
 	if(track.musicbrainz_id && tt.length){
+		//self.sender.send('log','________________________');
 		//has a musicbrainz id - so verify		
 		verify(tt);		
 	}else if(tt.count){	
-		
+		//self.sender.send('log','________________________');
 		//found results for lookup search, so process each result
-		for(var i = 0; i < tt.recordings.length; i++){
-			if(verify(tt.recordings[i])){
+		/*
+		var recordings = tt.recordings.filter(function(item){
+			if(item.disambiguation && item.disambiguation.toLowerCase().indexOf('live') === -1){
+				return true;
+			}
+			
+		});
+		if(!recordings.length){
+			recordings = tt.recordings;
+		}else{
+			var recs = [];
+			recordings.forEach(function(r){
+				disam.forEach(function(dis){
+					if(r.disambiguation.indexOf(dis) > -1){
+						recs.push(r);
+					}
+				});
+				
+			});
+			if(!recs.length){
+				recordings = tt.recordings;
+			}else{
+				recordings = recs;
+				self.sender.send('log',recordings);
+			}
+			
+		}
+		* */
+		var recordings = tt.recordings;
+		for(var i = 0; i < recordings.length; i++){
+			if(verify(recordings[i])){
 				i=tt.recordings.length;			
 			}			
 		}
@@ -112,6 +140,7 @@ musicbrainz.prototype.submit = function(track){
 	new function(track2,self){
 		var options={};
 		options.headers = self.options.headers
+
 		options.url = encodeURI(track2.query);
 		request.get(options,function(error, response, body){
 			if (!error && response.statusCode == 200) {
@@ -126,7 +155,7 @@ musicbrainz.prototype.submit = function(track){
 					self.process(tt,track2);
 				}
 				catch(err){
-					eRRor(self.sender,JSON.parse(err.message));
+					eRRor(self.sender,err.message);
 				}			
 			}else{
 				if(response){
@@ -245,7 +274,7 @@ ipcMain.on('musicbrainz', (event, track) => {
 	}
 	
 	if(queries.indexOf(track.query) === -1){
-		event.sender.send('log',track.query);
+		//event.sender.send('log',track.query);
 		mbz.sender = event.sender;
 		queries.push(track.query);
 		mbz.q(track);
@@ -259,12 +288,9 @@ function eRRor(sender,mess){
 		sender.send('error',err.stack); 
 	}	
 }
-ipcMain.on('dBase', (event, ready) => {
-	if(ready){
-		
-		require(path.join(process.cwd(),'core/lib/elasticsearch.js')).then(function(db){
-			elastic = db;
-		});
+ipcMain.on('dBase', function(event, ready){
+	if(ready){		
+		elastic = require(path.join(process.cwd(),'core/lib/elasticsearch.js')).ready();
 				
 	}
 })

@@ -110,45 +110,43 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 					var q2 = query+'&pageToken='+token;
 				}else{
 					var q2 = query;
-				}	
-				$http({
-					method:'GET',
-					url:q2,
-				}).then(function(response){
-					if(response.data.items && response.data.items.length){
+				}
+				$.get(q2).done(function(response){
+					if(response.items && response.items.length){
 						
-						response.data.items.forEach(function(item){	
+						response.items.forEach(function(item){	
 
 							if(self.filter(term,item.snippet.title,item.snippet.description)){
 								ids.push(item.id.videoId);
 							}							
 						});
-						if(response.data.nextPageToken){
-							getmore(query,response.data.nextPageToken);
+						if(response.nextPageToken){
+							getmore(query,response.nextPageToken);
 						}						
 					}else{
 						getvideos();
-					}
-				},function(err){
+					}					
+				}).fail(function(err){
 					console.log(err);
-				});			
+					getvideos();
+				}).always(function(){
+					
+				});		
 			}
 			function getmorev(query){
 				//console.log('getting videos from youtube');
-
-				$http({
-					method:'GET',
-					url:query,
-				}).then(function(response){
-					videos = videos.concat(response.data.items);
+				$.get(query).done(function(response){
+					videos = videos.concat(response.items);
+					
+				}).fail(function(err){
+					console.log(err);
+				}).always(function(){
 					if(ids.length){								
 						getvideos();							
 					}else{
 						getInfo();
-					}							
-				},function(err){
-					console.log(err);
-				});				
+					}					
+				});			
 			}
 			
 

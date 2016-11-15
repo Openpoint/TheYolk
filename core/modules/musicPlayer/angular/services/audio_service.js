@@ -53,6 +53,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	}
 	//Play next track
 	audio.prototype.next = function(){
+		/*
 		var index = $scope.lib.tracks.indexOf($scope.lib.playing);
 
 		if((index > -1) && $scope.lib.tracks[index+1]){
@@ -60,6 +61,8 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}else{
 			this.play($scope.lib.tracks[0]);
 		}
+		* */
+		this.play($scope.nowTracks[$scope.lib.playing.filter.pos+1] || $scope.nowTracks[0]);
 			
 	}
 	

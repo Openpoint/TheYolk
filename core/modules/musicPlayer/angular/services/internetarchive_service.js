@@ -160,7 +160,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			//self.searches.push(term);
 			var queries = self.searchString(term);
 			var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
-			console.log(query);
+			//console.log(query);
 					
 			$http({
 				method:'GET',
