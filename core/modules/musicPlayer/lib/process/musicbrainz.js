@@ -290,7 +290,7 @@ function eRRor(sender,mess){
 }
 ipcMain.on('dBase', function(event, ready){
 	if(ready){		
-		elastic = require(path.join(process.cwd(),'core/lib/elasticsearch.js')).ready();
+		elastic = require(path.join(path.dirname(process.mainModule.filename),'core/lib/elasticsearch.js')).ready();
 				
 	}
 })

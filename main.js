@@ -1,9 +1,23 @@
 'use strict'
 
-
-
 const fs=require('fs');
 const path=require('path');
+
+/*
+var str = JSON.stringify(process,function(key,value){
+	console.log(key);
+	if( key == 'parent'||key == 'owner') { return value.id;}
+	else {return value;}	
+}, 4);
+console.log(str)
+var str = JSON.stringify(process.mainModule.filename,function(key,value){
+	if( key == 'owner') { return value.id;}
+	else {return value;}	
+}, 4);
+console.log(path.dirname(str));
+
+return;
+*/
 const bootloader = require('./core/bootloader.js');
 const {app, BrowserWindow, webContents, ipcMain} = require('electron');
 //const spawn = require('child_process').spawn;
@@ -11,11 +25,11 @@ const {app, BrowserWindow, webContents, ipcMain} = require('electron');
 const child = require('child_process');
 const boot = new bootloader();
 const os = require('os');
+const elasticpath = path.join(boot.home,'elasticsearch','elasticsearch-5.0.0','bin','elasticsearch');
 //console.log(os.type().toLowerCase());
 //console.log(os.arch().toLowerCase());
 
-var str = JSON.stringify(process.env, null, 4);
-console.log(str);
+
 
 
 var dbaseReady = false;
@@ -109,13 +123,22 @@ jre.stderr.on('data', function(data) {
 	java(jre);
 })
 function java(jre){
-	console.log(jre)
+
 	if(!jre){
 		getJava();
 
 	}else{
-		elastic();
+		if(!Elastic){
+			elastic();
+		}else{
+			getElastic();
+		}		
 	}	
+}
+//Check if elasticsearch is installed
+function Elastic(){
+	var check = child.spawnSync(elasticpath,['-V']);
+	return check.error;	
 }
 //Download JRE 1.8
 function getJava(){
@@ -135,26 +158,34 @@ function getJava(){
 		if(os.type().toLowerCase() === 'linux'){			
 			//var file = child.spawnSync('cp',['-v',src,dest]);
 			//src = file.stdout.toString('utf8').split('->')[1].trim().replace(/\'/g,'');
-			var dest = path.join(boot.root,'core/lib');
+			var dest = path.join(boot.home,'java');
 			var file = child.spawnSync('tar',['xvzC',dest,'-f',src]);
 			//console.log(file.stderr.toString('utf8'));
 			process.env.JAVA_HOME = path.join(dest,file.stdout.toString('utf8').split('\n')[0]);
-			elastic();
+			if(!Elastic){
+				elastic();
+			}else{
+				getElastic();
+			}
 		}
 	})
+}
+//Download Elasticsearch
+function getElastic(){
+	//https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.0.1.zip
+	//https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.0.1.zip.sha1
+	console.log('getting elasticsearch');
 }
 
 //Start the elasticsearch server
 function elastic(){
-	var elasticpath = path.join(boot.root,'core/lib/elasticsearch-5.0.0/bin/elasticsearch');
 	var args = [
-		'--cluster.name=local',
-		'--node.name=yolk'
-	]
-
-	//var elasticsearch = spawn(elasticpath,args);
-	var elasticsearch = child.exec('./core/lib/startdb.sh')
-	elasticsearch.stdout.on('data', (data) => {
+		'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
+		'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
+		'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
+	];
+	var elasticsearch = child.spawn(elasticpath,args);
+	elasticsearch.stdout.on('data', function(data){
 	  var string = (`${data}`);
 	  console.log(string);
 	  if(string.indexOf('[yolk] started') > -1){	  

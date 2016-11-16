@@ -1,19 +1,39 @@
 {
-  "name": "player",
-  "version": "0.1.0",
-  "main": "main.js",
-  "dependencies": {
-    "angular": "^1.5.8",
-    "angular-animate": "^1.5.8",
-    "angular-route": "^1.5.8",
-    "elasticsearch": "^12.0.1",
-    "java-download": "^0.1.0",
-    "jquery": "^3.1.0",
-    "jsmediatags": "^3.2.1",
-    "request": "^2.75.0"
-  },
-  "devDependencies": {
-    "electron": "^1.4.6",
-    "electron-packager": "^8.2.0"
-  }
+	"name": "player",
+	"version": "0.1.0",
+	"main": "main.js",
+	"author":{ 
+		"name" : "Michael Jonker"
+		, "email" : "michael@openpoint.ie"
+		, "url" : "http://openpoint.ie/"
+	},
+	"description":"Alpha yolk for playing music",
+	"dependencies": {
+		"angular": "^1.5.8",
+		"angular-animate": "^1.5.8",
+		"angular-route": "^1.5.8",
+		"elasticsearch": "^12.0.1",
+		"java-download": "^0.1.0",
+		"jquery": "^3.1.0",
+		"jsmediatags": "^3.2.1",
+		"request": "^2.75.0"
+	},
+	"devDependencies": {
+		"electron": "^1.4.6",
+		"electron-builder": "^8.6.0",
+		"electron-packager": "^8.2.0"
+	},
+	"build":{
+		"linux":{
+			"category":"Development",
+			"packageCategory":"contrib",
+			"target":"deb",
+			"synopsis":"Alpha Player",
+			"executableName":"Yolk"
+		}
+	},
+	"scripts": {
+		"pack": "build --dir",
+		"dist": "build"
+	}
 }

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const jsmediatags = require("jsmediatags");
-const root = process.cwd();
+const root = path.dirname(process.mainModule.filename);
 
 var types = require('../../musicPlayer.js').settings.fileTypes;
 

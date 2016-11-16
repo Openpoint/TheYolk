@@ -28,7 +28,7 @@ var isThere = function(type,path){
 	}	
 }
 var getModule = function(module){
-	console.log(module);
+	//console.log(module);
 }
 var checkEnd = function(end,file){
 	return file.indexOf(end, file.length - end.length) !== -1;
@@ -36,7 +36,9 @@ var checkEnd = function(end,file){
 
 
 var bootloader = function(){
-	this.root = process.cwd();
+	//this.root = process.cwd();
+	this.root = path.dirname(process.mainModule.filename);
+	this.home = path.join(process.env.HOME,'.yolk');
 	this.modules={};
 	this.coreProcesses=[];
 	this.modulePaths=[
@@ -48,10 +50,39 @@ var bootloader = function(){
 			path:"contrib/modules",
 			type:'contrib'
 		}
-	]
+	];
+	this.makeHome(['elasticsearch/config','elasticsearch/data','elasticsearch/logs','java']);
 	this.getmodules();
 }
-
+bootloader.prototype.makeHome = function(dirs){
+	var self = this;
+	if(!isThere('dir',this.home)){
+		fs.mkdirSync(this.home);
+	}
+	var target;
+	dirs.forEach(function(Path){
+		target = self.home;		
+		Path = Path.split('/');
+		Path.forEach(function(dir){
+			target = path.join(target,dir);
+			if(!isThere('dir',target)){
+				fs.mkdirSync(target);
+			}			
+		});
+	});
+	var links = ['scripts','elasticsearch.yml','jvm.options','log4j2.properties'];
+	links.forEach(function(link){
+		if(link.split('.').length > 0){
+			var type = 'file';
+		}else{
+			var type = 'dir'
+		}
+		var src = path.join(self.root,'core','lib','elasticsearch',link);
+		var target = path.join(self.home,'elasticsearch','config',link);
+		fs.symlink(src,target,function(){});
+	});
+		
+}
 
 //scan filesystem for modules
 bootloader.prototype.getmodules = function(){
@@ -94,7 +125,7 @@ bootloader.prototype.configs  = function(module){
 	if(module.config.core_process){
 		module.config.core_process.forEach(function(process){
 			var cp = path.join(module.path,'lib','process',process+'.js');
-			console.log(cp);
+
 			if(isThere('file',cp)){
 				self.coreProcesses.push(cp);
 			}
