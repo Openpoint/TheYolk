@@ -12,12 +12,12 @@ angular.module('yolk', [
 .config(['$routeProvider','$animateProvider', function ($routeProvider,$animateProvider) {
 	
 	$routeProvider.when('/', {
-		//templateUrl:path.join(config.root,'core/yolk.html')
-		templateUrl:path.join(config.root,'core/modules/musicPlayer/musicPlayer.html')
+		templateUrl:path.join(Yolk.config.root,'core/modules/boot/boot.html')
+		//templateUrl:path.join(config.root,'core/modules/musicPlayer/musicPlayer.html')
 	});
 	//config.modules.forEach(function(module){
-	for(var key in config.modules){
-		var module = config.modules[key]
+	for(var key in Yolk.config.modules){
+		var module = Yolk.config.modules[key]
 		if(module.controller && module.html && !module.config.extends){
 			
 			$routeProvider.when('/'+module.name, {

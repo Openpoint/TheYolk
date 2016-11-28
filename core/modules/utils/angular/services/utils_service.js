@@ -2,80 +2,73 @@
 var path = require('path');
 
 angular.module('yolk').factory('utils',['$q', function($q) {
-	var elastic = require(path.join(window.Yolk.root,'core/lib/elasticsearch.js')).ping;
+
+	var elastic = require(path.join(Yolk.config.root,'core/lib/elasticsearch.js'));
+	
 	var utils = function(module){
+		this.db = elastic.ready();
 		this.module = module;
 		this.index_root;
 	};
 	
 	//engages the database and returns a database handler object
-	utils.prototype.boot = function(index,ids){		
+	utils.prototype.boot = function(index,ids){	
+		
 		this.index_root = index;
 		var self = this;
 		
 		
 		return new $q(function(resolve,reject){
 			var count = 0;
-
-			elastic.then(function(db){
-				
-				self.db = db;
-				
+			
+			elastic.ping.then(function(){
+								
 				var res=function(){
 					count++
-					console.log(count+':'+ids.length);
-					if(count === ids.length){						
-						resolve(db);
+					
+					if(!ids || count === ids.length){						
+						resolve(self.db);
 					}
 				}
 				var check = function(index,mapping){
-					console.log('check');
-					var checked = db.exists(index);
-					checked.catch(function(err){
-						console.log(err);
-						check(index,mapping);
-					})
-					checked.then(function(exists){
-						console.log(exists);
-						
+					self.db.exists(index).then(function(exists){	
+											
 						if(exists){
-							console.log('exists2');
 							res();
 						}else{
-							console.log('does not exist2');
-							db.create(index,mapping).then(function(){
+							self.db.create(index,mapping).then(function(){
 								res();
+							},function(err){
+								console.log(err);
 							});							
 						}
 					});					
 				}
-				db.exists(index).then(function(exists){
-
+				
+				self.db.exists(index).then(function(exists){
+					
 					if(exists){
-						console.log('exists');
 						go();
 					}else{
-						console.log('does not exist');
-						db.create(index).then(function(){
+						self.db.create(index).then(function(){
 							go();
 						});							
 					}
 				});
 				
 				function go(){
-
-					if(ids.length){
-						console.log('has length');
-						ids.forEach(function(id){	
-							console.log(id);					
+					
+					if(ids && ids.length){
+						ids.forEach(function(id){					
 							new check(index+'.'+id.type,id.mapping);
 						});
 					}else{
-						console.log('does not have length');
-						resolve(db);
+						res();
 					}					
 				}
 								
+			},function(err){
+				console.log(err);
 			});
 		})
 	}
@@ -85,6 +78,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 		var self = this;
 		
 		return new $q(function(resolve,reject){
+			
 			self.db.fetch(self.index_root+'.settings.'+type).then(function(data){
 
 				if(!data){
@@ -94,46 +88,50 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				if(data && data.length){
 					resolve(data[0]);					
 				}else{					
-					var settings = window.Yolk.modules[self.module].config.settings;
-					
-					var body = [];
-					var count = 0;
-					body.push({
-						create:{
-							_index: self.index_root,
-							_type: 'settings',
-							_id:type
+					var settings = Yolk.config.modules[type].config.settings;
+					if(Object.keys(settings).length){
+						var body = [];
+						var count = 0;
+						body.push({
+							create:{
+								_index: self.index_root,
+								_type: 'settings',
+								_id:type
+							}
+						})					
+						for(var key in settings){
+							var doc = {};
+							doc[key]=settings[key];
+							if(count > 0){
+								body.push({
+									update:{
+										_index: self.index_root,
+										_type: 'settings',
+										_id:type
+									}
+								})
+								body.push({doc:doc});							
+							}else{
+								body.push(doc);
+							}
+							count++;
+							//body.push({title:'test',test:'more'});
+							
 						}
-					})					
-					for(var key in settings){
-						var doc = {};
-						doc[key]=settings[key];
-						if(count > 0){
-							body.push({
-								update:{
-									_index: self.index_root,
-									_type: 'settings',
-									_id:type
-								}
-							})
-							body.push({doc:doc});							
-						}else{
-							body.push(doc);
-						}
-						count++;
-						//body.push({title:'test',test:'more'});
-						
+						self.db.client.bulk({body:body},function(err,data){
+							if(err){
+								console.log(err);
+								//todo: error handling
+							}else{
+								resolve(false);
+							}
+							
+						});						
+					}else{
+						resolve(false);
 					}
-					self.db.client.bulk({body:body},function(err,data){
-						if(err){
-							console.log(err);
-							//todo: error handling
-						}else{
-							console.log(data);
-							resolve(window.Yolk.modules[self.module].config.settings);
-						}
+					
 						
-					});						
 				}
 			});			
 		})	

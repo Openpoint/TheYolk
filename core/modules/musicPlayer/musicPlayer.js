@@ -11,7 +11,10 @@ var define = {
 		'fileTools',
 		'musicbrainz'
 	],
-	db_index:"music_player",
+	db_index:{
+		index:"music_player",
+		types:Types()
+	},
 	module_name:"musicPlayer",
 	settings:{
 		paths:{
@@ -25,5 +28,52 @@ var define = {
 		fileTypes:[".mp3",".wav",".ogg"]
 	}
 }
-
+function Mapping(){
+	return {
+		type: "string",
+		analyzer: "english",
+		fields:{
+			raw:{
+				type:  "string",
+				index: "not_analyzed"
+			}
+		}
+	}
+}
+function mapping(){ 
+	return {
+		properties:{
+			metadata:{
+				properties:{
+					title:Mapping(),
+					artist:Mapping(),
+					album:Mapping()
+				}
+			}
+		}
+	}
+}
+function Types(){
+	return [
+		{
+			type:'local',
+			mapping:mapping()
+		},{
+			type:'jamendo',
+			mapping:mapping()
+		},{
+			type:'internetarchive',
+			mapping:mapping()
+		},{
+			type:'youtube',
+			mapping:mapping()
+		},{
+			type:'torrents',
+			mapping:mapping()
+		},{
+			type:'search',
+			mapping:mapping()
+		},		
+	]
+}
 module.exports = define

@@ -5,50 +5,66 @@
     <title>The Yolk</title>
 	<script>
 		window.$ = window.jQuery = require('jquery');
-	</script>
-	<link rel="stylesheet" type="text/css" href="./core/reset.css">
-  </head>
-  <body>
-	<ng-view></ng-view>
-	<script>
 		const {ipcRenderer} = require('electron');
-		ipcRenderer.send('return', 'config');
-		ipcRenderer.on('config',function(event,data){
-			window.Yolk = config = data;
-			config.getModule=function(){
+		const Yolk = {};
+		Yolk.fixChrome = function(){
+			$('#chrome').clone().appendTo('#topmen').attr('height','100%');	
+		}
+		Yolk.getModule=function(){
+			
+			var head  = document.getElementsByTagName('head')[0];
+			$('head [id^=inject]').remove();
+			var modname = window.location.hash.split('/')[1];
+			if(!modname){
+				modname = 'boot'
+			}
+			for(var key in Yolk.config.modules){
+				var module = Yolk.config.modules[key];
 				
-				var head  = document.getElementsByTagName('head')[0];
-				$('head [id^=inject]').remove();
-				var modname = window.location.hash.split('/')[1];
-				if(!modname){
-					modname = 'musicPlayer'
-				}
-				for(var key in config.modules){
-					var module = config.modules[key];
-					
-					if(module.name === modname && module.css && module.css.length){
-						var count = 0;
-						module.css.forEach(function(css){
-							
-							var link  = document.createElement('link');
-							link.rel  = 'stylesheet';
-							link.type = 'text/css';
-							link.media = 'all';
-							link.href = css;
-							link.id='inject'+count;
-							count++;
-							head.appendChild(link);
-						})
-					}
+				if(module.name === modname && module.css && module.css.length){
+					var count = 0;
+					module.css.forEach(function(css){
+						
+						var link  = document.createElement('link');
+						link.rel  = 'stylesheet';
+						link.type = 'text/css';
+						link.media = 'all';
+						link.href = css;
+						link.id='inject'+count;
+						count++;
+						head.appendChild(link);
+					})
 				}
 			}
+		}
+		Yolk.chrome = function(action){
+			ipcRenderer.send('chrome',action);
+		}
+	</script>
+	<link rel="stylesheet" type="text/css" href="./core/lib/css/reset.css">
+	<link rel="stylesheet" type="text/css" href="./core/lib/css/style.css">
+	<link rel="stylesheet" type="text/css" href="./core/lib/css/animations.css">
+	<link rel="stylesheet" type="text/css" href="./core/lib/css/icons/style.css">
+  </head>
+  <body>
+	<div id='chrome'>
+		<div onclick="Yolk.chrome('min')" class='icon-minimise'></div>
+		<div onclick="Yolk.chrome('max')" class='icon-maximise'></div>
+		<div onclick="Yolk.chrome('close')" class='icon-close close'></div>
+	</div>
+	<ng-view></ng-view>
+	<script>
+		
+		ipcRenderer.on('config',function(event,data){
+			Yolk.config = data;
+
 			require('angular');
 			require('angular-route');
 			require('angular-animate');
 			require('./core/routing.js');
 			
-			for(var key in config.modules){
-				var module = config.modules[key];
+			for(var key in Yolk.config.modules){
+				var module = Yolk.config.modules[key];
 				
 				//load the controllers
 				if(module.controller){
@@ -79,6 +95,7 @@
 					})
 				}
 			}
+			
 		})
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);
@@ -86,6 +103,7 @@
 		ipcRenderer.on('error',function(event,data){
 			console.error(data);
 		})
+		ipcRenderer.send('ready');
 	</script>
   </body>
 </html>

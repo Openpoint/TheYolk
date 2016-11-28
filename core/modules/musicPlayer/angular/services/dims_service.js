@@ -4,9 +4,9 @@ angular.module('yolk').factory('dims',['$timeout',function($timeout) {
 	var $scope;
 	var dims=function(scope){
 		$scope = scope;
-		this.menHeight = 30;
-		this.searchHeight = 50;
-		this.sidebarWidth = 300;
+		this.menHeight = 35;
+		this.searchHeight = 35;
+		this.sidebarWidth = 250;
 		this.scroller = 15;			
 	}
 	dims.prototype.update = function(){

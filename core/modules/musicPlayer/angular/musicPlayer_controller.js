@@ -5,13 +5,15 @@ angular.module('yolk').controller('musicPlayer', [
 function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin) {	
 
 	const mod_name = 'musicPlayer';
-	const {ipcRenderer} = require('electron');
+	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
+	const defaults = require('../musicPlayer.js');
 	
+	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
 	$scope.Sortby={};
 
-			
+	$scope.db = new utils().db;	
 	$scope.audio = new audio($scope);
 	$scope.search = new search($scope);	
 	$scope.pin = new pin($scope);
@@ -21,17 +23,35 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);		
 	$scope.dims = new dims($scope);
+
+	
 	
 	$scope.dims.update();	
 	$scope.lib={};
 	$scope.lib.tracks=[];
 	$scope.allTracks;
 	
+	$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
+	$scope.db.fetch('global.settings.'+mod_name).then(function(data){
+		$scope.pin.pin('source','local');
+		$timeout(function(){
+			$scope.settings =data[0];
+			console.log($scope.settings);
+			$scope.dbReady = true;
+			$scope.settings_loaded = true;
+			console.log($scope.tracks);
+			$scope.tracks.checkLocal('local');
+			//todo - save state to db and restore on load
+						
+		});
+
+	});
 	
 	
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
-		ipcRenderer.send('dBase', false);
+		//console.log('close');
+		//ipcRenderer.send('dBase', false);
 	};
 	
 	$scope.dev=function(){
@@ -41,90 +61,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			$scope.dims.dev = true;
 		}
 	}
-	$scope.db_index = window.Yolk.modules[mod_name].config.db_index;
-	$scope.utils = new utils(mod_name);
-	//Boot the database, indexes and settings
-	$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
-	var Mapping={
-		type: "string",
-		analyzer: "english",
-		fields:{
-			raw:{
-				type:  "string",
-				index: "not_analyzed"
-			}
-		}
-	}
-	var mapping = {
-		properties:{
-			metadata:{
-				properties:{
-					title:Mapping,
-					artist:Mapping,
-					album:Mapping
-				}
-			}
-		}
-	}
-	var types=[
-		{
-			type:'local',
-			mapping:mapping
-		},{
-			type:'jamendo',
-			mapping:mapping
-		},{
-			type:'internetarchive',
-			mapping:mapping
-		},{
-			type:'youtube',
-			mapping:mapping
-		},{
-			type:'torrents',
-			mapping:mapping
-		},{
-			type:'search',
-			mapping:mapping
-		},		
-	]
-		
-	$scope.utils.boot($scope.db_index,types).then(function(db){
-
-		//database is ready - copy it to scope
-		$scope.db = db;
-		ipcRenderer.send('dBase',true);
-		$scope.sort('metadata.title','raw');
-		
-		/*
-		db.client.indices.getFieldMapping({
-			index:'music_player',
-			type:'local',
-			fields:'metadata.title'
-		},function(resp,data){
-			console.log(resp);
-			console.log(data);
-		})
-		* */
-				
-		//load settings
-		$scope.utils.settings('music').then(function(settings){
-
-			//todo - save state to db and restore on load
-			$scope.pin.pin('source','local');
-								
-			$timeout(function(){
-				$scope.settings = settings;	
-				$scope.dbReady = true;
-				$scope.settings_loaded = true;
-				$scope.tracks.checkLocal('local');						
-			});			
-		});	
-	});
-	
 
 	$scope.$watch('settings',function(newVal,oldVal){
 		if(newVal!==oldVal && $scope.settings_loaded){
-			$scope.db.update($scope.db_index+'.settings.music',newVal);
+			$scope.db.update('global.settings.'+mod_name,newVal);
 		}		
 	},true);
 	
@@ -136,22 +76,31 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			ipcRenderer.send('getDir', Dir[0]);
 		})		
 	}
-	
-	ipcRenderer.on('track',function(event,data){
-		$scope.tracks.add(data);
-	});
-	ipcRenderer.on('refresh',function(event,data){
-		$scope.search.go(true);
-	});
-	ipcRenderer.on('progress',function(event,data){
-
-		$timeout(function(){
-			$scope.progress[data.type]=data.size;
+	if(!ipcRenderer._events.track){
+		ipcRenderer.on('track',function(event,data){
+			$scope.tracks.add(data);
+		});		
+	}
+	if(!ipcRenderer._events.refresh){
+		ipcRenderer.on('refresh',function(event,data){
+			$scope.search.go(true);
 		});
-		
-	});	
-	ipcRenderer.on('verify',function(event,data){		
-		$scope.tracks.verify(data);
-	})	
+	}
+	if(!ipcRenderer._events.progress){
+		ipcRenderer.on('progress',function(event,data){
+			$timeout(function(){
+				$scope.progress[data.type]=data.size;
+			});		
+		});	
+	}
+	if(!ipcRenderer._events.verify){
+		ipcRenderer.on('verify',function(event,data){		
+			$scope.tracks.verify(data);
+		});
+	}
+	$scope.tools = function(){
+		ipcRenderer.send('tools');
+	}
+	
 }])
 

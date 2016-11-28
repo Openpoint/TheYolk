@@ -1,0 +1,38 @@
+body,html{
+	position:relative;
+	width:100%;
+	height:100%;
+	background:#302B22;
+	color:white;
+	font-family:sans-serif;
+	-webkit-app-region: drag;
+	-webkit-user-select: none;
+}
+#full{
+	position:relative;
+	width:100%;
+	height:100%;
+	display:flex;
+	flex-direction:column;
+	justify-content:center;
+	align-items:center;
+	align-content:stretch;	
+}
+
+.message{
+	text-align:center;
+	position:relative;
+	width:100%;
+}
+.float{
+	padding:10px;
+	width:100%;
+	box-sizing: border-box;
+	position:absolute;
+	text-align:center;
+	top:100%;
+}
+.log{
+	font-family:Monospace;
+	font-size:.85em;
+}

@@ -33,12 +33,14 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if (!document.webkitFullscreenElement){
 				document.getElementById("youtube2").webkitRequestFullscreen();
+				$('#youtube2').addClass('fullscreen').removeClass('small');
 				$scope.isfullscreen = true;
 				fadetimer = setTimeout(function(){
 					fadeout();
 				},3000);
 			}else{
 				document.webkitExitFullscreen();
+				$('#youtube2').removeClass('fullscreen').addClass('small');
 				$scope.isfullscreen = false;
 				fadein();
 			}
@@ -79,7 +81,12 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}
 		if(track.type === 'youtube'){
 			var source = track.path+track.file;
+			$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
 		}
+		if(track.type !== 'youtube'){
+			$scope.dims.vidheight = false;
+		}
+		
 		if(this.playing !== source){
 			this.playing = source;
 			

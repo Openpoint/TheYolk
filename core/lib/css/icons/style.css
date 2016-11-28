@@ -1,9 +1,9 @@
 @font-face {
   font-family: 'yolk';
   src:
-    url('fonts/yolk.ttf?mvc237') format('truetype'),
-    url('fonts/yolk.woff?mvc237') format('woff'),
-    url('fonts/yolk.svg?mvc237#yolk') format('svg');
+    url('fonts/yolk.ttf?33sq3m') format('truetype'),
+    url('fonts/yolk.woff?33sq3m') format('woff'),
+    url('fonts/yolk.svg?33sq3m#yolk') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -23,6 +23,18 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.icon-maximise:before {
+  content: "\e90e";
+}
+.icon-minimise:before {
+  content: "\e90f";
+}
+.icon-settings:before {
+  content: "\e910";
+}
+.icon-close:before {
+  content: "\e911";
+}
 .icon-home:before {
   content: "\e90d";
 }

@@ -1,26 +1,30 @@
 <script>
-	console.log(window.Yolk)
-	window.Yolk.getModule();	
+	Yolk.getModule();
+	Yolk.fixChrome();
 </script>
 
 <div ng-controller="musicPlayer" id='playframe'>	
 	<div id='topmen' ng-style="{height:dims.menHeight}">
-			<div class='icon'><a class='icon-home' href='#/'></a></div>
+			<div class='icon'><a class='icon-home' href='#/home'></a></div>
 			<div class='item' ng-click="sort('metadata.title','raw')">Title</div>
 			<div class='item' ng-click="sort('metadata.artist','raw')">Artist</div>
 			<div class='item' ng-click="sort('metadata.album','raw')">Album</div>
 			<div class='item' ng-click="sort('date')">Recent</div>	
 	</div>
-	<div id='search' ng-show='dbReady && settings.paths.musicDir' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
+	<div id='search' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
 		<div class="icon icon-search"></div>
 		<input ng-model="searchTerm" type='text' placeholder="Search"/>
 		<div id='mask' ng-if='!sources.length'></div>
 	</div>
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
-		<div id = 'loading' class='ani-fOut' ng-if="!dbReady || !settings.paths.musicDir">
+		<div id = 'loading' class='ani-fOut' ng-if="!settings.paths.musicDir">
 			<div class='throbber'></div>
-			<div ng-if='!dbReady'>Connecting</div>
-			<div ng-if='dbReady && !settings.paths.musicDir' ng-click='fileSelect()'>Select your music folder</div>
+			<div ng-if='!dbReady && installed.done'>Connecting</div>
+			<div ng-if='!installed.done && !dbReady'>
+				<div>{{installed.message}}</div>
+				<div class='progress'>{{installed.progress}}</div>
+			</div>
+			<div ng-if='!settings.paths.musicDir' ng-click='fileSelect()'>Select your music folder</div>
 		</div>
 
 		<div id='tracks' ng-show='dbReady && settings.paths.musicDir' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}">
@@ -124,7 +128,7 @@
 							</div>
 						</div>
 						<div id='widgets'>
-							<div ng-click="dev()">dev</div>
+							<div ng-click="dev()" class='icon-settings'></div>
 						</div>
 						<div class='scroll'>
 							<div class='down icon-down' ng-click="lazy.Scroll('down')" 
@@ -138,69 +142,63 @@
 		</div>
 	</div>
 	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">
-
-
-		<!-- <webview src="http://youtube.com" httpReferrer="http://youtube.com"></webview> 
-
-		
-		
-		<webview src='./youtube.html' httpReferrer="http://youtube.com"></webview>
-		
-		<webview id='youtube' ng-src="https://openpoint.github.io/Yolk/core/modules/musicPlayer/youtube.html" allowfullscreen  frameborder="0"></webview>
-		
-		<video src="https://www.youtube.com/watch?v=ru0K8uYEZWw" />
-		-->
-		<div id='youtube-wrap' ng-show="lib.playing.youtube" ng-mousemove="fader()" ng-style="{height:dims.vidheight}">
-			<div id='youtube2'>
-				<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
-				<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
-					<div class='icon-fullscreen_out'></div>
+		<div class='wrap'>
+			<div id='youtube-wrap' ng-mousemove="fader()" ng-style="{
+				height:dims.vidheight||dims.menHeight
+				}" ng-class="{
+					novid:!lib.playing.youtube,
+					vid:lib.playing.youtube
+				}">
+				<div id='youtube2' class='small'>
+					<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
+					<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
+						<div class='icon-fullscreen_out'></div>
+					</div>
+					<div id='shadow'></div>
 				</div>
 			</div>
+			<div class='anchor' 
+				ng-click="pin.pin('source','local')"
+				ng-class = "{
+					active:pinned.sources.indexOf('local') > -1,
+					dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
+				}"
+			>
+				<span class='cancel icon-cancel'></span>
+				<div>Local</div>
+			</div>
+			<div class='anchor'
+				ng-click="pin.pin('source','online')"
+				ng-class = "{
+					active:pinned.sources.indexOf('online') > -1,
+					dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
+				}"
+			>
+				<span class='cancel icon-cancel'></span>
+				<div>Online</div>
+			</div>
+			<div class='anchor' 
+				ng-click="pin.pin('source','torrents')"
+				ng-class = "{
+					active:pinned.sources.indexOf('torrents') > -1,
+					dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
+				}"
+			>
+				<span class='cancel icon-cancel'></span>
+				<div>Torrents</div>
+			</div>
+			<div class='anchor' 
+				ng-click="pin.pin('source','suggestions')"
+				ng-class = "{active:pinned.sources.indexOf('suggestions') > -1}"
+			>
+				<span class='cancel icon-cancel'></span>
+				<div>Suggestions</div>
+			</div>
 		</div>
-		<div class='anchor' 
-			ng-style="{width:dims.sidebarWidth - 10, margin:'5px'}"
-			ng-click="pin.pin('source','local')"
-			ng-class = "{
-				active:pinned.sources.indexOf('local') > -1,
-				dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
-			}"
-		>
-			<span class='cancel icon-cancel'></span>
-			Local
+		<div class='temp'>
+			<div ng-click='db.nuke()'>NUKE!</div>
+			<div ng-click='tools()'>Tools</div>
 		</div>
-		<div class='anchor' 
-			ng-style="{width:dims.sidebarWidth - 10, margin:'5px'}"
-			ng-click="pin.pin('source','online')"
-			ng-class = "{
-				active:pinned.sources.indexOf('online') > -1,
-				dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
-			}"
-		>
-			<span class='cancel icon-cancel'></span>
-			Online
-		</div>
-		<div class='anchor' 
-			ng-style="{width:dims.sidebarWidth - 10, margin:'5px'}"
-			ng-click="pin.pin('source','torrents')"
-			ng-class = "{
-				active:pinned.sources.indexOf('torrents') > -1,
-				dead:pinned.sources.length === 1 && pinned.sources[0]!=='suggestions'
-			}"
-		>
-			<span class='cancel icon-cancel'></span>
-			Torrents
-		</div>
-		<div class='anchor' 
-			ng-style="{width:dims.sidebarWidth - 10, margin:'5px'}"
-			ng-click="pin.pin('source','suggestions')"
-			ng-class = "{active:pinned.sources.indexOf('suggestions') > -1}"
-		>
-			<span class='cancel icon-cancel'></span>
-			Suggestions
-		</div>
-		<div ng-click='db.nuke()'>NUKE!</div>
-		
 		<div id = 'activity'>
 			<div ng-if="progress.youtube">Youtube:{{progress.youtube}}</div>
 			<div ng-if="progress.internetarchive">Internetarchive:{{progress.internetarchive}}</div>

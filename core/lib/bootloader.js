@@ -2,31 +2,10 @@
 
 const fs=require('fs');
 const path=require('path');
-var q = require('promise');
+const ft=require('./filetools');
+const q = require('promise');
+const os = require('os');
 
-var isThere = function(type,path){
-
-	try {
-		var there = fs.statSync(path);
-		if(type === 'dir'){
-			if(there.isDirectory()){
-				return true;
-			}else{
-				return false;
-			}
-		}
-		if(type === 'file'){
-			if(there.isFile()){
-				return true;
-			}else{
-				return false;
-			}
-		}
-	}
-	catch(err) {
-		return false;
-	}	
-}
 var getModule = function(module){
 	//console.log(module);
 }
@@ -38,7 +17,7 @@ var checkEnd = function(end,file){
 var bootloader = function(){
 	//this.root = process.cwd();
 	this.root = path.dirname(process.mainModule.filename);
-	this.home = path.join(process.env.HOME,'.yolk');
+	this.home = path.join(os.homedir(),'.yolk');
 	this.modules={};
 	this.coreProcesses=[];
 	this.modulePaths=[
@@ -51,26 +30,29 @@ var bootloader = function(){
 			type:'contrib'
 		}
 	];
-	this.makeHome(['elasticsearch/config','elasticsearch/data','elasticsearch/logs','java']);
+	this.makeHome(['elasticsearch/config/scripts','elasticsearch/data','elasticsearch/logs','.temp','.bin']);
 	this.getmodules();
 }
 bootloader.prototype.makeHome = function(dirs){
 	var self = this;
-	if(!isThere('dir',this.home)){
+	if(!ft.isThere('dir',this.home)){
 		fs.mkdirSync(this.home);
 	}
 	var target;
 	dirs.forEach(function(Path){
+		ft.mkdir(self.home,Path);
+		/*
 		target = self.home;		
 		Path = Path.split('/');
 		Path.forEach(function(dir){
 			target = path.join(target,dir);
-			if(!isThere('dir',target)){
+			if(!ft.isThere('dir',target)){
 				fs.mkdirSync(target);
 			}			
 		});
+		* */
 	});
-	var links = ['scripts','elasticsearch.yml','jvm.options','log4j2.properties'];
+	var links = ['elasticsearch.yml','jvm.options','log4j2.properties'];
 	links.forEach(function(link){
 		if(link.split('.').length > 0){
 			var type = 'file';
@@ -79,7 +61,10 @@ bootloader.prototype.makeHome = function(dirs){
 		}
 		var src = path.join(self.root,'core','lib','elasticsearch',link);
 		var target = path.join(self.home,'elasticsearch','config',link);
-		fs.symlink(src,target,function(){});
+		//fs.symlink(src,target,function(){});
+		ft.copy(src,target).then(function(data){
+			//console.log(data);
+		});
 	});
 		
 }
@@ -91,7 +76,7 @@ bootloader.prototype.getmodules = function(){
 		var pt = path.join(self.root,p.path);		
 		fs.readdirSync(pt).forEach(function(mod){			
 			pt = path.join(self.root,p.path,mod);
-			if(isThere('dir',pt)){
+			if(ft.isThere('dir',pt)){
 				self.modules[mod]={
 					name:mod,
 					path:pt,
@@ -110,7 +95,7 @@ bootloader.prototype.getConfig = function(){
 	for(var key in this.modules){
 		var module = this.modules[key];
 		var file = path.join(module.path,module.name+'.js');
-		if(isThere('file',file)){
+		if(ft.isThere('file',file)){
 			self.modules[key].config = require(file);
 			self.configs(self.modules[key]);			
 		}else{
@@ -126,7 +111,7 @@ bootloader.prototype.configs  = function(module){
 		module.config.core_process.forEach(function(process){
 			var cp = path.join(module.path,'lib','process',process+'.js');
 
-			if(isThere('file',cp)){
+			if(ft.isThere('file',cp)){
 				self.coreProcesses.push(cp);
 			}
 		});
@@ -135,7 +120,7 @@ bootloader.prototype.configs  = function(module){
 		
 		//get the Angular controller
 		var file = path.join(module.path,'angular',module.name+'_controller.js');
-		if(isThere('file',file)){
+		if(ft.isThere('file',file)){
 			module.controller = file;
 		}else{
 			//todo: error logging system
@@ -143,7 +128,7 @@ bootloader.prototype.configs  = function(module){
 		
 		//get the angular html template
 		file = path.join(module.path,module.name+'.html');
-		if(isThere('file',file)){
+		if(ft.isThere('file',file)){
 			module.html = file;
 		}else{
 			//todo: error logging system
@@ -151,7 +136,7 @@ bootloader.prototype.configs  = function(module){
 		var load = [module.path];
 		if (module.require && module.require.length){
 			module.require.forEach(function(mod){
-				if(isThere('dir',mod.path)){
+				if(ft.isThere('dir',mod.path)){
 					load.push(mod.path);
 				}else{
 					//todo: error logging system
@@ -163,10 +148,10 @@ bootloader.prototype.configs  = function(module){
 			//get the angular services
 			file = path.join(pt,'angular','services')
 			
-			if(isThere('dir',file)){			
+			if(ft.isThere('dir',file)){			
 				var services = fs.readdirSync(file);			
 				services.forEach(function(fil){
-					if(isThere('file',path.join(file,fil)) && checkEnd('_service.js',fil)){
+					if(ft.isThere('file',path.join(file,fil)) && checkEnd('_service.js',fil)){
 						if(!module.services){
 							module.services = [];
 						}
@@ -177,10 +162,10 @@ bootloader.prototype.configs  = function(module){
 			//get the angular filters
 			file = path.join(pt,'angular','filters')
 			
-			if(isThere('dir',file)){			
+			if(ft.isThere('dir',file)){			
 				var filters = fs.readdirSync(file);			
 				filters.forEach(function(fil){
-					if(isThere('file',path.join(file,fil)) && checkEnd('_filter.js',fil)){
+					if(ft.isThere('file',path.join(file,fil)) && checkEnd('_filter.js',fil)){
 						if(!module.filters){
 							module.filters = [];
 						}
@@ -193,16 +178,16 @@ bootloader.prototype.configs  = function(module){
 		//get the css
 		file = path.join(module.path,'css')
 		var parse = function(file){
-			if(isThere('dir',file)){							
+			if(ft.isThere('dir',file)){							
 				var css = fs.readdirSync(file);
 				css.forEach(function(fil){
-					if(isThere('file',path.join(file,fil)) && checkEnd('.css',fil)){
+					if(ft.isThere('file',path.join(file,fil)) && checkEnd('.css',fil)){
 						if(!module.css){
 							module.css = [];
 						}
 						module.css.push(path.join(file,fil));
 					}
-					if(isThere('dir',path.join(file,fil))){
+					if(ft.isThere('dir',path.join(file,fil))){
 						parse(path.join(file,fil));
 					}
 				});

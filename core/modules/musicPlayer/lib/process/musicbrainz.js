@@ -11,6 +11,7 @@ const request = require('request');
 const path = require('path');
 const tools = require('../tools/searchtools.js');
 const settings = require('../../musicPlayer.js');
+const db_index = settings.db_index.index;
 const mb_url="http://musicbrainz.org/ws/2/";
 const mb_query="inc=all&fmt=json";
 const disam = ['official','stereo','original']
@@ -66,13 +67,13 @@ musicbrainz.prototype.process = function(tt,track){
 			track.metadata.title = item.title;
 			
 			if(track.type === 'internetarchive'){
-				elastic.update(settings.db_index+'.search.'+track.id,{musicbrainzed:'yes'}).then(function(data){},function(err){
+				elastic.update(db_index+'.search.'+track.id,{musicbrainzed:'yes'}).then(function(data){},function(err){
 					eRRor(self.sender,err);
 				});
 			}
 			//self.sender.send('log',track);
 			track.date = Date.now();
-			elastic.put(settings.db_index+'.'+track.type+'.'+track.id,track).then(function(data){},function(err){
+			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){},function(err){
 				eRRor(self.sender,err);
 			});
 			self.sender.send('refresh');
@@ -80,7 +81,7 @@ musicbrainz.prototype.process = function(tt,track){
 			return true;
 		}else{
 			if(track.type === 'internetarchive'){
-				elastic.update(settings.db_index+'.search.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
+				elastic.update(db_index+'.search.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
 					eRRor(self.sender,err);
 				});
 			}

@@ -1,0 +1,27 @@
+#chrome{
+	position:absolute;
+	right:0;
+	top:0;
+	z-index:10000;
+	color:white;
+	display:flex;
+	flex-direction:row;
+	align-items:center;
+	height:35px;
+	
+}
+#chrome div{
+	cursor:pointer;
+	padding:0 10px;
+	-webkit-app-region: no-drag;
+	height:100%;
+	display:flex;
+	align-items:center;
+	
+}
+#chrome div:hover{
+	background:rgba(255,255,255,.2);
+}
+#chrome div.close:hover{
+	background:tomato;
+}

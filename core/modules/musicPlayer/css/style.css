@@ -15,8 +15,13 @@ body,html{
 	background:#302B22;
 	color:white;
 	display:flex;
-	direction:row;
+	flex-direction:row;
 	align-items:center;
+	-webkit-app-region: drag;
+	-webkit-user-select: none;
+}
+#topmen *{
+	-webkit-app-region: no-drag;
 }
 #topmen a{
 	color:white;
@@ -60,7 +65,17 @@ body,html{
 #sidebar{
 	position:absolute;
 	right:0;
-	background:gray;	
+	background:white;	
+	color:#302B22;
+	display:flex;
+	flex-direction:column;
+}
+#sidebar .temp{
+	padding:10px;
+	line-height:2em;
+}
+#sidebar .wrap{
+	flex-grow:1;
 }
 #tracks{
 	position:relative;
@@ -174,6 +189,9 @@ body,html{
 	flex-direction:row-reverse;
 	padding-bottom:5px;
 }
+#widgets div{
+	cursor:pointer;
+}
 #playing .scroll{
 	cursor:pointer;
 	font-size:20px;
@@ -257,7 +275,7 @@ body,html{
 #search{
 	position:relative;
 	display:flex;
-	direction:row;
+	flex-direction:row;
 	align-items:center;
 	background:white;
 	border-bottom:1px solid #302B22;
@@ -284,21 +302,24 @@ body,html{
 	display:block;
 	margin:0;
 	border:none;
-	padding:20px;
-	padding-left:0;
 	box-sizing:border-box;
 }
 #search input:focus {
     outline-width: 0;
 }
 .anchor{
-	width:100%;
-	text-align:center;
-	box-sizing:border-box;
-	color:white;
-	border:1px solid white;
-	padding:10px;
 	cursor:pointer;
+	height:30px;
+	display:flex;
+	flex-direction:row;
+	align-items:center;
+	padding:0 10px;
+}
+.anchor:hover{
+	background:rgba(255,99,71,.1)
+}
+.anchor.active:hover{
+	background:tomato;
 }
 .anchor.active.dead{
 	cursor:default;
@@ -308,18 +329,20 @@ body,html{
 }
 .anchor.active{
 	background:Tomato;
+	color:white;
 }
 .anchor .cancel{
+	order:2;
 	display:block;
 	opacity:0;
-	position:absolute;
-	left:15px;
 	transition:opacity .5s;
 }
 .anchor.active .cancel{
 	opacity:1;
 }
-
+.anchor div{
+	flex-grow:1;
+}
 
 #devinfo{
 	background:rgba(0,0,0,.75);
@@ -336,6 +359,27 @@ body,html{
 	position:relative;
 	width:100%;
 	height:100%;
+}
+.novid {
+	background:white;
+	border-bottom:1px solid #302B22;	
+}
+.novid #youtube2{
+	display:none;
+}
+#shadow{
+	display:none;
+}
+.vid .small #shadow{
+	display:block;
+	position:absolute;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+	z-index:1000;
+	box-shadow: inset 0px 0px 61px 11px rgba(0,0,0,0.75);
+	pointer-events:none;
 }
 #youtube-wrap{
 	width:100%;

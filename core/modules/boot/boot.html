@@ -1,0 +1,14 @@
+<script>
+	Yolk.getModule();	
+</script>
+
+<div ng-controller="boot" id='full'>
+	
+		<div class='throbber'></div>
+		<div class='message'>
+			<div>{{installed.message}}</div>
+			<div class="float" ng-if="installed.progress">{{installed.progress}}</div>
+			<div class="float log" ng-if="installed.log">{{installed.log}}</div>
+		</div>
+	
+</div>
