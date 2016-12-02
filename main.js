@@ -9,12 +9,12 @@ const path=require('path');
 var str = JSON.stringify(process,function(key,value){
 	console.log(key);
 	if( key == 'parent'||key == 'owner') { return value.id;}
-	else {return value;}	
+	else {return value;}
 }, 4);
 console.log(str)
 var str = JSON.stringify(process.mainModule.filename,function(key,value){
 	if( key == 'owner') { return value.id;}
-	else {return value;}	
+	else {return value;}
 }, 4);
 console.log(path.dirname(str));
 
@@ -55,12 +55,12 @@ let win
 function createWindow () {
 	// Create the browser window.
 	win = new BrowserWindow({width: 1200, height: 900, frame: false});
-	
+
 	//win.webContents.openDevTools();
-	
+
 	// and load the index.html of the app.
 	win.loadURL(`file://${__dirname}/index.html`);
-	
+
 
 
 
@@ -71,7 +71,7 @@ function createWindow () {
 		// Dereference the window object, usually you would store windows
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
-		
+
 		win = null;
 		if(os.platform()!=='win32'){
 			elasticsearch.stdin.pause();
@@ -79,7 +79,7 @@ function createWindow () {
 		}else{
 			//console.log('Shutting Down');
 			var shut=child.execSync('wmic process get Caption,ParentProcessId,ProcessId');
-					
+
 			var toKill=[];
 			var stdout=shut.toString('utf8').split('\n');
 			stdout.forEach(function(line){
@@ -92,13 +92,13 @@ function createWindow () {
 				});
 				toKill.push(Line);
 			});
-			
+
 			toKill.forEach(function(line){
 				if(line[1]==elasticsearch.pid||line[2]==elasticsearch.pid){
 					tokill.push({
 						process:line[0],
 						pid:line[2]*1
-					});					
+					});
 				}
 			});
 			var java;
@@ -112,15 +112,15 @@ function createWindow () {
 			});
 			if(java){
 				//console.log('killing java');
-				process.kill(java);				
+				process.kill(java);
 			}
 
-		
+
 		}
 	})
 }
-	
-	
+
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -141,20 +141,20 @@ app.on('activate', function() {
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
 	createWindow()
-	
+
   }
 })
 ipcMain.on('dbasestate', function(event, data) {
 	event.sender.send('dbasestate',dbaseReady);
-})	
+})
 ipcMain.on('track_relay', function(event, data) {
 	event.sender.send('track',data);
 })
 ipcMain.on('ready', function(event, data) {
 	event.sender.send('config',boot);
-	if(!installer){			
+	if(!installer){
 		installer = new Installer(boot,win.webContents);
-		install();			
+		install();
 	}
 })
 ipcMain.on('tools', function(event, data) {
@@ -178,9 +178,9 @@ ipcMain.on('chrome', function(event, data) {
 			}else{
 				win.setFullScreen(true)
 			}
-			
+
 		break;
-	}	
+	}
 })
 ipcMain.on('install', function(event, data) {
 	if(data === 'ready'){
@@ -195,10 +195,10 @@ var getJava = function(){
 		hasElastic(javahome);
 	},function(){
 		console.log('Getting Java failed');
-	});	
+	});
 }
 var hasElastic = function(home){
-	
+
 	installer.hasElastic(elasticpath).then(function(res){
 		if(res){
 			//console.log('Elasticsearch is installed');
@@ -209,7 +209,7 @@ var hasElastic = function(home){
 				elastic(home);
 			});
 		}
-	});	
+	});
 }
 function install(){
 	installer.hasJava().then(function(res){
@@ -232,12 +232,12 @@ function install(){
 function clientBoot(){
 	win.webContents.send('install',{
 		type:'done'
-	});	
+	});
 	setTimeout(function(){
 		if(!clientReady){
 			clientBoot();
 		}
-	},100);	
+	},100);
 }
 //Start the elasticsearch server
 var elasticsearch;
@@ -253,40 +253,33 @@ function elastic(home){
 		'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 	];
 
-	
+
 	if(os.platform()!=='win32'){
 		elasticsearch = child.spawn(elasticpath,args);
 
 	}else{
 		elasticsearch = child.spawn(elasticpath,args,{shell:true});
 	}
-	
+
 	elasticsearch.stdout.on('data', function(data){
 		var string = (`${data}`);
+		var trimmed = string.split('[yolk]')[1];
 		//console.log(string);
-		if(win){
+		if(win && trimmed){
 			win.webContents.send('install',{
 				type:'progress',
 				percent:false,
-				log:string.split('[yolk]')[1].replace(/\/n/g,'').trim()
+				log:trimmed.replace(/\/n/g,'').trim()
 			});
 		}
-		if(string.indexOf('[GREEN]') > -1){
-		//if(string.indexOf('[yolk] started') > -1){	  
-			dbaseReady = true;	  
+		if(string.indexOf('[GREEN]') > -1 || string.indexOf('[yolk] recovered [0] indices into cluster_state') > -1){
+		//if(string.indexOf('[yolk] started') > -1){
+			dbaseReady = true;
 		}
-	});	
+	});
 }
 
 
 boot.coreProcesses.forEach(function(file){
 	require(file);
 })
-
-
-
-
-
-
-
-

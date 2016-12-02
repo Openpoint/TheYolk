@@ -25,7 +25,7 @@ search.prototype.sanitise = function(term,more){
 			return term;
 		}else{
 			return false;
-		}						
+		}
 	}else{
 		return false;
 	}
@@ -69,7 +69,7 @@ search.prototype.fuzzy = function(term,boost,more){
 			}
 		});
 		newfuzz = newfuzz.trim();
-		return newfuzz;			
+		return newfuzz;
 	}else{
 		return '';
 	}

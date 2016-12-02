@@ -3,17 +3,36 @@
 	Yolk.fixChrome();
 </script>
 
-<div ng-controller="musicPlayer" id='playframe'>	
+<div ng-controller="musicPlayer" id='playframe'>
 	<div id='topmen' ng-style="{height:dims.menHeight}">
-			<div class='icon'><a class='icon-home' href='#/home'></a></div>
+			<div class='icon'><span class='yolk'></span><a class='icon-yolk' href='#/home'></a></div>
 			<div class='item' ng-click="sort('metadata.title','raw')">Title</div>
 			<div class='item' ng-click="sort('metadata.artist','raw')">Artist</div>
 			<div class='item' ng-click="sort('metadata.album','raw')">Album</div>
-			<div class='item' ng-click="sort('date')">Recent</div>	
+			<div class='item' ng-click="sort('date')">Recent</div>
 	</div>
 	<div id='search' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
-		<div class="icon icon-search"></div>
-		<input ng-model="searchTerm" type='text' placeholder="Search"/>
+		<div class="icon icon-search search" ng-click='search.remoteSearch(searchTerm)' ng-class={active:searchTerm}></div>
+
+		<div class='input'>
+			<input ng-model="searchTerm" type='text' placeholder="Search" ng-keypress="search.remoteSearch(searchTerm,$event)" />
+			<div class ='hide'></div>
+			<div class="icon icon-cancel active cancel" ng-if="searchTerm" ng-click="search.clear()"></div>
+		</div>
+		<div class='right'>
+			<div class='item'>
+				<div ng-class='{throbber:progress.youtube}'></div>
+				<div class='icon-youtube'></div>
+			</div>
+			<div class='item'>
+				<div ng-class='{throbber:progress.internetarchive}'></div>
+				<div class='icon-internetarchive'></div>
+			</div>
+			<div class='item'>
+				<div ng-class='{throbber:progress.musicbrainz}'></div>
+				<div class='icon-musicbrainz'></div>
+			</div>
+		</div>
 		<div id='mask' ng-if='!sources.length'></div>
 	</div>
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
@@ -31,11 +50,11 @@
 
 			<div ng-if="lib.playing.spacer" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div>
 			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn'>
-				<div class='track' 
+				<div class='track'
 					ng-class="track.state"
-					ng-class="track.filter.zebra"  
-					ng-style="{ 
-						height: track.state ? lazy.playingHeight : lazy.trackHeight 
+					ng-class="track.filter.zebra"
+					ng-style="{
+						height: track.state ? lazy.playingHeight : lazy.trackHeight
 					} ">
 					<div class='inner' ng-if="!track.state">
 						<div class='above'>
@@ -44,20 +63,20 @@
 							</div>
 							<div class='title'><!--{{track.filter.pos}}--> {{::track.metadata.title || track.file}}</div>
 							<!-- <div>{{track.query}}</div>
-							<div>{{track.file}}</div> -->					
-						</div>	
-						<div class='below'>	
+							<div>{{track.file}}</div> -->
+						</div>
+						<div class='below'>
 							<div class='icons'>
-								
+
 							</div>
-							<div class='info'>				
+							<div class='info'>
 								<div class='artist row' ng-if="track.metadata.artist" ng-click="pin.pin('artist',track.metadata.artist)" ng-class="{'pinned':pinned.artist === track.metadata.artist}">
 									<span class='cancel icon-cancel'></span>
 									{{::track.metadata.artist}}
 								</div>
 								<div class='row' ng-if='!track.metadata.artist'>
 									[Artist unknown]
-								</div>	
+								</div>
 								<div class='album row' ng-if="track.metadata.album"  ng-click="pin.pin('album',track.metadata.album)" ng-class="{'pinned':pinned.album === track.metadata.album}">
 									<span class='cancel icon-cancel'></span>
 									{{::track.metadata.album}}
@@ -66,31 +85,31 @@
 									[Album unknown]
 								</div>
 							</div>
-						</div>			
-					
+						</div>
+
 					</div>
 					<div class='bottom'></div>
 				</div>
-				
+
 			</div>
 			<div id='playing' class='track ani-fIn'
 				ng-if = "lib.playing"
 				ng-style="{
 					height:lazy.trackHeight+lazy.progressHeight,
 					top:lib.playing.top,
-					
-				}" 
+
+				}"
 				ng-class="{
 					playing:lib.playing.state === 'playing',
 					paused:lib.playing.state === 'paused',
 				}"
 			>
-				<div class='inner' 
+				<div class='inner'
 					ng-style="{
 						width:dims.playwindowWidth - dims.scroller
 					}"
 				>
-					
+
 					<div class='above'>
 						<div class='icons' ng-click="audio.play(lib.playing)">
 							<div ng-show="lib.playing.state==='paused'" class='play icon icon-play'></div>
@@ -101,43 +120,44 @@
 							<div class="icon icon-next"></div>
 							<div class='nextTrack' ng-click="audio.play(nowTracks[lib.playing.filter.pos+1]||nowTracks[0])">{{nowTracks[lib.playing.filter.pos+1].metadata.title || nowTracks[0].metadata.title }}</div>
 							<div class="icon icon-previous"></div>
-							
+
 						</div>
 						<div class='scroll'>
-							<div class='up icon-up' ng-click="lazy.Scroll('up')" 
+							<div class='up icon-up' ng-click="lazy.Scroll('up')"
 							ng-if="lib.playing.Bottom && !lib.playing.spacer"></div>
 						</div>
 					</div>
 					<div class='progressBar' ng-click="audio.seek($event)" ng-style="{height:lazy.progressHeight}">
-						<div class='progress' 							
+						<div class='progress'
 							ng-class="{noAni:!lib.playing.ani}"
 						></div>
-					</div>	
-					<div class='below'>	
-						<div class='icons'>							
+					</div>
+					<div class='below'>
+						<div class='icons'>
 							<div class='icon-fullscreen_in' ng-click="fullscreen()" ng-if="lib.playing.type==='youtube'"></div>
 						</div>
-						<div class='info'>				
+						<div class='info'>
 							<div class='artist row' ng-click="pin.pin('artist',lib.playing.metadata.artist)" ng-class="{'pinned':pinned.artist === lib.playing.metadata.artist}">
 								<span class='cancel icon-cancel'></span>
 								{{lib.playing.metadata.artist || '[Unknown]'}}
-							</div>	
+							</div>
 							<div class='album row' ng-click="pin.pin('album',lib.playing.metadata.album)" ng-class="{'pinned':pinned.album === lib.playing.metadata.album}">
 								<span class='cancel icon-cancel'></span>
 								{{lib.playing.metadata.album || '[Unknown]'}}
 							</div>
 						</div>
 						<div id='widgets'>
+							<div ng-click="tracks.delete(lib.playing.type,lib.playing.id,true)" class='icon-cancel'></div>
 							<div ng-click="dev()" class='icon-settings'></div>
 						</div>
 						<div class='scroll'>
-							<div class='down icon-down' ng-click="lazy.Scroll('down')" 
+							<div class='down icon-down' ng-click="lazy.Scroll('down')"
 							ng-if="lib.playing.Top && !lib.playing.spacer"></div>
 						</div>
 					</div>
 					<div id='devinfo' ng-if="dims.dev"><pre>{{lib.devinfo}}</pre></div>
 				</div>
-				
+
 			</div>
 		</div>
 	</div>
@@ -157,7 +177,7 @@
 					<div id='shadow'></div>
 				</div>
 			</div>
-			<div class='anchor' 
+			<div class='anchor'
 				ng-click="pin.pin('source','local')"
 				ng-class = "{
 					active:pinned.sources.indexOf('local') > -1,
@@ -177,7 +197,8 @@
 				<span class='cancel icon-cancel'></span>
 				<div>Online</div>
 			</div>
-			<div class='anchor' 
+			<!--
+			<div class='anchor'
 				ng-click="pin.pin('source','torrents')"
 				ng-class = "{
 					active:pinned.sources.indexOf('torrents') > -1,
@@ -187,13 +208,14 @@
 				<span class='cancel icon-cancel'></span>
 				<div>Torrents</div>
 			</div>
-			<div class='anchor' 
+			<div class='anchor'
 				ng-click="pin.pin('source','suggestions')"
 				ng-class = "{active:pinned.sources.indexOf('suggestions') > -1}"
 			>
 				<span class='cancel icon-cancel'></span>
 				<div>Suggestions</div>
 			</div>
+		-->
 		</div>
 		<div class='temp'>
 			<div ng-click='db.nuke()'>NUKE!</div>
@@ -206,4 +228,3 @@
 		</div>
 	</div>
 </div>
-

@@ -5,8 +5,8 @@ var define = {
 	require:[
 		//load services from external modules
 		'utils'
-	], 
-	core_process:[ 
+	],
+	core_process:[
 		//starts with the core process in a Node scope
 		'fileTools',
 		'musicbrainz'
@@ -40,9 +40,12 @@ function Mapping(){
 		}
 	}
 }
-function mapping(){ 
+function mapping(){
 	return {
 		properties:{
+			deleted:{
+				type:"string"
+			},
 			metadata:{
 				properties:{
 					title:Mapping(),
@@ -65,15 +68,16 @@ function Types(){
 			type:'internetarchive',
 			mapping:mapping()
 		},{
+			type:'internetarchivesearch'
+		},{
 			type:'youtube',
 			mapping:mapping()
 		},{
 			type:'torrents',
 			mapping:mapping()
 		},{
-			type:'search',
-			mapping:mapping()
-		},		
+			type:'searches'
+		},
 	]
 }
 module.exports = define

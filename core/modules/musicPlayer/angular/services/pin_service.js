@@ -22,7 +22,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 						return;
 					}
 				}
-				
+
 			}else{
 				if(name === 'suggestions'){
 					$scope.pinned.oldSources = $scope.pinned.sources;
@@ -30,16 +30,16 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 				}else{
 					if($scope.pinned.sources.indexOf('suggestions') > -1){
 						$scope.pinned.sources.splice($scope.pinned.sources.indexOf('suggestions'),1);
-					}					
+					}
 					$scope.pinned.sources.push(name);
 				}
-				
+
 			}
 
 			$scope.sources=[];
 			$scope.pinned.sources.filter(function(pin){
 				switch(pin){
-					
+
 					case 'local':
 						$scope.sources.push('local');
 						break;
@@ -48,23 +48,23 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 						$scope.sources.push('internetarchive');
 						$scope.sources.push('youtube');
 						break;
-						
+
 					case 'suggestions':
 						$scope.sources=[];
 						$scope.jamendo.pop().then(function(data){
 							$scope.allTracks = data;
 							$scope.tracks.Filter();
-						});						
+						});
 						break;
 					case 'torrents':
 						$scope.sources.push('torrents');
 						break;
-										
-				}				
+
+				}
 			});
-			$scope.search.go(true);		
+			$scope.search.go();		
 			return;
-			
+
 		}else{
 
 			if(type === 'artist'){
@@ -72,38 +72,38 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 			}else{
 				$scope.pinned.artist = false;
 			}
-			
+
 			if(!$scope.pinned[type] || $scope.pinned[type] != name){
 				//filter by type
 				if(!$scope.pinned.scrollTop){
 					$scope.pinned.scrollTop = $('#playwindow').scrollTop();
-					
+
 				}
-				
+
 				$scope.pinned[type] = name;
 				$('#playwindow').scrollTop(0);
 				$scope.tracks.Filter();
-				$timeout(function(){				
+				$timeout(function(){
 					$scope.lazy.refresh($('#playwindow').scrollTop());
-				});		
-				
-				
+				});
+
+
 			}else{
 				//return to full track listing
-				$scope.pinned[type] = false;				
-				
+				$scope.pinned[type] = false;
+
 				//$scope.scrolling = true;
 				$scope.tracks.Filter();
 
 				$timeout(function(){
 					$scope.lazy.refresh($scope.pinned.scrollTop);
 					$scope.pinned.scrollTop = false;
-				});			
-				
-				
-				
-			}			
-		}		
+				});
+
+
+
+			}
+		}
 	}
 	return pin;
 }])

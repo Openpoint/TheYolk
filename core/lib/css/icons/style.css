@@ -1,9 +1,9 @@
 @font-face {
   font-family: 'yolk';
   src:
-    url('fonts/yolk.ttf?33sq3m') format('truetype'),
-    url('fonts/yolk.woff?33sq3m') format('woff'),
-    url('fonts/yolk.svg?33sq3m#yolk') format('svg');
+    url('fonts/yolk.ttf?sx5p33') format('truetype'),
+    url('fonts/yolk.woff?sx5p33') format('woff'),
+    url('fonts/yolk.svg?sx5p33#yolk') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -23,58 +23,70 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-maximise:before {
-  content: "\e90e";
-}
-.icon-minimise:before {
-  content: "\e90f";
-}
-.icon-settings:before {
-  content: "\e910";
-}
-.icon-close:before {
-  content: "\e911";
-}
-.icon-home:before {
-  content: "\e90d";
-}
-.icon-refresh:before {
+.icon-cancel:before {
   content: "\e900";
 }
-.icon-search:before {
+.icon-close:before {
   content: "\e901";
 }
-.icon-fullscreen_out:before {
+.icon-down:before {
   content: "\e902";
 }
 .icon-fullscreen_in:before {
   content: "\e903";
 }
-.icon-cancel:before {
+.icon-fullscreen_out:before {
   content: "\e904";
 }
-.icon-skip_back:before {
+.icon-home:before {
   content: "\e905";
 }
-.icon-skip_forward:before {
+.icon-internetarchive:before {
   content: "\e906";
 }
-.icon-up:before {
+.icon-maximise:before {
   content: "\e907";
 }
-.icon-down:before {
+.icon-minimise:before {
   content: "\e908";
 }
-.icon-previous:before {
+.icon-musicbrainz:before {
   content: "\e909";
 }
 .icon-next:before {
   content: "\e90a";
 }
-.icon-play:before {
+.icon-pause:before {
   content: "\e90b";
 }
-.icon-pause:before {
+.icon-play:before {
   content: "\e90c";
+}
+.icon-previous:before {
+  content: "\e90d";
+}
+.icon-refresh:before {
+  content: "\e90e";
+}
+.icon-search:before {
+  content: "\e90f";
+}
+.icon-settings:before {
+  content: "\e910";
+}
+.icon-skip_back:before {
+  content: "\e911";
+}
+.icon-skip_forward:before {
+  content: "\e912";
+}
+.icon-up:before {
+  content: "\e913";
+}
+.icon-yolk:before {
+  content: "\e914";
+}
+.icon-youtube:before {
+  content: "\e915";
 }
 
