@@ -12,8 +12,8 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
 	$scope.Sortby={};
-
-	$scope.db = new utils().db;
+	$scope.utils = new utils();
+	$scope.db = $scope.utils.db;
 	$scope.audio = new audio($scope);
 	$scope.search = new search($scope);
 	$scope.pin = new pin($scope);
@@ -25,7 +25,9 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.dims = new dims($scope);
 
 
-
+	$scope.spacer = true;
+	$scope.sort('metadata.title','raw');
+	$scope.Sort = 'title';
 	$scope.dims.update();
 	$scope.lib={};
 	$scope.lib.tracks=[];
@@ -35,6 +37,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.data_sources = ['local','internetarchive','youtube'];
 	$scope.db.fetch('global.settings.'+mod_name).then(function(data){
 		$scope.pin.pin('source','local');
+		$scope.pin.pin('source','online');
 		$timeout(function(){
 			$scope.settings =data[0];
 			$scope.dbReady = true;

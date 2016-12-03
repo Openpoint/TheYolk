@@ -9,7 +9,7 @@ angular.module('yolk').filter('tracks',[function() {
 		var tracks = $scope.allTracks;
 		var lazy = $scope.lazy;
 		var isPinned;
-		
+
 		function filter(type,value){
 			tracks = tracks.filter(function(track){
 
@@ -43,7 +43,7 @@ angular.module('yolk').filter('tracks',[function() {
 		}
 
 		var newTracks = [];
-		var zebra = 'odd';
+		var zebra = 'even';
 		if($scope.lib.playing){
 			$scope.lib.playing.filter.pos=-1;
 		}
@@ -52,16 +52,18 @@ angular.module('yolk').filter('tracks',[function() {
 				$scope.lib.playing.filter.pos = i;
 				$scope.lazy.getPos();
 			};
+
 			if(i < lazy.Bottom && i >= lazy.Top){
+				if(zebra === 'even'){
+					zebra = 'odd';
+				}else{
+					zebra = 'even';
+				}
 				tracks[i].filter.zebra = zebra;
 				tracks[i].filter.pos = i;
 				newTracks.push(tracks[i]);
 			}
-			if(zebra === 'odd'){
-				zebra === 'even';
-			}else{
-				zebra === 'odd';
-			}
+
 		}
 
 		return newTracks;

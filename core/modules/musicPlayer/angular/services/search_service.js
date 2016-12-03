@@ -12,10 +12,19 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		var self = this;
 		var searchTime;
 		$scope.$watch('searchTerm',function(oldVal,newVal){
-			$('#search .hide').html($scope.searchTerm);
-			$('#search input').width($('#search .hide').width()+10+'px');
-			if(oldVal!==newVal){
+			if($scope.searchTerm && $scope.searchTerm.length){
+				$('#search .hide').html($scope.searchTerm);
+				$('#search input').width($('#search .hide').width()+10+'px');
+			}else{
+				$('#search input').width('100px')
+			}
 
+			if(oldVal!==newVal){
+				if($scope.searchTerm && $scope.searchTerm.length > 1){
+					$scope.goSearch = true;
+				}else{
+					$scope.goSearch = false;
+				}
 				$timeout.cancel(searchTime);
 				//$timeout.cancel($scope.iaTimer);
 				//$timeout.cancel($scope.ytTimer);
@@ -81,9 +90,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 	search.prototype.go = function(deleted){
 
-		if($scope.searchTerm){
-			$scope.searchTerm = $scope.searchTerm.trim();
-		}
 		if(!$scope.sources.length){
 			return;
 		}
@@ -116,8 +122,10 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 
 	}
+
 	//process the query into external searches
 	search.prototype.remoteSearch = function(search_id,e){
+
 		if(e && e.which !== 13){
 			return;
 		}
@@ -140,6 +148,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				type:'searches',
 				id:search_id
 			},function(err,data){
+				$scope.goSearch = false;
 				if(err){
 					var body={};
 					body.time = {};
@@ -158,11 +167,11 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 					sources.forEach(function(source){
 						if(data._source.time[source]){
-							if(Tools.dateDiff(new Date(),data._source.time[source],'minutes') > 10){
+							if($scope.utils.dateDiff(Date(),data._source.time[source],'minutes') > 10){
 								Tools.remote_search(source);
 								Tools.update(source,self.search_id);
 							}else{
-								console.log(Tools.dateDiff(new Date(),data._source.time[source],'minutes'))
+								console.log($scope.utils.dateDiff(Date(),data._source.time[source],'minutes'))
 							}
 						}else{
 							Tools.remote_search(source);
@@ -174,27 +183,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 	}
 	var Tools = {
-		// a and b are javascript Date objects
-		dateDiff:function (a,b,period) {
-			b = new Date(b);
-			switch(period){
-				case 'days':
-					period = 1000 * 60 * 60 * 24;
-				break;
-				case 'hours':
-					period = 1000 * 60 * 60;
-				break;
-				case 'minutes':
-					period = 1000 * 60;
-				break;
-				default:
-					period = 1000 * 60 * 60 * 24;
-			}
-			var utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate(), a.getHours(), a.getMinutes());
-			var utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate(), b.getHours(), b.getMinutes());
-
-			return Math.floor((utc2 - utc1) / period*-1);
-		},
 		remote_search:function(source){
 			if($scope[source]&&$scope[source].search){
 				$scope[source].search($scope.searchTerm);

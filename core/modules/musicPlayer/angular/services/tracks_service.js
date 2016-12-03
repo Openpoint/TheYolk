@@ -9,8 +9,8 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 	var tracks = function(scope){
 		$scope = scope;
-		$scope.sort = function(type,field){
-
+		$scope.sort = function(type,field,deleted){
+			$scope.showDeleted = deleted;
 			var key = type.split('.').pop();
 			if(!$scope.Sortby[key]){
 				$scope.Sortby[key]={};
@@ -27,7 +27,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 
 			$scope.sortby = $scope.Sortby[key];
-			$scope.search.go();
+			$scope.search.go(deleted);
 		}
 	}
 
@@ -168,15 +168,32 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 		}
 	};
+	//delete a track
 	tracks.prototype.delete = function(type,id,playing){
 		if(playing){
 			$scope.audio.next();
 		}
 		$scope.db.update($scope.db_index+'.'+type+'.'+id,{
-			deleted:"yes"
+			deleted:"yes",
+			date:Date.now()
 		}).then(function(data){
 			$timeout(function(){
 				$scope.search.go();
+			})
+
+		})
+	}
+	//undelete a track
+	tracks.prototype.undelete = function(type,id,playing){
+		if(playing){
+			$scope.audio.next();
+		}
+		$scope.db.update($scope.db_index+'.'+type+'.'+id,{
+			deleted:"no",
+			date:Date.now()
+		}).then(function(data){
+			$timeout(function(){
+				$scope.search.go(true);
 			})
 
 		})
