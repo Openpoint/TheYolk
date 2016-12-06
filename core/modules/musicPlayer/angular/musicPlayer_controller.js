@@ -109,5 +109,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.tools = function(){
 		ipcRenderer.send('tools');
 	}
-
+	$('#search').click(function(){
+		$('#search input').focus();
+	})
 }])

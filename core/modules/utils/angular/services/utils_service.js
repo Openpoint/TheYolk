@@ -31,8 +31,10 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 					}
 				}
 				var check = function(index,mapping){
-					self.db.exists(index).then(function(exists){
 
+					self.db.exists(index).then(function(exists){
+						console.log(index)
+						console.log(exists)
 						if(exists){
 							res();
 						}else{

@@ -142,7 +142,19 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 				};
 				return;
 			}
-
+			$.get(query).done(function(response){
+				self.categories(video,response.itemListElement);
+				$scope.progress.youtube = 'Getting Metadata: '+vidlength;
+			}).fail(function(err){
+				console.log(err);
+			}).always(function(){
+				vidlength --;
+				if(vidlength === 0){
+					$scope.progress.youtube = false;
+					self.commit();
+				};
+			})
+			/*
 			$http({
 				method:'GET',
 				url:query,
@@ -155,6 +167,7 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 					self.commit();
 				};
 			})
+			*/
 		});
 	};
 

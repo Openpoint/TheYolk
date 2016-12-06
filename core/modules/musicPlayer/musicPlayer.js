@@ -68,16 +68,24 @@ function Types(){
 			type:'internetarchive',
 			mapping:mapping()
 		},{
-			type:'internetarchivesearch'
-		},{
 			type:'youtube',
 			mapping:mapping()
 		},{
 			type:'torrents',
 			mapping:mapping()
 		},{
-			type:'searches'
-		},
+			type:'internetarchivesearch',
+			mapping:false
+		},{
+			type:'artists',
+			mapping:false
+		},{
+			type:'albums',
+			mapping:false
+		},{
+			type:'searches',
+			mapping:false
+		}
 	]
 }
 module.exports = define

@@ -13,9 +13,10 @@ const tools = require('../tools/searchtools.js');
 const settings = require('../../musicPlayer.js');
 const db_index = settings.db_index.index;
 const mb_url="http://musicbrainz.org/ws/2/";
-//const mb_query="inc=all&fmt=json";
 const disam = ['official','stereo','original']
-const mb_query="inc=artist-credits+releases&fmt=json";
+//const mb_query="inc=artist-credits+releases&fmt=json";
+const mb_query="inc=artists+releases+tags+media&fmt=json";
+const artists = require('../tools/artists.js')
 
 var queries = [];
 var elastic;
@@ -58,8 +59,16 @@ musicbrainz.prototype.process = function(tt,track){
 				track.tags=tags;
 			}
 			track.metadata.artist=item['artist-credit'][0].artist.name;
+			track.artist=item['artist-credit'][0].artist.id;
+
 			if(track.type !== 'youtube'){
 				track.metadata.album = item.releases[0].title;
+				track.album = item.releases[0].id;
+				if(item.releases[0].media){
+					track.track = item.releases[0].media[0]['track-offset']+' of '+item.releases[0].media[0]['track-count'];
+				}
+
+
 			}
 			track.metadata.title = item.title;
 
@@ -69,6 +78,7 @@ musicbrainz.prototype.process = function(tt,track){
 				});
 			}
 			track.date = Date.now();
+			artists.add(track.artist);
 			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){},function(err){
 				eRRor(self.sender,err);
 			});
@@ -85,7 +95,6 @@ musicbrainz.prototype.process = function(tt,track){
 		}
 	};
 	var stringCheck = function(title,type){
-
 		var meta = track.metadata[type].toLowerCase().trim().split(' ');
 		var got = title.toLowerCase().trim().split(' ');
 		var compare = got.filter(function(word){
@@ -125,12 +134,12 @@ musicbrainz.prototype.process = function(tt,track){
 				}
 			})
 			var result = result.filter(function(recording){
+				self.sender.send('log',recording)
 				var artist = recording['artist-credit'][0].artist.name;
 				if(stringCheck(artist,'artist')){
 					return true;
 				}
 			})
-			self.sender.send('log',result)
 		}
 		if(result.length > 0){
 			return result;
@@ -139,10 +148,11 @@ musicbrainz.prototype.process = function(tt,track){
 		}
 		//return recordings;
 	}
-	if(track.musicbrainz_id && tt.length){
+	self.sender.send('log',tt)
+	if(track.musicbrainz_id && tt.releases.length){
 		//has a musicbrainz id - so verify
 		verify(tt);
-	}else if(tt.count){
+	}else if(tt.recordings.length){
 		//found results for lookup search, so process each result
 		var recordings = tt.recordings;
 		if(track.metadata.album){
@@ -214,17 +224,6 @@ musicbrainz.prototype.fetch = function(){
 		if(!track){
 			return;
 		}
-		/*
-		if(track.musicbrainz_id){
-			var id = track.musicbrainz_id;
-			this.options.url = this.url+'recording/'+id+'?'+this.query;
-			//this.type = 'mid';
-
-		}else{
-			this.options.url = this.url+'recording/'+track.query+'&'+this.query;
-			this.type = 'search';
-		}
-		* */
 		self.submit(track);
 		self.buffer++;
 	}
@@ -269,14 +268,15 @@ ipcMain.on('musicbrainz', (event, track) => {
 				var artist = tools.sanitise(track.metadata.artist);
 				var recording = tools.sanitise(track.metadata.title);
 				if(track.canon_title){
-					var query = '?query=(artist:('+artist+') recording:'+recording+') AND (type:(album OR single OR ep OR other))';
+					//var query = '?query=(artist:('+artist+') recording:'+recording+') AND (type:(album OR single OR ep OR other))';
+					var query = '?query=artist:('+artist+') recording:'+recording;
 				}else{
-					var query = '?query=(artist:('+artist+') AND recording:('+recording+')) AND (type:(album OR single OR ep OR other))';
+					//var query = '?query=(artist:('+artist+') AND recording:('+recording+')) AND (type:(album OR single OR ep OR other))';
+					var query = '?query=artist:('+artist+') AND recording:('+recording+')';
 				}
 			}else{
 				if(track.musicbrainz_id){
 					track.query = mb_url+'recording/'+track.musicbrainz_id+'?'+mb_query;
-
 				}else{
 					var title = tools.fuzzy(track.metadata.title,10);
 					//var title2 = tools.fuzzy(track.metadata.title);
