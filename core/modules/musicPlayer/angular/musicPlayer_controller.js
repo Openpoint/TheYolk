@@ -8,6 +8,13 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
+	const path = require('path');
+
+	const Discogs = require('disconnect').Client;
+	var db = new Discogs().database();
+		db.getRelease(176126, function(err, data){
+		console.log(data);
+	});
 
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
@@ -40,6 +47,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		$scope.pin.pin('source','online');
 		$timeout(function(){
 			$scope.settings =data[0];
+			$scope.settings.paths.home = Yolk.config.home;
+			$scope.settings.paths.root = Yolk.config.root;
+			$scope.settings.paths.artists = path.join(Yolk.config.home,'data/modules',mod_name,Yolk.config.modules[mod_name].config.data.artist_images);
+			$scope.settings.paths.albums = path.join(Yolk.config.home,'data/modules',mod_name,Yolk.config.modules[mod_name].config.data.album_images);
 			$scope.dbReady = true;
 			$scope.settings_loaded = true;
 			$scope.tracks.checkLocal('local');
@@ -48,11 +59,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		});
 
 	});
-	/*
-	$scope.db.fetch($scope.db_index+'.internetarchive','(metadata.title:"talking~ heads~" metadata.artist:"talking~ heads~" metadata.album:"talking~ heads~")').then(function(data){
-		console.log(data)
-	})
-	*/
+
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
 		//console.log('close');
@@ -61,7 +68,16 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$('#search input').on('submit',function(){
 		console.log('submit')
 	});
+	$scope.imagePath=function(type,id){
+		if(type && id){
+			var Path = path.join($scope.settings.paths[type],id,'thumb.jpg');
+			console.log(Path);
+			return Path;
+		}else{
+			return false;
+		}
 
+	}
 	$scope.dev=function(){
 		if($scope.dims.dev){
 			$scope.dims.dev = false;

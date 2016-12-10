@@ -16,7 +16,7 @@ var checkEnd = function(end,file){
 
 var bootloader = function(){
 	//this.root = process.cwd();
-	this.root = path.dirname(process.mainModule.filename);
+	this.root = process.cwd();
 	this.home = path.join(os.homedir(),'.yolk');
 	this.modules={};
 	this.coreProcesses=[];
@@ -30,9 +30,10 @@ var bootloader = function(){
 			type:'contrib'
 		}
 	];
-	this.makeHome(['elasticsearch/config/scripts','elasticsearch/data','elasticsearch/logs','.temp','.bin']);
+	this.makeHome(['elasticsearch/config/scripts','elasticsearch/data','elasticsearch/logs','.temp','.bin','data/modules']);
 	this.getmodules();
 }
+
 bootloader.prototype.makeHome = function(dirs){
 	var self = this;
 	if(!ft.isThere('dir',this.home)){
@@ -42,13 +43,13 @@ bootloader.prototype.makeHome = function(dirs){
 	dirs.forEach(function(Path){
 		ft.mkdir(self.home,Path);
 		/*
-		target = self.home;		
+		target = self.home;
 		Path = Path.split('/');
 		Path.forEach(function(dir){
 			target = path.join(target,dir);
 			if(!ft.isThere('dir',target)){
 				fs.mkdirSync(target);
-			}			
+			}
 		});
 		* */
 	});
@@ -66,15 +67,15 @@ bootloader.prototype.makeHome = function(dirs){
 			//console.log(data);
 		});
 	});
-		
+
 }
 
 //scan filesystem for modules
 bootloader.prototype.getmodules = function(){
 	var self = this;
-	this.modulePaths.forEach(function(p){		
-		var pt = path.join(self.root,p.path);		
-		fs.readdirSync(pt).forEach(function(mod){			
+	this.modulePaths.forEach(function(p){
+		var pt = path.join(self.root,p.path);
+		fs.readdirSync(pt).forEach(function(mod){
 			pt = path.join(self.root,p.path,mod);
 			if(ft.isThere('dir',pt)){
 				self.modules[mod]={
@@ -84,20 +85,20 @@ bootloader.prototype.getmodules = function(){
 				};
 			};
 		});
-		
+
 	})
 	this.getConfig();
 }
 
 //load config files for each module
 bootloader.prototype.getConfig = function(){
-	var self = this;	
+	var self = this;
 	for(var key in this.modules){
 		var module = this.modules[key];
 		var file = path.join(module.path,module.name+'.js');
 		if(ft.isThere('file',file)){
 			self.modules[key].config = require(file);
-			self.configs(self.modules[key]);			
+			self.configs(self.modules[key]);
 		}else{
 			delete self.modules[key];
 		}
@@ -117,7 +118,7 @@ bootloader.prototype.configs  = function(module){
 		});
 	}
 	if(!module.extends){
-		
+
 		//get the Angular controller
 		var file = path.join(module.path,'angular',module.name+'_controller.js');
 		if(ft.isThere('file',file)){
@@ -125,7 +126,7 @@ bootloader.prototype.configs  = function(module){
 		}else{
 			//todo: error logging system
 		}
-		
+
 		//get the angular html template
 		file = path.join(module.path,module.name+'.html');
 		if(ft.isThere('file',file)){
@@ -141,15 +142,15 @@ bootloader.prototype.configs  = function(module){
 				}else{
 					//todo: error logging system
 				}
-				
+
 			});
 		}
 		load.forEach(function(pt){
 			//get the angular services
 			file = path.join(pt,'angular','services')
-			
-			if(ft.isThere('dir',file)){			
-				var services = fs.readdirSync(file);			
+
+			if(ft.isThere('dir',file)){
+				var services = fs.readdirSync(file);
 				services.forEach(function(fil){
 					if(ft.isThere('file',path.join(file,fil)) && checkEnd('_service.js',fil)){
 						if(!module.services){
@@ -161,9 +162,9 @@ bootloader.prototype.configs  = function(module){
 			}
 			//get the angular filters
 			file = path.join(pt,'angular','filters')
-			
-			if(ft.isThere('dir',file)){			
-				var filters = fs.readdirSync(file);			
+
+			if(ft.isThere('dir',file)){
+				var filters = fs.readdirSync(file);
 				filters.forEach(function(fil){
 					if(ft.isThere('file',path.join(file,fil)) && checkEnd('_filter.js',fil)){
 						if(!module.filters){
@@ -172,13 +173,13 @@ bootloader.prototype.configs  = function(module){
 						module.filters.push(path.join(file,fil));
 					}
 				});
-			}			
+			}
 		});
-		
+
 		//get the css
 		file = path.join(module.path,'css')
 		var parse = function(file){
-			if(ft.isThere('dir',file)){							
+			if(ft.isThere('dir',file)){
 				var css = fs.readdirSync(file);
 				css.forEach(function(fil){
 					if(ft.isThere('file',path.join(file,fil)) && checkEnd('.css',fil)){
@@ -194,6 +195,16 @@ bootloader.prototype.configs  = function(module){
 			}
 		}
 		parse(file);
+
+		//create data directories
+		if(module.config.data){
+			Object.keys(module.config.data).forEach(function(key){
+				var location = path.join('data/modules',module.name,module.config.data[key])
+				if(!ft.isThere('dir',path.join(self.home,location))){
+					ft.mkdir(self.home,location)
+				}
+			})
+		}
 	}else{
 		var attach = getModule(module.extends);
 	}

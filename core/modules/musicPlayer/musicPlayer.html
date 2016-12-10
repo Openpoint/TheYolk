@@ -189,17 +189,29 @@
 	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">
 		<div class='wrap'>
 			<div id='youtube-wrap' ng-mousemove="fader()" ng-style="{
-				height:dims.vidheight||dims.menHeight
+					height:dims.vidheight||'auto',
+					minHeight:dims.menHeight
 				}" ng-class="{
 					novid:!lib.playing.youtube,
 					vid:lib.playing.youtube
 				}">
+				<div ng-style="{
+					width:dims.sidebarWidth,
+					height:dims.sidebarWidth/2
+				}" ng-if="!lib.playing.youtube" class='meta'>
+					<img ng-src="{{imagePath('artists',lib.playing.artist||false)}}" />
+					<img ng-src="{{imagePath('albums',lib.playing.album||false)}}" />
+					<div class='shadow'></div>
+					<div class='shadow right'></div>
+				</div>
 				<div id='youtube2' class='small'>
 					<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
 					<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
 						<div class='icon-fullscreen_out'></div>
 					</div>
 					<div id='shadow'></div>
+					<div class='artist'><img ng-src="{{imagePath('artists',lib.playing.artist||false) || false}}" /></div>
+
 				</div>
 			</div>
 			<div class='anchor'

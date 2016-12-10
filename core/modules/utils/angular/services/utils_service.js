@@ -31,13 +31,11 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 					}
 				}
 				var check = function(index,mapping){
-
 					self.db.exists(index).then(function(exists){
-						console.log(index)
-						console.log(exists)
 						if(exists){
 							res();
 						}else{
+
 							self.db.create(index,mapping).then(function(data){
 								res();
 							},function(err){
@@ -48,11 +46,10 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				}
 
 				self.db.exists(index).then(function(exists){
-
 					if(exists){
 						go();
 					}else{
-						self.db.create(index).then(function(){
+						self.db.create(index).then(function(mess){
 							go();
 						});
 					}
@@ -62,6 +59,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 
 					if(ids && ids.length){
 						ids.forEach(function(id){
+
 							new check(index+'.'+id.type,id.mapping);
 						});
 					}else{

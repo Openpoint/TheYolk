@@ -16,7 +16,7 @@ const mb_url="http://musicbrainz.org/ws/2/";
 const disam = ['official','stereo','original']
 //const mb_query="inc=artist-credits+releases&fmt=json";
 const mb_query="inc=artists+releases+tags+media&fmt=json";
-const artists = require('../tools/artists.js')
+var meta;
 
 var queries = [];
 var elastic;
@@ -47,7 +47,7 @@ musicbrainz.prototype.process = function(tt,track){
 	//var releases =[];
 	function verify(item){
 		//found a  release, add data to track metadata
-		if(item.releases[0]){
+		if(item.releases && item.releases[0]){
 
 			if(item.tags && item.tags.length){
 				var tags=[];
@@ -58,16 +58,24 @@ musicbrainz.prototype.process = function(tt,track){
 				});
 				track.tags=tags;
 			}
-			track.metadata.artist=item['artist-credit'][0].artist.name;
-			track.artist=item['artist-credit'][0].artist.id;
+			if(item['artist-credit'] && item['artist-credit'][0]){
+				track.metadata.artist=item['artist-credit'][0].artist.name;
+				track.artist=item['artist-credit'][0].artist.id;
+			}else{
+				return false;
+			}
+
 
 			if(track.type !== 'youtube'){
-				track.metadata.album = item.releases[0].title;
-				track.album = item.releases[0].id;
-				if(item.releases[0].media){
-					track.track = item.releases[0].media[0]['track-offset']+' of '+item.releases[0].media[0]['track-count'];
+				if(item.releases && item.releases[0]){
+					track.metadata.album = item.releases[0].title;
+					track.album = item.releases[0].id;
+					if(item.releases[0].media){
+						track.track = item.releases[0].media[0]['track-offset']+' of '+item.releases[0].media[0]['track-count'];
+					}
+				}else{
+					return false;
 				}
-
 
 			}
 			track.metadata.title = item.title;
@@ -78,12 +86,12 @@ musicbrainz.prototype.process = function(tt,track){
 				});
 			}
 			track.date = Date.now();
-			artists.add(track.artist);
+
 			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){},function(err){
 				eRRor(self.sender,err);
 			});
 			self.sender.send('refresh');
-
+			meta.add(track);
 			return true;
 		}else{
 			if(track.type === 'internetarchive'){
@@ -95,19 +103,19 @@ musicbrainz.prototype.process = function(tt,track){
 		}
 	};
 	var stringCheck = function(title,type){
-		var meta = track.metadata[type].toLowerCase().trim().split(' ');
+		var metas = track.metadata[type].toLowerCase().trim().split(' ');
 		var got = title.toLowerCase().trim().split(' ');
 		var compare = got.filter(function(word){
-			if(meta.indexOf(word) > -1){
-				var index = meta.indexOf(word);
-				meta.splice(index,1);
+			if(metas.indexOf(word) > -1){
+				var index = metas.indexOf(word);
+				metas.splice(index,1);
 				return true;
 			}
 		})
 		if(track.type === 'youtube'){
 			var rem = 0;
 		}else{
-			var rem = meta.length;
+			var rem = metas.length;
 		}
 		if(compare.length === got.length && rem < 5){
 			return true;
@@ -134,11 +142,15 @@ musicbrainz.prototype.process = function(tt,track){
 				}
 			})
 			var result = result.filter(function(recording){
-				self.sender.send('log',recording)
-				var artist = recording['artist-credit'][0].artist.name;
-				if(stringCheck(artist,'artist')){
-					return true;
+				if(recording['artist-credit'] && recording['artist-credit'][0]){
+					var artist = recording['artist-credit'][0].artist.name;
+					if(stringCheck(artist,'artist')){
+						return true;
+					}
+				}else{
+					return false;
 				}
+
 			})
 		}
 		if(result.length > 0){
@@ -148,11 +160,11 @@ musicbrainz.prototype.process = function(tt,track){
 		}
 		//return recordings;
 	}
-	self.sender.send('log',tt)
-	if(track.musicbrainz_id && tt.releases.length){
+	//self.sender.send('log',tt)
+	if(track.musicbrainz_id && tt.releases && tt.releases.length){
 		//has a musicbrainz id - so verify
 		verify(tt);
-	}else if(tt.recordings.length){
+	}else if(tt.recordings && tt.recordings.length){
 		//found results for lookup search, so process each result
 		var recordings = tt.recordings;
 		if(track.metadata.album){
@@ -184,10 +196,17 @@ musicbrainz.prototype.submit = function(track){
 
 				try{
 					var tt = JSON.parse(body);
-					self.process(tt,track2);
 				}
 				catch(err){
+					var tt=false
 					eRRor(self.sender,err.message);
+					if(body){
+						//self.sender.send('log',options.url)
+						//self.sender.send('log',body);
+					}
+				}
+				if(tt){
+					self.process(tt,track2);
 				}
 			}else{
 				if(response){
@@ -316,5 +335,6 @@ function eRRor(sender,mess){
 ipcMain.on('dBase', function(event, ready){
 	if(ready){
 		elastic = require(path.join(path.dirname(process.mainModule.filename),'core/lib/elasticsearch.js')).ready();
+		meta = require('../process/meta.js');
 	}
 })

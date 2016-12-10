@@ -7,7 +7,7 @@ var define = {
 		'utils'
 	],
 	core_process:[
-		//starts with the core process in a Node scope
+		//starts with the core process in a Node scope, put corresponding file in modules 'lib/process' folder
 		'fileTools',
 		'musicbrainz'
 	],
@@ -18,14 +18,17 @@ var define = {
 	module_name:"musicPlayer",
 	settings:{
 		paths:{
-			musicDir:"",
-			dataDir:""
+
 		},
 		state:{
 			state1:"",
 			state2:""
 		},
 		fileTypes:[".mp3",".wav",".ogg"]
+	},
+	data:{
+		artist_images:"images/artists",
+		album_images:"images/albums"
 	}
 }
 function Mapping(){
@@ -75,16 +78,28 @@ function Types(){
 			mapping:mapping()
 		},{
 			type:'internetarchivesearch',
-			mapping:false
+			mapping:{
+				properties:{
+				}
+			}
 		},{
 			type:'artists',
-			mapping:false
+			mapping:{
+				properties:{
+				}
+			}
 		},{
 			type:'albums',
-			mapping:false
+			mapping:{
+				properties:{
+				}
+			}
 		},{
 			type:'searches',
-			mapping:false
+			mapping:{
+				properties:{
+				}
+			}
 		}
 	]
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html ng-app="yolk">
+    <head>
+        <meta charset="UTF-8">
+        <script>
+            window.$ = window.jQuery = require('jquery');
+            const q = require('promise');
+            const {ipcRenderer} = require('electron');
+            require('jquery.facedetection');
+            console.log('artist file');
+        </script>
+    </head>
+    <body>
+
+        <script>
+
+            var face = function(src,discoq){
+                var promise = new q(function(resolve,reject){
+                    var image = document.createElement('img');
+                    $(image).attr('src',src);
+
+                    image.onload = function(){
+                        try{
+                            $(image).faceDetection({
+                                complete: function (faces) {
+                                    $(image).remove();
+
+                                    if(faces.length){
+                                        resolve(faces);
+                                    }else{
+                                        resolve(false)
+                                    }
+                                }
+                            });
+                        }
+                        catch(err){
+                            reject(err);
+                        }
+                    }
+                })
+                return promise;
+            }
+            ipcRenderer.on('log',function(event,data){
+    			console.log(data);
+    		})
+            ipcRenderer.on('json',function(event,data){
+                data = JSON.parse(data);
+    			console.log(data);
+    		})
+    		ipcRenderer.on('error',function(event,data){
+    			console.error(data);
+    		})
+        </script>
+    </body>
+</html>

@@ -193,8 +193,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			body.time = {};
 			body.time[type]=Date();
 			$scope.db.update($scope.db_index+'.searches.'+id,body).then(function(data){
-				console.log('updated')
-				console.log(data);
+				//console.log('updated')
+				//console.log(data);
 			})
 		}
 	}
