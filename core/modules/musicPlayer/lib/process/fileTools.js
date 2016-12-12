@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const jsmediatags = require("jsmediatags");
 const root = path.dirname(process.mainModule.filename);
+var musicbrainz = require('./musicbrainz.js');
 
 var types = require('../../musicPlayer.js').settings.fileTypes;
 
@@ -198,7 +199,9 @@ ft.getTags=function(){
 
 				self.sender.send('track', track);
 				if(self.dBase){
+					musicbrainz.add(track);
 					self.getTags();
+
 				}
 			},
 			onError: function(error) {
@@ -206,14 +209,14 @@ ft.getTags=function(){
 				track.type = 'local';
 				self.sender.send('track', track);
 				if(self.dBase){
+					musicbrainz.submit(track);
 					self.getTags();
 				}
 			}
+
 		});
 	}else{
-
 		self.sender.send('log','finished tagging');
-
 	}
 
 }

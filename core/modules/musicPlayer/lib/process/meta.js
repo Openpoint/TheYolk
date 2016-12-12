@@ -255,12 +255,14 @@ var getGoogle = function(item,retry){
 	});
 
 	if(item.type === 'album'){
-		search+search+'+album+cover';
-		var search = encodeURI(item.track.metadata.artist+' '+item.track.metadata.album+' album cover front').replace(/%20/g,'+');
+		var search = encodeURI(item.track.metadata.artist.replace(/&/g,'')+' '+item.track.metadata.album.replace(/&/g,'')+' album cover').replace(/%20/g,'+');
+		var url ='https://www.google.ie/search?q='+search+'&tbm=isch';
 	}else{
 		var search = encodeURI(item.track.metadata[item.type]).replace(/%20/g,'+');
+		var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
 	}
-	var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
+
+	message.send('log',item.track.metadata[item.type]+': '+url);
 	//win2.webContents.openDevTools();
 	win2.loadURL(url);
 	win2.webContents.on('did-finish-load',function(){

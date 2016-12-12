@@ -10,12 +10,6 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
 
-	const Discogs = require('disconnect').Client;
-	var db = new Discogs().database();
-		db.getRelease(176126, function(err, data){
-		console.log(data);
-	});
-
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
 	$scope.Sortby={};
@@ -71,7 +65,6 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.imagePath=function(type,id){
 		if(type && id){
 			var Path = path.join($scope.settings.paths[type],id,'thumb.jpg');
-			console.log(Path);
 			return Path;
 		}else{
 			return false;

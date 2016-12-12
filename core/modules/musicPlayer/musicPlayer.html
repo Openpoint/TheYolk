@@ -198,7 +198,7 @@
 				<div ng-style="{
 					width:dims.sidebarWidth,
 					height:dims.sidebarWidth/2
-				}" ng-if="!lib.playing.youtube" class='meta'>
+				}" ng-if="lib.playing && !lib.playing.youtube" class='meta'>
 					<img ng-src="{{imagePath('artists',lib.playing.artist||false)}}" />
 					<img ng-src="{{imagePath('albums',lib.playing.album||false)}}" />
 					<div class='shadow'></div>
@@ -256,7 +256,7 @@
 		</div>
 		<div class='temp'>
 			<div ng-click='db.nuke()'>NUKE!</div>
-			<div ng-click='tools()'>Tools</div>
+			<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
 		</div>
 	</div>
 </div>

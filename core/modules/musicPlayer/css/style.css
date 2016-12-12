@@ -482,6 +482,9 @@ body,html{
 	box-sizing:border-box;
 	overflow:hidden;
 }
+#devinfo pre{
+	white-space: pre-wrap; 
+}
 #youtube2{
 	position:relative;
 	width:100%;

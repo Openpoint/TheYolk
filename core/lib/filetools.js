@@ -8,14 +8,16 @@ var q = require('promise');
 var request = require('request');
 
 const os = require("os");
-var filetools={};
-var win;
+var message;
 
-filetools.download = function(urls,destination,Win){
-	win = Win;
+var filetools = function(){
+	message = process.Yolk.message;
+}
+filetools.prototype.download = function(urls,destination){
+	var self = this;
 
 	var promise = new q(function(resolve,reject){
-		var self = {
+		var prom = {
 			count:0,
 			error:false,
 			urls:urls,
@@ -24,32 +26,30 @@ filetools.download = function(urls,destination,Win){
 
 		function done(file,err){
 			if(file){
-				if(!self.error){
-					self.error=[];
+				if(!prom.error){
+					prom.error=[];
 				}
-				self.error.push(err);
-				//console.log(self);
-				if(filetools.isThere('file',file)){
+				prom.error.push(err);
+				if(self.isThere('file',file)){
 					fs.unlinkSync(file);
 				}
 				//console.log(file);
 				//console.log(err);
 			}
-			self.count ++;
-			if(self.count === self.urls.length){
-				resolve(self.error);
+			prom.count ++;
+			if(prom.count === prom.urls.length){
+				resolve(prom.error);
 			}
 		};
 
-		self.urls.forEach(function(src){
+		prom.urls.forEach(function(src){
 
 			var url = URL.parse(src.url);
 			var filename = url.pathname.split('/').pop();
-			var file = path.join(self.destination,filename);
+			var file = path.join(prom.destination,filename);
 			var size;
 			var prog = 0;
-
-			if(!filetools.isThere('file',file)){
+			if(!self.isThere('file',file)){
 				//var agent = new https.Agent(agentOptions);
 				var options = {
 					uri:url.href,
@@ -57,6 +57,7 @@ filetools.download = function(urls,destination,Win){
 						Cookie:src.cookie
 					}
 				}
+
 				var req = request.get(options).on('response',function(res){
 
 					size = res.headers['content-length'];
@@ -65,10 +66,11 @@ filetools.download = function(urls,destination,Win){
 					if(res.statusCode == 200){
 						var File = fs.createWriteStream(file);
 						res.on('data', function(data){
+
 							File.write(data);
 							prog = prog+data.byteLength;
-							if(win){
-								win.send('install',{
+							if(message){
+								message.send('install',{
 									type:'progress',
 									percent:Math.round((prog/size)*100),
 									message:'Downloading '+filename
@@ -78,7 +80,7 @@ filetools.download = function(urls,destination,Win){
 
 							File.end();
 							if(src.checksum){
-								filetools.checksum(file,src.checksum).then(function(data){
+								self.checksum(file,src.checksum).then(function(data){
 									done();
 								},function(err){
 									console.log('checksum-reject1');
@@ -99,7 +101,7 @@ filetools.download = function(urls,destination,Win){
 			}else{
 				console.log('already there');
 				if(src.checksum){
-					filetools.checksum(file,src.checksum).then(function(data){
+					self.checksum(file,src.checksum).then(function(data){
 						done();
 					},function(err){
 						console.log('checksum-reject2');
@@ -118,7 +120,7 @@ filetools.download = function(urls,destination,Win){
 
 	return promise;
 }
-filetools.isThere = function(type,path){
+filetools.prototype.isThere = function(type,path){
 	try {
 		var there = fs.statSync(path);
 		if(type.toLowerCase() === 'dir'){
@@ -140,11 +142,12 @@ filetools.isThere = function(type,path){
 		return false;
 	}
 }
-filetools.extract = function(src,dest,type){
+filetools.prototype.extract = function(src,dest,type){
+	var self = this;
 	var promise = new q(function(resolve,reject){
 		var destination = dest;
-		if(win){
-			win.send('install',{
+		if(message){
+			message.send('install',{
 				type:'progress',
 				percent:false,
 				message:'Extracting '+path.basename(src)
@@ -159,7 +162,7 @@ filetools.extract = function(src,dest,type){
 			parse.on('entry', function(entry){
 
 				if(entry.type==='Directory'){
-					filetools.mkdir(destination,entry.path);
+					self.mkdir(destination,entry.path);
 				}else{
 					var file=path.join(destination,entry.path);
 					var options = {
@@ -185,7 +188,7 @@ filetools.extract = function(src,dest,type){
 				zipfile.on("entry", function(entry) {
 					if (/\/$/.test(entry.fileName)) {
 						// directory file names end with '/'
-						filetools.mkdir(dest,entry.fileName);
+						self.mkdir(dest,entry.fileName);
 						zipfile.readEntry();
 					} else {
 						// file entry
@@ -196,7 +199,7 @@ filetools.extract = function(src,dest,type){
 							}
 							// ensure parent directory exists
 
-							filetools.mkdir(dest,path.dirname(entry.fileName));
+							self.mkdir(dest,path.dirname(entry.fileName));
 
 							readStream.pipe(fs.createWriteStream(path.join(dest,entry.fileName)));
 							readStream.on("end", function() {
@@ -214,17 +217,18 @@ filetools.extract = function(src,dest,type){
 	});
 	return promise;
 }
-filetools.mkdir = function(base,Path){
+filetools.prototype.mkdir = function(base,Path){
+	var self = this;
 	var target = base;
 	Path = Path.split('/');
 	Path.forEach(function(dir){
 		target = path.join(target,dir);
-		if(!filetools.isThere('dir',target)){
+		if(!self.isThere('dir',target)){
 			fs.mkdirSync(target);
 		}
 	});
 }
-filetools.copy = function(src,dest){
+filetools.prototype.copy = function(src,dest){
 	var promise = new q(function(resolve,reject){
 		var rd = fs.createReadStream(src);
 		rd.on("error", function(err) {
@@ -241,7 +245,7 @@ filetools.copy = function(src,dest){
 	});
 	return promise;
 }
-filetools.checksum = function(file,val){
+filetools.prototype.checksum = function(file,val){
 	val = val.split(':');
 	if(val.length > 1){
 		var cs = val[1];
@@ -288,4 +292,4 @@ filetools.checksum = function(file,val){
 	return promise;
 
 }
-module.exports=filetools;
+module.exports=new filetools();

@@ -150,7 +150,11 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	tracks.prototype.add = function(track){
 		$timeout.cancel(Process);
 		if(track.type==='local'){
-			proceed(track);
+			indbase(track).then(function(isin){
+				if(!isin){
+					proceed(track);
+				}
+			});
 		}else{
 
 			if(q.length){

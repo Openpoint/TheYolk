@@ -3,73 +3,56 @@ var path = require('path');
 
 angular.module('yolk').factory('utils',['$q', function($q) {
 
-	var elastic = require(path.join(Yolk.config.root,'core/lib/elasticsearch.js'));
-
 	var utils = function(module){
-		this.db = elastic.ready();
+		this.db = Yolk.db;
 		this.module = module;
 		this.index_root;
 	};
 
-	//engages the database and returns a database handler object
+	//create the datbase indexes
 	utils.prototype.boot = function(index,ids){
-
 		this.index_root = index;
 		var self = this;
-
-
 		return new $q(function(resolve,reject){
 			var count = 0;
-
-			elastic.ping.then(function(){
-
-				var res=function(){
-					count++
-
-					if(!ids || count === ids.length){
-						resolve(self.db);
-					}
+			var res=function(){
+				count++
+				if(!ids || count === ids.length){
+					resolve();
 				}
-				var check = function(index,mapping){
-					self.db.exists(index).then(function(exists){
-						if(exists){
-							res();
-						}else{
-
-							self.db.create(index,mapping).then(function(data){
-								res();
-							},function(err){
-								console.log(err);
-							});
-						}
-					});
-				}
-
+			}
+			var check = function(index,mapping){
 				self.db.exists(index).then(function(exists){
 					if(exists){
-						go();
+						res();
 					}else{
-						self.db.create(index).then(function(mess){
-							go();
+						self.db.create(index,mapping).then(function(data){
+							res();
+						},function(err){
+							console.log(err);
 						});
 					}
 				});
-
-				function go(){
-
-					if(ids && ids.length){
-						ids.forEach(function(id){
-
-							new check(index+'.'+id.type,id.mapping);
-						});
-					}else{
-						res();
-					}
+			}
+			self.db.exists(index).then(function(exists){
+				if(exists){
+					go();
+				}else{
+					self.db.create(index).then(function(mess){
+						go();
+					});
 				}
-
-			},function(err){
-				console.log(err);
 			});
+
+			function go(){
+				if(ids && ids.length){
+					ids.forEach(function(id){
+						new check(index+'.'+id.type,id.mapping);
+					});
+				}else{
+					res();
+				}
+			}
 		})
 	}
 
@@ -88,7 +71,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				if(data && data.length){
 					resolve(data[0]);
 				}else{
-					var settings = Yolk.config.modules[type].config.settings;
+					var settings = Yolk.modules[type].config.settings;
 					if(Object.keys(settings).length){
 						var body = [];
 						var count = 0;
@@ -217,5 +200,4 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 
 	}
 	return utils;
-
 }])

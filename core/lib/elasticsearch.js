@@ -4,7 +4,7 @@
  *
  * */
 
-const $q = require('promise');
+const q = require('promise');
 const elasticsearch = require('elasticsearch');
 const {ipcRenderer} = require('electron');
 const def = {
@@ -16,18 +16,16 @@ const def = {
 	}
 }
 
-var dbaseReady = false;
+//var dbaseReady = false;
 
 var dbase = function(){
 	this.client = new elasticsearch.Client({
 		host: 'http://localhost:9200',
-		//log: 'trace'
 	});
-	this.test = 'test';
 }
 dbase.prototype.exists = function(index){
 	var self = this;
-	var promise = new $q(function(resolve,reject){
+	var promise = new q(function(resolve,reject){
 		index = index.split('.');
 
 		if(index.length === 1){
@@ -70,7 +68,7 @@ dbase.prototype.create = function(Index,Mapping,Body){
 	if(!Body){
 		Body = def;
 	}
-	var done = new $q(function(resolve,reject){
+	var done = new q(function(resolve,reject){
 		new function(index,mapping,body,res){
 			//console.log(index);
 			return self.client.indices.create({
@@ -107,7 +105,7 @@ dbase.prototype.create = function(Index,Mapping,Body){
 }
 dbase.prototype.fetch = function(path,query,sort){
 	var self = this;
-	var result = new $q(function(resolve,reject){
+	var result = new q(function(resolve,reject){
 		if(!path){
 			resolve(false);
 			return;
@@ -223,7 +221,7 @@ dbase.prototype.nuke = function(){
 
 dbase.prototype.listIndexes=function(){
 	var self = this;
-	var result = new $q(function(resolve,reject){
+	var result = new q(function(resolve,reject){
 
 		self.client.cat.indices({
 				h:'i'
@@ -243,12 +241,13 @@ var pathSplit = function(path){
 	path = path.split('.');
 	return path;
 }
+/*
 var init = {}
 init.ready = function(){
 	dbaseReady = true;
 	return db;
 }
-init.ping = new $q(function(resolve, reject){
+init.ping = new q(function(resolve, reject){
 
 	var p = function(){
 		if(!dbaseReady){
@@ -269,5 +268,5 @@ if(ipcRenderer){
 		dbaseReady = data;
 	});
 }
-
-module.exports = init;
+*/
+module.exports = db;
