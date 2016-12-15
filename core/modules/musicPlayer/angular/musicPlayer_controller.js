@@ -1,5 +1,6 @@
 'use strict';
-
+var test = '’()[]{}:,\'"`¦@~#*test'.replace(/([\(\)\{\}\[\]\:\,'"`’\¦\~\@\#\*])/g,'');
+console.log(test);
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',
 function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin) {
@@ -41,10 +42,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		$scope.pin.pin('source','online');
 		$timeout(function(){
 			$scope.settings =data[0];
-			$scope.settings.paths.home = Yolk.config.home;
-			$scope.settings.paths.root = Yolk.config.root;
-			$scope.settings.paths.artists = path.join(Yolk.config.home,'data/modules',mod_name,Yolk.config.modules[mod_name].config.data.artist_images);
-			$scope.settings.paths.albums = path.join(Yolk.config.home,'data/modules',mod_name,Yolk.config.modules[mod_name].config.data.album_images);
+			$scope.settings.paths.home = Yolk.home;
+			$scope.settings.paths.root = Yolk.root;
+			$scope.settings.paths.artists = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
+			$scope.settings.paths.albums = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
 			$scope.dbReady = true;
 			$scope.settings_loaded = true;
 			$scope.tracks.checkLocal('local');

@@ -1,5 +1,66 @@
 'use strict'
 
+//log back to the renderer window
+console.process=function(mess,type){
+
+	if(type !== 'log' && mess.message){
+		mess = mess.message;
+	}
+	try {
+		throw new Error(mess)
+	}
+	catch(err){
+		err = err.stack.split('\n');
+		err.splice(1, 2);
+		err[0]='Main process: '+err[1].trim();
+		if(typeof mess ==='string' || typeof mess==='boolean' || typeof mess==='number'){
+			err[1]= mess+''.trim();
+		}else if(!mess){
+			err[1]=''+mess;
+		}else{
+			var object = mess;
+			err.splice(1, 1);
+		}
+		if(!object){
+			err=[err[0],err[1]];
+		}else{
+			err=[err[0]];
+		}
+		err = err.join('\n');
+		return {
+			log:err,
+			object:object
+		}
+	}
+
+}
+console.Yolk = {
+	log:function(mess){
+		mess = console.process(mess,"log");
+		process.Yolk.message.send('log',mess.log);
+		if(mess.object){
+			process.Yolk.message.send('log',mess.object);
+		}
+	},
+	warn:function(mess){
+		mess = console.process(mess,"warn");
+		process.Yolk.message.send('warn',mess.log);
+		if(mess.object){
+			process.Yolk.message.send('warn',mess.object);
+		}
+	},
+	error:function(mess){
+		mess = console.process(mess,"error");
+		process.Yolk.message.send('error',mess.log);
+		if(mess.object){
+			process.Yolk.message.send('error',mess.object);
+		}
+	},
+	say:function(mess){
+		process.Yolk.message.send('log',mess);
+	}
+};
+
 //if(require('electron-squirrel-startup')) return;
 process.Yolk = {};
 
@@ -15,28 +76,45 @@ const bootloader = require('./core/lib/bootloader.js');
 const ft = require('./core/lib/filetools.js');
 const boot = new bootloader();
 
-const elasticversion = '5.0.1';
+const elasticversion = '5.1.1';
+const elasticchecksum = '7351cd29ac9c20592d94bde950f513b5c5bb44d3';
 const javaversion = 'jre1.8.0_111';
 var installer;
+var domReady;
 
-
+process.Yolk.modules = boot.modules;
 process.Yolk.resolver = {};
+
+//hook to call main functions from a renderer window
 process.Yolk.remote = function(val){
 	return process.Yolk[val];
 }
 process.Yolk.root = boot.root;
 process.Yolk.home = boot.home;
 process.Yolk.message = false;
+process.Yolk.storedMesssage = {};
+
+//signals that the renderer client is ready
 process.Yolk.clientReady = function(){
 	installer = new Installer();
 	install();
 	return boot.modules;
 }
+//tell the renderer that the database is ready
 process.Yolk.dbReady = new promise(function(resolve,reject){
 	process.Yolk.resolver.dbReady = function(){
 		resolve();
 	}
 });
+
+//load the main core processes for a module
+process.Yolk.coreprocess = function(module){
+	if(boot.coreProcesses[module]){
+		boot.coreProcesses[module].forEach(function(file){
+			require(file);
+		})
+	}
+}
 process.Yolk.chrome = function(action){
 	switch (action){
 		case 'close':
@@ -61,6 +139,7 @@ process.Yolk.chrome = function(action){
 		break;
 	}
 }
+process.Yolk.db = require(path.join(boot.root,'core/lib/elasticsearch.js'));
 
 //Create the main browser window
 // Keep a global reference of the window object, if you don't, the window will
@@ -72,7 +151,8 @@ function createWindow () {
 	win.loadURL(`file://${__dirname}/index.html`);
 	process.Yolk.win = win;
 	process.Yolk.message = win.webContents;
-	win.webContents.openDevTools();
+
+	//win.webContents.openDevTools();
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {
@@ -144,9 +224,6 @@ app.on('ready', function(){
 	}else{
 		process.Yolk.elasticpath = path.join(boot.home,'.bin','elasticsearch-'+elasticversion,'bin','elasticsearch.bat');
 	}
-	boot.coreProcesses.forEach(function(file){
-		require(file);
-	})
 })
 
 // Quit when all windows are closed.
@@ -171,6 +248,9 @@ ipcMain.on('track_relay', function(event, data) {
 	event.sender.send('track',data);
 })
 
+ipcMain.on('domReady', function() {
+	process.Yolk.message.send('install',process.Yolk.storedMesssage);
+})
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
@@ -190,7 +270,7 @@ var hasElastic = function(home){
 			elastic(home);
 		}else{
 			console.log('Getting Elasticsearch');
-			installer.getElastic(elasticversion).then(function(){
+			installer.getElastic(elasticversion,elasticchecksum).then(function(){
 				elastic(home);
 			});
 		}
@@ -218,6 +298,11 @@ function install(){
 //Start the elasticsearch server
 
 function elastic(home){
+
+	process.Yolk.storedMesssage = {
+		message:'Loading the database'
+	};
+
 	if(home){
 		process.env.JAVA_HOME = home;
 	}
@@ -240,11 +325,8 @@ function elastic(home){
 		var trimmed = string.split('[yolk]')[1];
 		//console.log(string);
 		if(win && trimmed){
-			win.webContents.send('install',{
-				type:'progress',
-				percent:false,
-				log:trimmed.replace(/\/n/g,'').trim()
-			});
+			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
+			process.Yolk.message.send('install',process.Yolk.storedMesssage);
 		}
 		if(string.indexOf('[GREEN]') > -1 || string.indexOf('[yolk] recovered [0] indices into cluster_state') > -1){
 			process.Yolk.resolver.dbReady();

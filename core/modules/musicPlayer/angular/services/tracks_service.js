@@ -30,7 +30,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			$scope.search.go(deleted);
 		}
 	}
-
+/*
 	//timer to set sane pace for bulk database submissions
 	function proceed(newtrack){
 		if(newtrack){
@@ -172,6 +172,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 		}
 	};
+	*/
 	//delete a track
 	tracks.prototype.delete = function(type,id,playing){
 		if(playing){

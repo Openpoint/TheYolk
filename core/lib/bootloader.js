@@ -19,7 +19,7 @@ var bootloader = function(){
 	this.root = process.cwd();
 	this.home = path.join(os.homedir(),'.yolk');
 	this.modules={};
-	this.coreProcesses=[];
+	this.coreProcesses={};
 	this.modulePaths=[
 		{
 			path:"core/modules",
@@ -113,7 +113,10 @@ bootloader.prototype.configs  = function(module){
 			var cp = path.join(module.path,'lib','process',process+'.js');
 
 			if(ft.isThere('file',cp)){
-				self.coreProcesses.push(cp);
+				if(!self.coreProcesses[module.name]){
+					self.coreProcesses[module.name]=[];
+				}
+				self.coreProcesses[module.name].push(cp);
 			}
 		});
 	}

@@ -29,6 +29,9 @@ var define = {
 	data:{
 		artist_images:"images/artists",
 		album_images:"images/albums"
+	},
+	headers:{
+	    'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )' //todo - automatically update version in UA
 	}
 }
 function Mapping(){

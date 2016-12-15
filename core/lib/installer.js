@@ -6,12 +6,13 @@ const path=require('path');
 const ft=require('./filetools');
 const child = require('child_process');
 const os = require('os');
-var message;
-
+var message = process.Yolk.message
+function getMessage(){
+	return process.Yolk.message;
+}
 var installer = function(){
 	this.home = process.Yolk.home;
 	message = process.Yolk.message;
-	process.Yolk.message.send('install','starting');
 };
 
 installer.prototype.hasJava=function(Path){
@@ -19,18 +20,17 @@ installer.prototype.hasJava=function(Path){
 	var promise = new q(function(resolve,reject){
 		if(Path){
 			var jpath = path.join(Path,'bin','java');
-			message.send('install',jpath);
 		}else{
-			var jpath = 'xjava';
+			var jpath = 'java';
 		}
 
 		var jre = child.spawnSync(jpath, ['-version']);
 		if(jre.error){
 			if(Path){
-				message.send('install','No Local Java Installed');
+				message.send('log','No Local Java Installed');
 				reject(true);
 			}else{
-				message.send('install','No System Java Installed');
+				message.send('log','No System Java Installed');
 				reject(false);
 			}
 		}else{
@@ -39,7 +39,7 @@ installer.prototype.hasJava=function(Path){
 			if(version[0]==1 && version[1]>=8){
 				resolve(true);
 			}else{
-				message.send('install','System Java too old');
+				message.send('log','System Java too old');
 				reject(false);
 			}
 		}
@@ -49,7 +49,11 @@ installer.prototype.hasJava=function(Path){
 installer.prototype.getJava = function(){
 	var self = this;
 	var promise = new q(function(resolve,reject){
-		message.send('install','Getting Java');
+		process.Yolk.storedMesssage = {
+			message:'Getting Java'
+		}
+		message = getMessage();
+		message.send('install',process.Yolk.storedMesssage);
 		var versions = {
 			linuxx64:{
 				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-linux-x64.tar.gz",
@@ -86,10 +90,10 @@ installer.prototype.getJava = function(){
 
 		function download(){
 			ft.download(paths,path.join(self.home,'.temp'),self.win).then(function(errors){
-				message.send('install','getting java');
+
 				if(errors){
-					message.send('install','error fetching java');
-					message.send('install',errors);
+					message.send('log','error fetching java');
+					message.send('error',errors);
 				}else{
 					message.send('install','got java');
 					extract();
@@ -134,24 +138,28 @@ installer.prototype.hasElastic=function(Path){
 
 	return promise;
 }
-installer.prototype.getElastic = function(elasticversion){
+installer.prototype.getElastic = function(elasticversion,hash){
 	var self = this;
 	var promise = new q(function(resolve,reject){
 
-		message.send('install','Getting Elastic');
+		process.Yolk.storedMesssage = {
+			message:'Getting Elastic'
+		}
+		message = getMessage();
+		message.send('install',process.Yolk.storedMesssage);
 		var filename = 'elasticsearch-'+elasticversion+'.tar.gz';
 		var target = path.join(self.home,'.temp',filename);
 
 		var paths = [
 			{
 				url:'https://artifacts.elastic.co/downloads/elasticsearch/'+filename,
-				checksum:'3dd927d3bf901a3c1fa4e52bc7db62fe4b1c2b9a'
+				checksum:hash
 			},
 		];
 
 		function extract(){
 			ft.extract(target,path.join(self.home,'.bin'),'tar.gz').then(function(){
-				message.send('install','finished extraction');
+				message.send('log','finished extraction');
 				resolve();
 			},function(err){
 				reject(err);
@@ -159,12 +167,11 @@ installer.prototype.getElastic = function(elasticversion){
 		};
 		function download(){
 			ft.download(paths,path.join(self.home,'.temp'),self.win).then(function(errors){
-				message.send('install','getting elasticsearch');
 				if(errors){
-					message.send('install','error fetching elastic');
+					message.send('error','error fetching elastic');
 					reject(errors);
 				}else{
-					message.send('install','got elastic');
+					message.send('log','got elastic');
 					extract();
 
 				}

@@ -17,7 +17,10 @@ search.prototype.strip = function(string){
 //escape all SOLR special characters from term
 search.prototype.sanitise = function(term,more){
 	if(term){
-		term = term.replace(/ +(?= )/g,'').replace(/([\!\*\+\-\=\<\>\|\(\)\[\]\{\}\^\~\?\&\:\\/"])/g, "\\$1").trim().toLowerCase();
+		term = term.
+		replace(/ +(?= )/g,'').
+		replace(/([\!\*\+\-\=\<\>\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, "\\$1").
+		trim().toLowerCase();
 		if(term && !this.gibberish(term)){
 			if(more){
 				term = this.sanitiseMore(term);
@@ -30,7 +33,18 @@ search.prototype.sanitise = function(term,more){
 		return false;
 	}
 }
-
+search.prototype.uri = function(term){
+	var newterm = '';
+	var ignore=['\\','!','*','+','-','=','<','>','|','(',')','[',']','{','}','^','~','?',':','/',' '];
+	for(var i=0; i < term.length; i++){
+		if(ignore.indexOf(term[i]) === -1){
+			newterm = newterm+encodeURI(term[i]);
+		}else{
+			newterm = newterm+term[i];
+		}
+	}
+	return newterm.replace(/\&/g,'%26');
+}
 //internetarchive has defacto problems with certain characters. Remove them.
 search.prototype.sanitiseMore = function(term){
 	term=term.replace(/\\&|\\:|\\"/g,'').replace(/ +(?= )/g,'');

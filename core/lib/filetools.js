@@ -8,10 +8,12 @@ var q = require('promise');
 var request = require('request');
 
 const os = require("os");
-var message;
-
+var message = process.Yolk.message;
+function getMessage(){
+	return process.Yolk.message;
+}
 var filetools = function(){
-	message = process.Yolk.message;
+
 }
 filetools.prototype.download = function(urls,destination){
 	var self = this;
@@ -43,7 +45,6 @@ filetools.prototype.download = function(urls,destination){
 		};
 
 		prom.urls.forEach(function(src){
-
 			var url = URL.parse(src.url);
 			var filename = url.pathname.split('/').pop();
 			var file = path.join(prom.destination,filename);
@@ -69,12 +70,11 @@ filetools.prototype.download = function(urls,destination){
 
 							File.write(data);
 							prog = prog+data.byteLength;
+							process.Yolk.storedMesssage.message = 'Downloading '+filename;
+							process.Yolk.storedMesssage.percent = Math.round((prog/size)*100);
+							message = getMessage();
 							if(message){
-								message.send('install',{
-									type:'progress',
-									percent:Math.round((prog/size)*100),
-									message:'Downloading '+filename
-								});
+								message.send('install',process.Yolk.storedMesssage);
 							}
 						}).on('end', function() {
 
@@ -146,12 +146,13 @@ filetools.prototype.extract = function(src,dest,type){
 	var self = this;
 	var promise = new q(function(resolve,reject){
 		var destination = dest;
+		process.Yolk.storedMesssage = {
+			percent:'',
+			message:'Extracting '+path.basename(src)
+		}
+		message = getMessage();
 		if(message){
-			message.send('install',{
-				type:'progress',
-				percent:false,
-				message:'Extracting '+path.basename(src)
-			});
+			message.send('install',process.Yolk.storedMesssage);
 		}
 		if(type==='tar.gz'){
 			console.log('extracting tar.gz');
@@ -275,8 +276,8 @@ filetools.prototype.checksum = function(file,val){
 				});
 				return;
 			}
-			console.log(cs);
-			console.log(sum);
+			//console.log(cs);
+			//console.log(sum);
 			if(sum == cs){
 				resolve(true);
 			}else{

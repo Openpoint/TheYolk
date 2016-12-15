@@ -7,11 +7,10 @@ function($scope,$timeout,utils) {
 	const mod_name = 'boot';
 
 	$scope.installed = {};
-	$scope.installed.message = 'Starting the database';
-	$scope.installed.progress = false;
+	$scope.installed.message = "";
+	$scope.installed.progress = "";
 
 	Yolk.remote('dbReady').then(function(){
-		
 		var length = 0;
 		for (var property in Yolk.modules) {
 			if (Yolk.modules.hasOwnProperty(property)) {
@@ -34,8 +33,9 @@ function($scope,$timeout,utils) {
 		}
 	})
 
+
 	function getSettings(){
-		//console.log('settings');
+
 		$timeout(function(){
 			$scope.installed.message = 'Loading settings';
 		})
@@ -91,29 +91,22 @@ function($scope,$timeout,utils) {
 	};
 	if(!ipcRenderer._events.install){
 		ipcRenderer.on('install',function(event,data){
-			switch(data.type){
-				case 'progress':
-					$timeout(function(){
-						if(data.message){
-							$scope.installed.message = data.message;
-						}
-						if(data.percent){
-							$scope.installed.log = false;
-							$scope.installed.progress = data.percent+'%';
-						}
-						if(data.log){
-							$scope.installed.progress = false;
-							$scope.installed.log = data.log;
-						}else{
-							$scope.installed.log = false;
-						}
-					});
-
-				break;
-				case 'log':
-					console.log(data.message);
-				break;
-			}
+			
+			$timeout(function(){
+				if(data.message){
+					$scope.installed.message = data.message;
+				}
+				if(data.percent){
+					$scope.installed.log = false;
+					$scope.installed.progress = data.percent+'%';
+				}
+				if(data.log){
+					$scope.installed.progress = false;
+					$scope.installed.log = data.log;
+				}else{
+					$scope.installed.log = false;
+				}
+			});
 		})
 	}
 

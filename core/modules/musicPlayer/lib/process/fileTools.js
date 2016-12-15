@@ -6,10 +6,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const jsmediatags = require("jsmediatags");
-const root = path.dirname(process.mainModule.filename);
-var musicbrainz = require('./musicbrainz.js');
-
-var types = require('../../musicPlayer.js').settings.fileTypes;
+const root = process.Yolk.root;
+const musicbrainz = require('./musicbrainz.js');
+const db = process.Yolk.db;
+const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
+const message = process.Yolk.message;
+const types = require('../../musicPlayer.js').settings.fileTypes;
 
 var ft = {
 	tracks:[],
@@ -25,30 +27,6 @@ ft.watch=function(dir){
 			mtime:fs.statSync(dir).mtime
 		}
 	}
-	/*
-	return;
-	if(!this.watchers[dir]){
-		var self=this;
-
-		fs.watchFile(dir, function(curr,prev){
-			console.log(curr);
-			if (curr.mtime!==prev.mtime){
-				console.log(dir);
-				console.log(curr.mtime);
-				console.log(prev.mtime);
-				clearTimeout(self.tOut);
-				self.tOut=setTimeout(function(){
-					self.sender.send('log','refresh triggered');
-					//ft.verify(self.allTracks, ft.rootDir);
-					ft.verify(self.tracks, ft.rootDir);
-				},3000)
-
-			}
-		});
-		//ft.watchers[dir]=true;
-		//console.log(ft.watchers)
-	}
-	*/
 }
 var watchtime;
 var watchtime2;
@@ -72,7 +50,7 @@ function watcher(){
 					watcher();
 				},1000)
 				watchtime2=setTimeout(function(){
-					ft.sender.send('log','refresh triggered');
+					message.send('log','refresh triggered');
 					ft.verify(ft.tracks, ft.rootDir);
 				},2000)
 				return true;
@@ -86,7 +64,7 @@ function watcher(){
 				watcher();
 			},1000)
 			watchtime2=setTimeout(function(){
-				ft.sender.send('log','refresh triggered');
+				message.send('log','refresh triggered');
 				ft.verify(ft.tracks, ft.rootDir);
 			},2000);
 		}
@@ -155,7 +133,7 @@ ft.getDir=function(dir){
 						return current_b.id == current.id
 					}).length == 0
 				});
-				self.sender.send('verify',{
+				message.send('verify',{
 					remove:remove,
 					include:include
 				});
@@ -196,27 +174,31 @@ ft.getTags=function(){
 
 				track.tagged = true;
 				track.type = 'local';
+				db.put(db_index+'.local.'+track.id,track).then(function(data){
+					//console.Yolk.log(data);
+				},function(err){
+					console.Yolk.warn(err);
+				})
+				musicbrainz.add(track);
+				self.getTags();
 
-				self.sender.send('track', track);
-				if(self.dBase){
-					musicbrainz.add(track);
-					self.getTags();
 
-				}
 			},
 			onError: function(error) {
 				track.tagged = false;
 				track.type = 'local';
-				self.sender.send('track', track);
-				if(self.dBase){
-					musicbrainz.submit(track);
-					self.getTags();
-				}
+				console.Yolk.warn(track);
+				db.put(db_index+'.local.'+track.id,track).then(function(data){
+					console.Yolk.warn(data);
+				},function(err){
+					console.Yolk.warn(err);
+				})
+				self.getTags();
 			}
 
 		});
 	}else{
-		self.sender.send('log','finished tagging');
+		message.send('log','finished tagging');
 	}
 
 }
@@ -224,7 +206,7 @@ ft.getTags=function(){
 ft.verify = function(tracks, dir){
 
 	this.verifyTracks = tracks;
-	this.dBase=true;
+
 	this.init = false;
 	//this.active = tracks;
 	this.q=[];
@@ -238,36 +220,14 @@ ft.verify = function(tracks, dir){
 
 //event listeners
 ipcMain.on('getDir', (event, dir) => {
-
-	//ft.dBase=true;
 	ft.init = true;
-	ft.sender = event.sender;
 	ft.loaded=0;
-	//ft.active = [];
 	ft.tracks = [];
 	ft.q = [];
-	//ft.allTracks = [];
-
-
 	ft.getDir(dir);
 })
 
 ipcMain.on('verify', function(event, data){
-	ft.sender = event.sender;
-	/*
-	for(var key in ft.watchers){
-		ft.watchers[key].close();
-	}
-	ft.watchers = {};
-	*/
-	//ft.watch(data.dir);
 	ft.rootDir = data.dir;
-	//ft.allTracks = data.tracks;
-
 	ft.verify(data.tracks, data.dir);
-
-})
-
-ipcMain.on('dBase', (event, ready) => {
-	ft.dBase = ready
 })

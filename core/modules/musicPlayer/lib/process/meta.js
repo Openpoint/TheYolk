@@ -10,50 +10,107 @@ const request = require('request');
 const sharp = require('sharp');
 const smartcrop = require('smartcrop-sharp');
 const {webContents,BrowserWindow,ipcMain} = require('electron');
-const ft = require(path.join(process.cwd(),'core/lib/filetools'));
+const ft = require(path.join(process.Yolk.root,'core/lib/filetools'));
 const fs = require('fs');
-const homedir = path.join(os.homedir(),'.yolk');
-
-//create a browser window for face detection on images
-var win = new BrowserWindow({show:false});
-win.webContents.openDevTools();
-win.loadURL(`file://${__dirname}/artwork.html`);
-var message = win.webContents;
-
-//close the window when application exits
-ipcMain.on('chrome', function(event, data) {
-	switch (data){
-		case 'close':
-			win.destroy();
-		break;
-	}
-})
-
-if(typeof Yolk !== 'undefined'){
-    var base = path.join(Yolk.config.modules.musicPlayer.path,'core');
-}else{
-    var base = path.join(process.cwd(),'core');
-}
-const db = require(path.join(base,'lib/elasticsearch.js')).ready();
-
-const settings = require(path.join(base,'modules/musicPlayer/musicPlayer.js'))
-const db_index = settings.db_index.index;
+const homedir = process.Yolk.home;
+const db = process.Yolk.db;
+const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const mb_url="https://musicbrainz.org/ws/2/";
-const mb_query="?inc=url-rels&fmt=json";
+const mb_query="?fmt=json";
 var options = {};
-var headers = {
-    'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )' //todo - automatically update version in UA
-}
+const headers = process.Yolk.modules["musicPlayer"].config.headers;
+const artwork = {};
 
-var artwork = {
+//Keep track of submissions to avoid duplication and limit lookup rates
+const queue = {
 	artist:{
 	    ids:[]
 	},
 	album:{
 	    ids:[]
 	},
-	q:[]
+	musicbrainz:[],
+    google:[],
+    discoq:[],
+    wikimedia:[]
 };
+process.Yolk.musicbrainzQ = queue.musicbrainz;
+
+//create a browser window for face detection on images and scraping
+let imageWindow = new BrowserWindow({
+    parent:process.Yolk.win,
+    show:false
+});
+var webPreferences = {
+  nodeIntegration: true,
+  webSecurity: true,
+  preload: path.resolve(path.join(__dirname, 'scraper.js'))
+}
+//window for google scraping
+let google = new BrowserWindow({
+    parent:imageWindow,
+    show:false,
+    webPreferences:webPreferences
+});
+var google_item;
+var googleItem = function(foo){
+	google_item = foo;
+}
+google.webContents.on('dom-ready',function(){
+	var item = google_item;
+	google.webContents.executeJavaScript('firstClick('+item.google.index+')',true).then(function(data){
+		new downart(data,item,true);
+		googleBusy = false;
+	},function(err){
+		googleBusy = false;
+		if(err === 'retry'){
+			item.google.retry++
+			if(item.google.retry < 5){
+				queue.google.push(item);
+				go('google');
+			}
+		}
+		console.Yolk.error(err);
+	})
+})
+//google.webContents.openDevTools();
+
+//window for discoqs scraping
+let discoqs = new BrowserWindow({
+    parent:imageWindow,
+    show:false,
+    webPreferences:webPreferences
+});
+var discoq_item;
+var discoqItem = function(foo){
+	discoq_item = foo;
+}
+discoqs.webContents.on('dom-ready',function(){
+	var item = discoq_item;
+	discoqs.webContents.executeJavaScript('scrape()',true).then(function(data){
+		discoqBusy = false;
+		if(data && data.length){
+			new downart(data,item);
+		}else{
+			//couldn't get the image from discoq, so try Google
+			queue.google.push(item);
+			go('google');
+		}
+	})
+})
+imageWindow.loadURL(`file://${__dirname}/artwork.html`);
+
+/*
+//close the window when application exits
+ipcMain.on('chrome', function(event, data) {
+	switch (data){
+		case 'close':
+			win.close();
+		break;
+	}
+})
+*/
+
 //check if the artist or album is already in the database
 artwork.exists=function(type,id){
     var promise = new q(function(resolve,reject){
@@ -65,7 +122,6 @@ artwork.exists=function(type,id){
             if(err){
                 resolve(false);
             }else{
-				message.send('log',data);
 				if(data['_source'].artwork){
 					resolve(true);
 				}else{
@@ -78,8 +134,13 @@ artwork.exists=function(type,id){
     return promise;
 }
 //add an artist and album to the processing queue
+var init = true;
 artwork.add = function(track){
-
+	if(queue.musicbrainz.length){
+		init = false
+	}else{
+		init = true;
+	}
 	var both = [{
 		id:track.artist,
 		type:'artist'
@@ -89,204 +150,210 @@ artwork.add = function(track){
 	}]
 
 	both.forEach(function(type){
+        //reject lookup for youtube video albums
 		if(type.type === 'album' && !track.album){
 			return;
 		}
-		//message.send('log',track.metadata[type.type]+': Checking')
-		try{
-			var id = type.id;
-			var type = type.type;
-			if(artwork[type].ids.indexOf(id) === -1){
-		        artwork[type].ids.push(id);
-		        artwork.exists(type,id).then(function(exists){
-		            if(!exists || exists === type){
-						message.send('log',track.metadata[type]+': Adding to queue');
-						if(type === 'album'){
-							var query = mb_url+'release/'+id+mb_query
-						}else{
-							var query = mb_url+type+'/'+id+mb_query;
-						}
+		var id = type.id;
+		var type = type.type;
+		if(queue[type].ids.indexOf(id) === -1){
+	        queue[type].ids.push(id);
+	        artwork.exists(type,id).then(function(exists){
+	            if(!exists || exists === type){
+					//console.Yolk.log(track.metadata[type]+': Adding to queue')
+					if(type === 'album'){
+						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels';
+					}else{
+						var query = mb_url+type+'/'+id+mb_query+'&inc=url-rels';
+					}
 
-		        		options.url = query;
-						var item = {
-		                    track:track,
-		                    options:{
-								headers:headers,
-								url:query
-							},
-							needs:exists,
-							type:type
-		                }
-						if(type === 'album'){
-							new downart("http://coverartarchive.org/release/"+id+"/front",item);
-						}
-						artwork.q.push(item);
-		                if(!timeout){
-		                    go();
-		                }
-		            }
-		        })
-		    }
-		}
-		catch(err){
-			message.send('error',err)
-		}
+	        		options.url = query;
+					var item = {
+	                    track:track,
+	                    options:{
+							headers:headers,
+							url:query
+						},
+						needs:exists,
+						type:type
+	                }
+					queue.musicbrainz.push(item);
+	                go('musicbrainz');
+					init = false;
+	            }
+	        })
+	    }
 	})
-
-
 }
-//process the musicbrainz queue at a sane rate;
-var timeout=false;
-var go = function(){
-    new submit();
-    timeout = setTimeout(function(){
-        timeout = false;
-        if(artwork.q.length > 0){
-            go();
+//the submission rate limiter
+var timeout={
+    musicbrainz:{
+		to:false,
+		delay:1000
+	},
+    google:{
+		to:false,
+		delay:1000
+	},
+    discoq:{
+		to:false,
+		delay:1000
+	},
+    wikimedia:{
+		to:false,
+		delay:500
+	}
+};
+var action = {};
+var go = function(type){
+    if(timeout[type].to){
+        return;
+    }
+    //console.Yolk.log(queue);
+	if(type === 'musicbrainz' && init){
+		timeout[type].to = setTimeout(function(){
+			timeout[type].to = false;
+			go('musicbrainz');
+		},1000);
+		return;
+	}else{
+		new action[type]();
+	}
+
+    timeout[type].to = setTimeout(function(){
+        this.delay = timeout[type].delay;
+        timeout[type].to = false;
+        if(queue[type].length > 0){
+            go(type);
         }
-    },1000)
+    },timeout[type].delay)
 }
 //submit query to musicbrainz server
-var submit = function(){
-    var item = artwork.q.shift();
-	message.send('log',item.track.metadata[item.type]+' : MusicBrainz - '+item.options.url)
+action.musicbrainz = function(){
+    var item = queue.musicbrainz.shift();
+	//console.Yolk.log(item.track.metadata[item.type]+' : MusicBrainz - '+item.options.url)
+
     request.get(item.options,function(error, response, body){
         if (!error && response.statusCode == 200) {
 			try{
-				var art = JSON.parse(body);
+				body = JSON.parse(body);
+                var links = body.relations;
 			}
             catch(err){
-				message.send('error',err);
+				console.Yolk.warn(err);
 				return;
 			}
-			if(item.type === 'album'){
-				message.send('log',art)
-				return;
-			}
-            if(art.relations.length){
-				var discoqs;
-				//look for image and discoq links
-                var images = art.relations.filter(function(object){
-					if(object.type === 'discogs'){
-						discoqs = object.url.resource+'/images'
-					}
-                    if(object.type === 'image'){
-                        return true;
-                    }
-                })
-                if(images.length){
-					//found links to wikimedia images
-					images.forEach(function(image){
-						message.send('log',item.track.metadata[item.type]+': Wikimedia- '+image.url.resource)
-					})
-                    new getart(images,item);
+            var tosave = {}
+            if(item.type === 'album'){
+                tosave.tracks={};
+                if(body.media && body.media[0] && body.media[0].tracks){
+                    body.media[0].tracks.forEach(function(track){
+                        tosave.tracks[track.number]={
+                            title:track.recording.title,
+                            mbid:track.recording.id
+                        }
+                    })
+                }
+                if(links.length){
+                    links.forEach(function(link){
+                        if (link.type === 'discoqs'){
+                            item.discoq = link.url.resource+'/images';
+                        }
+                    })
+                }
+                if(body['cover-art-archive'] && body['cover-art-archive'].front){
+                    new downart("http://coverartarchive.org/release/"+body.id+"/front",item);
+                }else if(item.discoq){
+                    queue.discoq.push({
+                        discoq:item.discoq,
+                        item:item
+                    })
+                    go('discoq')
                 }else{
+                    queue.google.push(item);
+                    go('google')
+                }
 
-					if(discoqs){
-						//scrape the discoqs page
-						message.send('log',item.track.metadata[item.type]+': Getting image from Discoqs');
-						var win2 = new BrowserWindow({
-							show:false,
-							webPreferences: {
-						      nodeIntegration: true,
-						      webSecurity: true,
-						      preload: path.resolve(path.join(__dirname, 'scraper.js'))
-						    }
-						});
-						//win2.webContents.openDevTools();
-						win2.loadURL(discoqs);
-						win2.webContents.on('did-finish-load',function(){
-							win2.webContents.executeJavaScript('scrape()',true).then(function(data){
-								if(data && data.length){
-									new downart(data,item,true);
-								}else{
-									//couldn't get the image from discoq, so try Google
-									new getGoogle(item)
-								}
-								win2.destroy();
-							})
-						})
-						setTimeout(function(){
-							if(!win2.isDestroyed()){
-								win2.destroy();
-								new getGoogle(item);
-							}
-						},5000)
-					}else{
-						new getGoogle(item)
-					}
-				}
             }else{
-				new getGoogle(item)
-			}
+                tosave.country = body.country;
+
+                if(links.length){
+                    tosave.links={};
+    				//look for image and discoq links
+                    var images = links.filter(function(object){
+    					if(object.type === 'discogs'){
+    						item.discoq = object.url.resource+'/images'
+    					}
+                        if(object.type === 'image'){
+                            return true;
+                        }
+                        if(object.type === 'official homepage'){
+                            tosave.links.home = object.url.resource;
+                        }
+                        if(object.type === 'official homepage'){
+                            tosave.links.home = object.url.resource;
+                        }
+                        if(object.type === 'wikipedia'){
+                            tosave.links.wikipedia = object.url.resource;
+                        }
+                    })
+                    if(images.length){
+    					//found links to wikimedia images
+                        queue.wikimedia.push({
+                            images:images,
+                            item:item
+                        })
+                        go('wikimedia');
+                        //new getart(images,item);
+                    }else{
+
+    					if(item.discoq){
+                            queue.discoq.push({
+                                discoq:item.discoq,
+                                item:item
+                            })
+                            go('discoq');
+    					}else{
+                            queue.google.push(item)
+                            go('google');
+    					}
+    				}
+                }else{
+					queue.google.push(item)
+    				go('google');
+    			}
+            }
+            //save item to database;
 			if(!item.needs){
 				var db_path = db_index+'.artists.'+item.track[item.type];
-	            db.put(db_path,JSON.parse(body)).then(function(data){
+
+                //console.Yolk.log(tosave);
+
+	            db.put(db_path,tosave).then(function(data){
 
 	            },function(err){
-	                message.send('error',err);
+	                console.Yolk.warn(err);
 	            })
 			}
 
         }else{
             if(response){
-				message.send('error','retry MusicBrainz'+item.track.metadata[item.type])
-                artwork.q.push(item);
+				//console.Yolk.warn('retry MusicBrainz: '+item.track.metadata[item.type])
+                queue.musicbrainz.push(item);
+				go('musicbrainz');
+
             }
+			if(error){
+				console.Yolk.error(error);
+			}
         }
     })
 }
-//all else failed, so look for an image on google
-var googleIndex={}
-var getGoogle = function(item,retry){
-	if(!googleIndex[item.track[item.type]]){
-		googleIndex[item.track[item.type]]=0;
-	}else{
-		googleIndex[item.track[item.type]]++;
-	}
-	message.send('log',item.track.metadata[item.type]+': Getting image from Google');
-	var win2 = new BrowserWindow({
-		show:false,
-		webPreferences: {
-		  nodeIntegration: true,
-		  webSecurity: true,
-		  preload: path.resolve(path.join(__dirname, 'scraper.js'))
-		}
-	});
-
-	if(item.type === 'album'){
-		var search = encodeURI(item.track.metadata.artist.replace(/&/g,'')+' '+item.track.metadata.album.replace(/&/g,'')+' album cover').replace(/%20/g,'+');
-		var url ='https://www.google.ie/search?q='+search+'&tbm=isch';
-	}else{
-		var search = encodeURI(item.track.metadata[item.type]).replace(/%20/g,'+');
-		var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
-	}
-
-	message.send('log',item.track.metadata[item.type]+': '+url);
-	//win2.webContents.openDevTools();
-	win2.loadURL(url);
-	win2.webContents.on('did-finish-load',function(){
-		win2.webContents.executeJavaScript('firstClick('+googleIndex[item.track[item.type]]+')',true).then(function(data){
-			win2.destroy();
-			new downart(data,item,true);
-		},function(err){
-			win2.destroy();
-			message.send('error',err);
-
-		})
-	})
-	setTimeout(function(){
-		if(!win2.isDestroyed()){
-			win2.destroy();
-			if(!retry){
-				googleIndex[item.track[item.type]] === 0;
-				new getGoogle(item,true);
-			}
-		}
-	},5000)
-}
-//find the artist image
-var getart=function(images,item){
+//find the artist image fom wikimedia API
+action.wikimedia = function(images,item){
+    var object = queue.wikimedia.shift();
+	var item = object.item;
+	var images = object.images;
 	var track = item.track;
     this.options={
 		headers:headers
@@ -296,32 +363,81 @@ var getart=function(images,item){
 
     var count=0;
     images.forEach(function(image,index){
+		//console.Yolk.log(image);
 		count++
         var wikipage = image.url.resource.split('/');
         wikipage = wikipage[wikipage.length-1];
         self.options.url='https://commons.wikimedia.org/w/api.php?action=query&titles='+wikipage+'&prop=imageinfo&iiprop=url&format=json';
-		//message.send('log',track.metadata.artist+' : '+self.options.url)
+		////console.Yolk.log(track.metadata.artist+' : '+self.options.url)
         request.get(self.options,function(error, response, body){
             if(!error && response.statusCode == 200){
-                body = JSON.parse(body);
+				try{
+					body = JSON.parse(body);
+				}
+				catch(err){
+					console.Yolk.warn(err);
+					return;
+				}
+
 				Object.keys(body.query.pages).forEach(function(key){
 					if(body.query.pages[key].imageinfo && body.query.pages[key].imageinfo[0] && body.query.pages[key].imageinfo[0].url){
 						var src = body.query.pages[key].imageinfo[0].url;
 	                	new downart(src,item);
 					}else if(count === images.length){
-						new getGoogle(item)
+						queue.google.push(item);
+						go('google');
 					}
 				})
             }else if(count === images.length){
-				new getGoogle(item)
+				queue.google.push(item);
+				go('google');
 			}
         })
     })
 }
+var discoqBusy;
+action.discoq = function(){
+	if(discoqBusy){
+        return;
+    }
+	var object = queue.discoq.shift();
+	var discoq = object.discoq;
+	var item = object.item;
+	discoqBusy = true;
+	discoqItem(item)
+    discoqs.loadURL(discoq);
+}
+
+//all else failed, so look for an image on google
+var googleBusy;
+action.google = function(){
+    if(googleBusy){
+        return;
+    }
+    googleBusy = true;
+    var item = queue.google.shift();
+	if(!item.google){
+		item.google={
+			index:0,
+			retry:0
+		};
+	}
+	if(item.type === 'album'){
+		var search = encodeURI(item.track.metadata.artist.replace(/&/g,'')+' '+item.track.metadata.album.replace(/&/g,'')+' album cover').replace(/%20/g,'+');
+		var url ='https://www.google.ie/search?q='+search+'&tbm=isch';
+	}else{
+		var search = encodeURI(item.track.metadata[item.type]).replace(/%20/g,'+');
+		var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
+	}
+	googleItem(item);
+	google.loadURL(url);
+}
+
 //download the artist or album image
 var downart = function(src,item){
+
 	var track2 = item.track;
-	message.send('log',track2.metadata[item.type]+': Downloading art from '+src);
+	//console.Yolk.log(track2.metadata[item.type]+': Downloading art from '+src);
 	var id = track2[item.type];
 	var dest = path.join(homedir,'data/modules/musicPlayer/images/'+item.type+'s/'+id);
 	if(!ft.isThere('dir',dest)){
@@ -339,19 +455,29 @@ var downart = function(src,item){
 				sharp(body).resize(600).toFile(reduced,function(err,info){
 					if(!err){
 						new proceed(reduced,dest,item)
+					}else{
+						console.Yolk.error(err);
 					}
 				});
 			}else{
-				new getGoogle(item)
+				if(item.google){
+					item.google.index++;
+					if(item.google.index > 4){
+						return;
+					}
+				}
+				queue.google.push(item)
+				go('google');
 			}
 		})
 	}else{
 		new proceed(reduced,dest,item)
 	}
+
 	function proceed(src,thumb,item){
 		var track = item.track;
 		var face = "face('"+src+"')"
-	    var foo = win.webContents.executeJavaScript(face,true);
+	    var foo = imageWindow.webContents.executeJavaScript(face,true);
 
 		foo.then(function(data){
 			var confidence;
@@ -378,10 +504,8 @@ var downart = function(src,item){
 						weight:1
 	                }
 	            })
-				//message.send('log',track.metadata.artist+': found face')
 				crop(data2);
 	        }else{
-				//message.send('log',track.metadata.artist+': no faces found')
 				crop(false);
 			}
 			function crop(boost){
@@ -415,11 +539,11 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 			db.update(db_index+'.'+item.type+'s.'+track[item.type],{
 				artwork:true
 			})
-			message.send('log',track.metadata[item.type]+': Image saved')
+			//console.Yolk.log(track.metadata[item.type]+': Image saved')
 		});
 	}
 	catch(err){
-		message.send('error',err)
+		console.Yolk.err(err)
 	}
 }
 
