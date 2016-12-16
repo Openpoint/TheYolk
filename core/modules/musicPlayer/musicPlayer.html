@@ -56,18 +56,18 @@
 		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-show="settings.paths.musicDir">
 
 			<div class='ani-height' ng-if="!spacer" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div>
-			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn'>
+			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn' yolk-ready>
 				<div class='track'
-					ng-class="track.filter.zebra"
 					ng-style="{
 						height: track.state ? lazy.playingHeight : lazy.trackHeight
-					} ">
+					} "
+					>
 					<div class='inner' ng-if="!track.state">
 						<div class='above'>
 							<div class='icons' ng-click="audio.play(track)">
 								<div class='play icon icon-play'></div>
 							</div>
-							<div class='title'>{{::track.metadata.title || track.file}}</div>
+							<div class='title'>{{track.filter.pos}} {{::track.metadata.title || track.file}}</div>
 						</div>
 						<div class='below'>
 							<div class='icons'>
@@ -132,7 +132,7 @@
 							<div ng-show="lib.playing.state==='paused'" class='play icon icon-play'></div>
 							<div ng-show="lib.playing.state==='playing'" class='pause icon icon-pause'></div>
 						</div>
-						<div class='title'>{{lib.playing.metadata.title || lib.playing.file}}</div>
+						<div class='title'>{{lib.playing.filter.pos}}{{lib.playing.metadata.title || lib.playing.file}}</div>
 						<div class='next' ng-if="lib.playing.Pinned">
 							<div class="icon icon-next"></div>
 							<div class='nextTrack' ng-click="audio.play(nowTracks[lib.playing.filter.pos+1]||nowTracks[0])">{{nowTracks[lib.playing.filter.pos+1].metadata.title || nowTracks[0].metadata.title }}</div>

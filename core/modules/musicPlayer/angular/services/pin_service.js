@@ -6,7 +6,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		$scope = scope;
 		$scope.pinned = {
 			sources:[],
-			oldSources:['local']
+			oldSources:['local','online']
 		};
 		$scope.sources = [];
 	}
@@ -33,7 +33,6 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 					}
 					$scope.pinned.sources.push(name);
 				}
-
 			}
 
 			$scope.sources=[];
@@ -62,7 +61,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 
 				}
 			});
-			$scope.search.go();		
+			$scope.search.go();
 			return;
 
 		}else{
@@ -81,22 +80,22 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 				}
 
 				$scope.pinned[type] = name;
-				$('#playwindow').scrollTop(0);
-				$scope.tracks.Filter();
+				//$('#playwindow').scrollTop(0);
+				//$scope.tracks.Filter();
+				$scope.search.go();
 				$timeout(function(){
-					$scope.lazy.refresh($('#playwindow').scrollTop());
+					//$scope.lazy.refresh($('#playwindow').scrollTop());
 				});
 
 
 			}else{
 				//return to full track listing
 				$scope.pinned[type] = false;
-
-				//$scope.scrolling = true;
-				$scope.tracks.Filter();
+				$scope.search.go();
+				//$scope.tracks.Filter();
 
 				$timeout(function(){
-					$scope.lazy.refresh($scope.pinned.scrollTop);
+					//$scope.lazy.refresh($scope.pinned.scrollTop);
 					$scope.pinned.scrollTop = false;
 				});
 

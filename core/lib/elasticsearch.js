@@ -103,7 +103,78 @@ dbase.prototype.create = function(Index,Mapping,Body){
 
 	return done;
 }
-dbase.prototype.fetch = function(path,query,sort){
+dbase.prototype.get = function(path){
+	var self = this;
+	var result = new q(function(resolve,reject){
+		path = path.split('.');
+		var location = {
+			index:path[0],
+			type:path[1],
+			id:path[2]
+		}
+		self.client.get(location,function(err,data){
+			if(err){
+				if(err.status === 404){
+					resolve(false);
+				}
+				reject(err);
+			}else{
+				resolve(data['_source']);
+			}
+		})
+	})
+	return result;
+}
+dbase.prototype.fetch = function(index,types,query,flags){
+
+	/*
+	try{
+		throw new Error();
+	}
+	catch(err){
+		console.warn(err);
+	}
+	*/
+	var self = this;
+	var result = new q(function(resolve,reject){
+
+		//path = path.split('.');
+		var search = {
+			index:index,
+			type:types,
+			q:query,
+			//scroll:'1m',
+			size:flags.size,
+			from:flags.from
+		}
+		if(flags.sort){
+			if(flags.sort.field){
+				var field = '.'+flags.sort.field;
+			}else{
+				var field='';
+			}
+			search.sort=flags.sort.term+field+":"+flags.sort.dir;
+		}
+		self.client.search(search,function(err,data){
+			if(!err){
+				data.hits.hits = data.hits.hits.map(function(hit){
+					return hit['_source'];
+				})
+				//console.log(data.hits.hits)
+				resolve({
+					tracks:data.hits.hits,
+					libsize:data.hits.total
+					});
+			}else{
+				console.error(err);
+			}
+		})
+
+	});
+	return result;
+}
+
+dbase.prototype.fetchAll = function(path,query,sort){
 	var self = this;
 	var result = new q(function(resolve,reject){
 		if(!path){
@@ -151,6 +222,7 @@ dbase.prototype.fetch = function(path,query,sort){
 							scroll: '1m'
 						},getMore);
 					}else{
+						console.log(all)
 						resolve(all);
 					}
 				}else{
@@ -164,6 +236,7 @@ dbase.prototype.fetch = function(path,query,sort){
 	});
 	return result;
 }
+
 dbase.prototype.put = function(path,body){
 
 	path = pathSplit(path);

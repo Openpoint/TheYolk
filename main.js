@@ -96,8 +96,11 @@ process.Yolk.storedMesssage = {};
 
 //signals that the renderer client is ready
 process.Yolk.clientReady = function(){
-	installer = new Installer();
-	install();
+	if(!process.Yolk.installed){
+		installer = new Installer();
+		install();
+		process.Yolk.installed = true;
+	}
 	return boot.modules;
 }
 //tell the renderer that the database is ready
@@ -152,7 +155,7 @@ function createWindow () {
 	process.Yolk.win = win;
 	process.Yolk.message = win.webContents;
 
-	//win.webContents.openDevTools();
+	win.webContents.openDevTools();
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {

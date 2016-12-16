@@ -1,6 +1,5 @@
 'use strict';
-var test = '’()[]{}:,\'"`¦@~#*test'.replace(/([\(\)\{\}\[\]\:\,'"`’\¦\~\@\#\*])/g,'');
-console.log(test);
+
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',
 function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin) {
@@ -28,7 +27,12 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 
 
 	$scope.spacer = true;
-	$scope.sort('metadata.title','raw');
+	$scope.sortby={
+		dir:'asc',
+		field:'raw',
+		term:'metadata.title'
+	}
+	//$scope.sort('metadata.title','raw');
 	$scope.Sort = 'title';
 	$scope.dims.update();
 	$scope.lib={};
@@ -37,18 +41,19 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 
 	//$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
 	$scope.data_sources = ['local','internetarchive','youtube'];
-	$scope.db.fetch('global.settings.'+mod_name).then(function(data){
-		$scope.pin.pin('source','local');
-		$scope.pin.pin('source','online');
+	$scope.db.get('global.settings.'+mod_name).then(function(data){
+		$scope.pinned.sources = ['local','online'];
+		$scope.sources=$scope.data_sources;
+		$scope.search.go();
 		$timeout(function(){
-			$scope.settings =data[0];
+			$scope.settings =data;
 			$scope.settings.paths.home = Yolk.home;
 			$scope.settings.paths.root = Yolk.root;
 			$scope.settings.paths.artists = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 			$scope.settings.paths.albums = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
-			$scope.dbReady = true;
-			$scope.settings_loaded = true;
-			$scope.tracks.checkLocal('local');
+			//$scope.dbReady = true;
+			//$scope.settings_loaded = true;
+			//$scope.tracks.checkLocal('local');
 			//todo - save state to db and restore on load
 
 		});
@@ -60,9 +65,11 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		//console.log('close');
 		//ipcRenderer.send('dBase', false);
 	};
+	/*
 	$('#search input').on('submit',function(){
 		console.log('submit')
 	});
+	*/
 	$scope.imagePath=function(type,id){
 		if(type && id){
 			var Path = path.join($scope.settings.paths[type],id,'thumb.jpg');
@@ -94,14 +101,16 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			ipcRenderer.send('getDir', Dir[0]);
 		})
 	}
+	/*
 	if(!ipcRenderer._events.track){
 		ipcRenderer.on('track',function(event,data){
 			$scope.tracks.add(data);
 		});
 	}
+	*/
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			$scope.search.go();
+			//$scope.search.go();
 		});
 	}
 	if(!ipcRenderer._events.progress){
@@ -116,9 +125,11 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			$scope.tracks.verify(data);
 		});
 	}
+	/*
 	$scope.tools = function(){
 		ipcRenderer.send('tools');
 	}
+	*/
 	$('#search').click(function(){
 		$('#search input').focus();
 	})

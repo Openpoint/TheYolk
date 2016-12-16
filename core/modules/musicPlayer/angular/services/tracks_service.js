@@ -27,7 +27,11 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 
 			$scope.sortby = $scope.Sortby[key];
-			$scope.search.go(deleted);
+			console.log($scope.sortby)
+			$timeout(function(){
+				$scope.search.go(deleted);
+			})
+
 		}
 	}
 /*
@@ -203,11 +207,12 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 		})
 	}
+	/*
 	//Apply pin and source filters to the active array of tracks
 	tracks.prototype.Filter = function(){
 		$scope.lib.tracks = $filter('tracks')($scope);
 	}
-
+	*/
 	//Send database tracks to be verified against local file system
 	tracks.prototype.checkLocal = function(index){
 		if($scope.settings.paths.musicDir){
@@ -223,7 +228,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 	//Sync filesystem file removals to database
 	tracks.prototype.verify = function(data){
-
+		console.log('verify')
 		if(data.remove.length){
 			var body = [];
 			data.remove.forEach(function(track){

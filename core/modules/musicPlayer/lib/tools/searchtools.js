@@ -38,7 +38,13 @@ search.prototype.uri = function(term){
 	var ignore=['\\','!','*','+','-','=','<','>','|','(',')','[',']','{','}','^','~','?',':','/',' '];
 	for(var i=0; i < term.length; i++){
 		if(ignore.indexOf(term[i]) === -1){
-			newterm = newterm+encodeURI(term[i]);
+			try{
+				newterm = newterm+encodeURI(term[i]);
+			}
+			catch(err){
+				console.Yolk.warn(err);
+			}
+
 		}else{
 			newterm = newterm+term[i];
 		}

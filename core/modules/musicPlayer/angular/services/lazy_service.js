@@ -17,12 +17,10 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.paddingTop = 0;
 		this.chunk = 0;
 		watchScroll();
-
 	}
 
-
-
 	lazy.prototype.refresh = function(sTop){
+
 		if(sTop){
 			var top = sTop;
 		}else{
@@ -33,6 +31,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.step(top);
 		this.getPos();
 
+
 	}
 
 	lazy.prototype.scroll = function(sTop){
@@ -40,8 +39,8 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.chunk = Math.floor((sTop || $('#playwindow').scrollTop()) / this.chunkHeight);
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step*2;
-		this.paddingTop = this.chunkHeight*this.chunk;
-		this.paddingBottom = (this.libSize*this.trackHeight)-this.paddingTop - this.chunkHeight*2;
+		//this.paddingTop = this.chunkHeight*(this.chunk-1);
+		//this.paddingBottom = (this.libSize*this.trackHeight)-this.paddingTop - this.chunkHeight*2;
 		if(this.paddingBottom < 0){
 			this.paddingBottom =0;
 		}
@@ -159,21 +158,23 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 
 			$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
-
+			$scope.lazy.playPos(scrollTop);
 			if(
 				scrollTop > $scope.lazy.chunkHeight*($scope.lazy.chunk+1) ||
 				scrollTop < $scope.lazy.chunkHeight*($scope.lazy.chunk)
 			){
-				scrollTop = $('#playwindow').scrollTop();
-				$scope.lazy.playPos(scrollTop);
+				//scrollTop = $('#playwindow').scrollTop();
+				//$scope.lazy.playPos(scrollTop);
 
 			}else{
-				$scope.lazy.playPos(scrollTop);
+				//$scope.lazy.playPos(scrollTop);
 			}
 
 			scrollfix = $timeout(function(){
-				$scope.tracks.Filter();
-				$scope.lazy.playPos(scrollTop,true);
+				//$scope.tracks.Filter();
+				$scope.lazy.scroll();
+				$scope.search.go();
+				//$scope.lazy.playPos(scrollTop,true);
 				$scope.scrolling =false;
 			},100);
 		});

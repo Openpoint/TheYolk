@@ -177,6 +177,20 @@ bootloader.prototype.configs  = function(module){
 					}
 				});
 			}
+			//get the angular directives
+			file = path.join(pt,'angular','directives')
+
+			if(ft.isThere('dir',file)){
+				var filters = fs.readdirSync(file);
+				filters.forEach(function(fil){
+					if(ft.isThere('file',path.join(file,fil)) && checkEnd('_directive.js',fil)){
+						if(!module.directives){
+							module.directives = [];
+						}
+						module.directives.push(path.join(file,fil));
+					}
+				});
+			}
 		});
 
 		//get the css

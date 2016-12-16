@@ -87,38 +87,120 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		return q;
 	}
 
-
+	var oldChunk = {
+		pinned:{},
+	};
 	search.prototype.go = function(deleted){
+		/*
+		try{
+			throw new Error();
+		}
+		catch(err){
+			console.error(err)
+		}
 
-		if(!$scope.sources.length){
+		console.log('old:'+oldChunk.chunk+' new:'+$scope.lazy.chunk)
+		console.log('old:'+oldChunk.pinned.artist+' new:'+$scope.pinned.artist)
+		console.log('old:'+oldChunk.pinned.album+' new:'+$scope.pinned.album)
+		console.log($scope.pinned)
+		*/
+		if(
+			$scope.lazy.chunk === oldChunk.chunk &&
+			$scope.sources === oldChunk.sources &&
+			$scope.pinned.artist === oldChunk.pinned.artist &&
+			$scope.pinned.album === oldChunk.pinned.album &&
+			$scope.sortby.dir === oldChunk.sortby.dir &&
+			$scope.sortby.field === oldChunk.sortby.field &&
+			$scope.sortby.term === oldChunk.sortby.term
+		){
 			return;
 		}
-		var q='((';
+
+		oldChunk = {
+			chunk:$scope.lazy.chunk,
+			pinned:{
+				artist:$scope.pinned.artist,
+				album:$scope.pinned.album
+			},
+			sources:$scope.sources,
+			sortby:$scope.search
+		}
+
+		if(!$scope.sources.length){
+			//return;
+		}
+		if(!$scope.lazy.Step){
+			$scope.lazy.refresh();
+		}
+
+		var flags = {
+			sort:$scope.sortby,
+			size:$scope.lazy.Step*4,
+		}
+		if($scope.lazy.chunk > 0){
+			flags.from = $scope.lazy.Step*($scope.lazy.chunk-1)
+		}else{
+			flags.from = $scope.lazy.Top
+		}
+		//var q='((';
+		/*
 		$scope.sources.filter(function(source){
 			q = q+'_type:'+source+' '
 		});
+		*/
 		if(!deleted){
-			q=q+') AND deleted:"no")'
+			var q = 'deleted:"no" ';
+			//q=q+') AND deleted:"no")'
 		}else{
-			q=q+') AND deleted:"yes")'
+			var q = 'deleted:"yes" ';
+			//q=q+') AND deleted:"yes")'
 		}
-
+		if($scope.pinned.artist){
+			q=q+' AND metadata.artist:"'+$scope.pinned.artist+'"'
+		}
+		if($scope.pinned.album){
+			q=q+' AND metadata.album:"'+$scope.pinned.album+'"'
+		}
 		if($scope.searchTerm && $scope.searchTerm.length > 1){
 			var more = this.searchString($scope.searchTerm);
 
 			if(more.length){
 				q=q+' AND (';
 				q = q + more + ')';
-
 			}
 		}
 
-		$scope.db.fetch($scope.db_index,q,$scope.sortby).then(function(data){
-			$scope.allTracks = data;
-			$scope.tracks.Filter();
+		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
+			console.log('fetched')
+			$scope.lazy.libSize = data.libsize;
+			$
+			//$scope.allTracks = data;
+			//$scope.tracks.Filter();
+
+			$scope.lazy.refresh($('#playwindow').scrollTop());
+			var count = 0;
+
+			data.tracks.map(function(track){
+				track.filter.pos = count+flags.from;
+				count++;
+				return track
+			})
+
 			$timeout(function(){
-				$scope.lazy.refresh($('#playwindow').scrollTop());
-			});
+				if($scope.lazy.chunk > 1){
+					var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
+				}else{
+					var padding = 0;
+				}
+				var height = data.libsize*$scope.lazy.trackHeight;
+				if(height < $('#tracks').outerHeight()){
+					$('#playwindow').scrollTop(0)
+				}
+				$('#tracks').css({paddingTop:padding})
+				$('#tracks').height(height-padding)
+				$scope.lib.tracks = data.tracks;
+			})
+
 		})
 
 	}

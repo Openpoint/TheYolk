@@ -76,7 +76,7 @@ musicbrainz.prototype.process = function(tt,track){
 		replace(/_/g,' ').
 		trim().
 		split(' ');
-		var origTrack = metas.join(' ')
+		//var origTrack = metas.join(' ')
 
 		var got = title.
 		toLowerCase().
@@ -84,7 +84,7 @@ musicbrainz.prototype.process = function(tt,track){
 		replace(/_/g,' ').
 		trim().
 		split(' ');
-		var origIn = got.join(' ')
+		//var origIn = got.join(' ')
 
 		var compare = got.filter(function(word){
 			if(metas.indexOf(word) > -1){
@@ -94,30 +94,12 @@ musicbrainz.prototype.process = function(tt,track){
 			}
 		})
 		var rem = metas.length;
-		if(track.type === 'youtube'){
-			console.Yolk.say(origTrack+' | '+metas.join(' '))
-			console.Yolk.say(origIn+' | '+got.join(' '))
-			console.Yolk.say('rem | '+metas.join(' '))
-
-		}
-
 		if(compare.length === got.length && (rem < 5 || track.type === 'youtube')){
-			if(track.type === 'youtube'){
-				console.Yolk.say('--------------------------------------------------------------------------------------------------')
-				console.Yolk.say(' ')
-			}
+
 			return true;
 		}else{
 			if(rem === 0){
-				if(track.type === 'youtube'){
-					console.Yolk.say('--------------------------------------------------------------------------------------------------')
-					console.Yolk.say(' ')
-				}
 				return true;
-			}
-			if(track.type === 'youtube'){
-				console.Yolk.say('rejected --------------------------------------------------------------------------------------------------')
-				console.Yolk.say(' ')
 			}
 			return false;
 		}
@@ -219,17 +201,12 @@ musicbrainz.prototype.process = function(tt,track){
 	if(track.musicbrainz_id && tt.releases && tt.releases.length){
 		//has a musicbrainz id - so verify
 		var recording = checkRels(tt);
-		if(!recording){
-			console.Yolk.warn(track);
-		}
 		verify(recording);
 	}else if(tt.recordings && tt.recordings.length){
 		//found results for lookup search, so process each result
 		var recordings = tt.recordings;
 		var recording = checkRecs(recordings);
-
 		if(!recording){
-			console.Yolk.warn(track);
 			if(track.type === 'internetarchive'){
 				elastic.update(db_index+'.internetarchivesearch.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
 					console.Yolk.warn(err);
@@ -253,7 +230,6 @@ musicbrainz.prototype.submit = function(track){
 		options.url = track2.query;
 		request.get(options,function(error, response, body){
 			if (!error && response.statusCode == 200) {
-
 				try{
 					var tt = JSON.parse(body);
 				}
@@ -262,7 +238,13 @@ musicbrainz.prototype.submit = function(track){
 					console.Yolk.warn(err);
 				}
 				if(tt){
-					self.process(tt,track2);
+					try{
+						self.process(tt,track2);
+					}
+					catch(err){
+						console.Yolk.error(err);
+					}
+
 				}
 			}else{
 				if(response){

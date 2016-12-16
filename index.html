@@ -21,30 +21,20 @@
 				if(module.controller){
 					require(module.controller)
 				}
-				//load the services
-				if(module.services && module.services.length){
-					module.services.forEach(function(service){
-						try{
-							require(service)
-						}
-						catch(error){
-							console.error(service+'\n', error)
-						}
+                //load the support files
+                ['services','filters','directives'].forEach(function(type){
+                    if(module[type] && module[type].length){
+    					module[type].forEach(function(service){
+    						try{
+    							require(service)
+    						}
+    						catch(error){
+    							console.error(service+'\n', error)
+    						}
 
-					})
-				}
-				//load the filters
-				if(module.filters && module.filters.length){
-					module.filters.forEach(function(filter){
-						try{
-							require(filter)
-						}
-						catch(error){
-							console.error(filter+'\n', error)
-						}
-
-					})
-				}
+    					})
+    				}
+                })
 			}
             setTimeout(function(){
                 ipcRenderer.send('domReady');

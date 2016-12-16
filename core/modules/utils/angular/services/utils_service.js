@@ -61,15 +61,9 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 		var self = this;
 
 		return new $q(function(resolve,reject){
-
-			self.db.fetch(self.index_root+'.settings.'+type).then(function(data){
-
-				if(!data){
-					console.log('weird bug');
-					return;
-				}
-				if(data && data.length){
-					resolve(data[0]);
+			self.db.get(self.index_root+'.settings.'+type).then(function(data){
+				if(data){
+					resolve(data);
 				}else{
 					var settings = Yolk.modules[type].config.settings;
 					if(Object.keys(settings).length){
@@ -98,12 +92,10 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 								body.push(doc);
 							}
 							count++;
-							//body.push({title:'test',test:'more'});
-
 						}
 						self.db.client.bulk({body:body},function(err,data){
 							if(err){
-								console.log(err);
+								console.error(err);
 								//todo: error handling
 							}else{
 								resolve(false);
@@ -113,10 +105,10 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 					}else{
 						resolve(false);
 					}
-
-
 				}
-			});
+			},function(err){
+				console.error(err);
+			})
 		})
 	}
 	//get the difference between two dates
