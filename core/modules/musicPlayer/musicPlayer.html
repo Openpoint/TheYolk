@@ -132,12 +132,12 @@
 							<div ng-show="lib.playing.state==='paused'" class='play icon icon-play'></div>
 							<div ng-show="lib.playing.state==='playing'" class='pause icon icon-pause'></div>
 						</div>
-						<div class='title'>{{lib.playing.filter.pos}}{{lib.playing.metadata.title || lib.playing.file}}</div>
-						<div class='next' ng-if="lib.playing.Pinned">
-							<div class="icon icon-next"></div>
-							<div class='nextTrack' ng-click="audio.play(nowTracks[lib.playing.filter.pos+1]||nowTracks[0])">{{nowTracks[lib.playing.filter.pos+1].metadata.title || nowTracks[0].metadata.title }}</div>
-							<div class="icon icon-previous"></div>
-
+						<div class='title'>{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
+						<div id='seek' ng-if="lib.next">
+							<div class="icon icon-next" ng-click="audio.play(lib.next)" ng-mouseover="lib.nextshow=true" ng-mouseleave="lib.nextshow=false"></div>
+							<div class="icon icon-previous" ng-click="audio.play(lib.previous)" ng-mouseover="lib.prevshow=true" ng-mouseleave="lib.prevshow=false"></div>
+							<div class='nextTrack' ng-show="lib.nextshow">{{lib.next.metadata.title}}</div>
+							<div class='prevTrack' ng-show="lib.prevshow">{{lib.previous.metadata.title}}</div>
 						</div>
 						<div class='scroll'>
 							<div class='up icon-up' ng-click="lazy.Scroll('up')"

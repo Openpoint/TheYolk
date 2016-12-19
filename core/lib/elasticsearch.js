@@ -135,19 +135,24 @@ dbase.prototype.fetch = function(index,types,query,flags){
 		console.warn(err);
 	}
 	*/
+
 	var self = this;
+
 	var result = new q(function(resolve,reject){
 
 		//path = path.split('.');
 		var search = {
 			index:index,
 			type:types,
-			q:query,
-			//scroll:'1m',
-			size:flags.size,
-			from:flags.from
+			q:query
 		}
-		if(flags.sort){
+		if(flags && flags.size){
+			search.size = flags.size;
+		}
+		if(flags && flags.from){
+			search.from = flags.from;
+		}
+		if(flags && flags.sort){
 			if(flags.sort.field){
 				var field = '.'+flags.sort.field;
 			}else{
@@ -156,6 +161,7 @@ dbase.prototype.fetch = function(index,types,query,flags){
 			search.sort=flags.sort.term+field+":"+flags.sort.dir;
 		}
 		self.client.search(search,function(err,data){
+
 			if(!err){
 				data.hits.hits = data.hits.hits.map(function(hit){
 					return hit['_source'];
@@ -173,7 +179,50 @@ dbase.prototype.fetch = function(index,types,query,flags){
 	});
 	return result;
 }
-
+//find the position of a track in a search result
+dbase.prototype.findPos = function(index,types,query,flags,id){
+	var self = this;
+	this.id = id;
+	var result = new q(function(resolve,reject){
+		var len = 0;
+		var search = {
+			index:index,
+			type:types,
+			q:query,
+			scroll:'1m',
+			size:1000
+		}
+		if(flags && flags.sort){
+			if(flags.sort.field){
+				var field = '.'+flags.sort.field;
+			}else{
+				var field='';
+			}
+			search.sort=flags.sort.term+field+":"+flags.sort.dir;
+		}
+		self.client.search(search,function getMore(err,data){
+			if(err){
+				reject(err);
+			}
+			data.hits.hits.forEach(function(hit){
+				if(self.id === hit['_source'].id){
+					resolve(len);
+					self.done = true;
+				}
+				len++;
+			});
+			if(data.hits.total !== len && !self.done){
+				self.client.scroll({
+					scrollId: data._scroll_id,
+					scroll: '1m'
+				},getMore);
+			}else{
+				reject('no index found')
+			}
+		})
+	})
+	return result;
+}
 dbase.prototype.fetchAll = function(path,query,sort){
 	var self = this;
 	var result = new q(function(resolve,reject){

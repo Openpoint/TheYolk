@@ -48,18 +48,15 @@ musicbrainz.prototype.process = function(tt,track){
 		track.musicbrainzed = 'yes';
 		if(track.type === 'local'){
 			elastic.update(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
-				//console.Yolk.log('Updated: '+track.metadata.title);
-				self.refresh();
+				message.send('refresh');
 			},function(err){
 				console.Yolk.warn(err);
-				self.refresh();
 			});
 		}else{
 			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
-				self.refresh();
+				message.send('refresh');
 			},function(err){
 				console.Yolk.warn(err);
-				self.refresh();
 			});
 		}
 
@@ -272,18 +269,6 @@ musicbrainz.prototype.submit = function(track){
 	}(track,this)
 
 }
-//control the refresh rate on the renderer window
-musicbrainz.prototype.refresh = function(){
-	if(!this.refreshed){
-		this.refreshed = 0;
-	}
-	this.refreshed++
-
-	if(this.refreshed > 9){
-		this.refreshed = 0;
-		message.send('refresh');
-	}
-}
 
 //limit the submission rate to musicbrainz server to sane
 var resume = false;
@@ -316,7 +301,6 @@ musicbrainz.prototype.pacer=function(){
 		},self.pace);
 	}else{
 		this.timeout = false;
-		message.send('refresh');
 	}
 }
 

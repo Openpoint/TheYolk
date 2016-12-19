@@ -110,7 +110,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	*/
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			//$scope.search.go();
+			$scope.search.go(false,true);
 		});
 	}
 	if(!ipcRenderer._events.progress){

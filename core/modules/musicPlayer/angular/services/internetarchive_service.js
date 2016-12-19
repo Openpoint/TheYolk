@@ -155,7 +155,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	ia.prototype.search = function(term){
 
 		var self = this;
-		
+
 		var queries = self.searchString(term);
 		var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
 		//console.log(query);
@@ -367,7 +367,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 		//console.log(query);
 		$timeout(function(){
-			$scope.db.fetch($scope.db_index+'.internetarchivesearch',query).then(function(data){
+			$scope.db.fetchAll($scope.db_index+'.internetarchivesearch',query).then(function(data){
 				//console.log(data);
 				data.forEach(function(track){
 					if(submitted.indexOf(track.id) === -1){

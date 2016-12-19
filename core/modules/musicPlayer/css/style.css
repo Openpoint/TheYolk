@@ -241,11 +241,13 @@ body,html{
 	padding-bottom:10px;
 	align-self:flex-end;
 }
+/*
 #playing .next .nextTrack{
 	cursor:url('../images/playHover.ico') 16 16,auto;
 	padding:0 5px;
 }
-#playing .next{
+*/
+#seek{
 
 	color:tomato;
 	font-size:.95em;
@@ -255,13 +257,11 @@ body,html{
 	align-items:center;
 	flex-grow:1;
 }
-#playing .next .icon{
+#seek .icon{
 	font-size:1.5em;
 	cursor:pointer;
 }
-.track .below .info{
 
-}
 .track .above .icon{
 	font-size:45px;
 }
@@ -483,7 +483,7 @@ body,html{
 	overflow:hidden;
 }
 #devinfo pre{
-	white-space: pre-wrap; 
+	white-space: pre-wrap;
 }
 #youtube2{
 	position:relative;

@@ -4,6 +4,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	var $scope;
 	const tools = require('../../lib/tools/searchtools.js');
 	const crypto = require('crypto');
+	const Q = require('promise');
 
 	var search = function(scope){
 		$scope = scope;
@@ -89,8 +90,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 	var oldChunk = {
 		pinned:{},
+		sortby:{}
 	};
-	search.prototype.go = function(deleted){
+	search.prototype.go = function(next,refresh){
 		/*
 		try{
 			throw new Error();
@@ -100,35 +102,32 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 
 		console.log('old:'+oldChunk.chunk+' new:'+$scope.lazy.chunk)
+		console.log('old:'+oldChunk.sources+' new:'+$scope.sources)
 		console.log('old:'+oldChunk.pinned.artist+' new:'+$scope.pinned.artist)
 		console.log('old:'+oldChunk.pinned.album+' new:'+$scope.pinned.album)
-		console.log($scope.pinned)
+		console.log('old:'+oldChunk.sortby.dir+' new:'+$scope.sortby.dir)
+		console.log('old:'+oldChunk.sortby.field+' new:'+$scope.sortby.field)
+		console.log('old:'+oldChunk.sortby.term+' new:'+$scope.sortby.term)
 		*/
+
+		//return if the search was triggered by a scroll only
+
 		if(
+			!next &&
+			!refresh &&
 			$scope.lazy.chunk === oldChunk.chunk &&
 			$scope.sources === oldChunk.sources &&
 			$scope.pinned.artist === oldChunk.pinned.artist &&
 			$scope.pinned.album === oldChunk.pinned.album &&
 			$scope.sortby.dir === oldChunk.sortby.dir &&
 			$scope.sortby.field === oldChunk.sortby.field &&
-			$scope.sortby.term === oldChunk.sortby.term
+			$scope.sortby.term === oldChunk.sortby.term &&
+			$scope.searchTerm === oldChunk.searchTerm
 		){
 			return;
 		}
 
-		oldChunk = {
-			chunk:$scope.lazy.chunk,
-			pinned:{
-				artist:$scope.pinned.artist,
-				album:$scope.pinned.album
-			},
-			sources:$scope.sources,
-			sortby:$scope.search
-		}
 
-		if(!$scope.sources.length){
-			//return;
-		}
 		if(!$scope.lazy.Step){
 			$scope.lazy.refresh();
 		}
@@ -142,19 +141,20 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}else{
 			flags.from = $scope.lazy.Top
 		}
-		//var q='((';
-		/*
-		$scope.sources.filter(function(source){
-			q = q+'_type:'+source+' '
-		});
-		*/
-		if(!deleted){
+		if(next){
+			flags.size = 1,
+			flags.from = next
+		}
+
+
+		if(!$scope.lib.deleted){
 			var q = 'deleted:"no" ';
 			//q=q+') AND deleted:"no")'
 		}else{
 			var q = 'deleted:"yes" ';
 			//q=q+') AND deleted:"yes")'
 		}
+
 		if($scope.pinned.artist){
 			q=q+' AND metadata.artist:"'+$scope.pinned.artist+'"'
 		}
@@ -169,24 +169,55 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				q = q + more + ')';
 			}
 		}
+		if($scope.lib.playing && !next){
+			$scope.lib.playing.query = q;
+			$scope.lib.playing.flags = flags;
+		}
+
+
+		//if the search was triggered by a change in track scope, check if the playing track is still in scope
+		if(!next && $scope.lib.playing && (
+				$scope.pinned.artist !== oldChunk.pinned.artist ||
+				$scope.pinned.album !== oldChunk.pinned.album ||
+				$scope.sortby.dir !== oldChunk.sortby.dir ||
+				$scope.sortby.field !== oldChunk.sortby.field ||
+				$scope.sortby.term !== oldChunk.sortby.term ||
+				$scope.searchTerm !== oldChunk.searchTerm ||
+				refresh
+			)
+		){
+			$scope.tracks.isInFocus();
+		}
+		if(!next){
+			oldChunk = {
+				chunk:$scope.lazy.chunk,
+				pinned:{
+					artist:$scope.pinned.artist,
+					album:$scope.pinned.album
+				},
+				sources:$scope.sources,
+				sortby:$scope.sortby,
+				searchTerm:$scope.searchTerm
+			}
+		}
 
 		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
-			console.log('fetched')
-			$scope.lazy.libSize = data.libsize;
-			$
-			//$scope.allTracks = data;
-			//$scope.tracks.Filter();
+			if(!next){
+				$scope.lazy.libSize = data.libsize;
+			}else{
+				res(data.tracks);
+				return;
+			}
 
-			$scope.lazy.refresh($('#playwindow').scrollTop());
 			var count = 0;
-
 			data.tracks.map(function(track){
 				track.filter.pos = count+flags.from;
 				count++;
 				return track
 			})
-
+			$scope.lazy.refresh($('#playwindow').scrollTop());
 			$timeout(function(){
+
 				if($scope.lazy.chunk > 1){
 					var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
 				}else{
@@ -202,7 +233,14 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			})
 
 		})
-
+		if(next){
+			var res;
+			return new Q(function(resolve,reject){
+				res = function(data){
+					resolve(data);
+				}
+			})
+		}
 	}
 
 	//process the query into external searches

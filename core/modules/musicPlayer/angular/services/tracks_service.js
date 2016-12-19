@@ -27,12 +27,67 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 
 			$scope.sortby = $scope.Sortby[key];
-			console.log($scope.sortby)
 			$timeout(function(){
 				$scope.search.go(deleted);
 			})
 
 		}
+	}
+	tracks.prototype.next = function(){
+
+		if($scope.lib.playing && $scope.lib.playing.filter.pos < 0){
+			$scope.lib.next = $scope.search.go('0').then(function(data){
+				$scope.lib.next = data[0];
+				$scope.lib.next.filter.pos = 0;
+			});
+			return;
+		}
+
+		$scope.search.go($scope.lib.playing.filter.pos+1).then(function(data){
+			$scope.lib.next = data;
+
+			if(data.length){
+				$scope.lib.next = data[0];
+				$scope.lib.next.filter.pos=$scope.lib.playing.filter.pos+1
+				console.log($scope.lib.next);
+			}else{
+				$scope.lib.next = $scope.search.go('0').then(function(data){
+					$scope.lib.next = data[0];
+					$scope.lib.next.filter.pos = 0;
+				});
+			}
+		});
+
+	}
+	tracks.prototype.isInFocus = function(){
+		var self = this;
+		var q = $scope.lib.playing.query+' AND id:"'+$scope.lib.playing.id+'"';
+
+		var flags = {
+			from:0,
+			size:1
+		}
+		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
+			if(!data.tracks.length){
+				$scope.lib.playing.filter.pos=-1;
+				self.next();
+				$timeout(function(){
+					$scope.lazy.refresh($('#playwindow').scrollTop());
+				})
+			}else{
+				$scope.db.findPos($scope.db_index,$scope.sources,$scope.lib.playing.query,$scope.lib.playing.flags,$scope.lib.playing.id).then(function(data){
+					$scope.lib.playing.filter.pos = data;
+					self.next();
+					$timeout(function(){
+						$scope.lazy.refresh($('#playwindow').scrollTop());
+					})
+				},function(err){
+					console.error(err)
+				})
+
+			}
+
+		})
 	}
 /*
 	//timer to set sane pace for bulk database submissions
