@@ -162,7 +162,7 @@ artwork.add = function(track){
 	            if(!exists || exists === type){
 					//console.Yolk.log(track.metadata[type]+': Adding to queue')
 					if(type === 'album'){
-						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels';
+						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels+artists';
 					}else{
 						var query = mb_url+type+'/'+id+mb_query+'&inc=url-rels';
 					}
@@ -230,8 +230,13 @@ var go = function(type){
 }
 //submit query to musicbrainz server
 action.musicbrainz = function(){
-    var item = queue.musicbrainz.shift();
-	//console.Yolk.log(item.track.metadata[item.type]+' : MusicBrainz - '+item.options.url)
+
+	if(queue.musicbrainz.length){
+		var item = queue.musicbrainz.shift();
+	}else{
+		return;
+	}
+	//console.Yolk.say('Meta:'+queue.musicbrainz.length);
 
     request.get(item.options,function(error, response, body){
         if (!error && response.statusCode == 200) {
@@ -244,16 +249,29 @@ action.musicbrainz = function(){
 				return;
 			}
             var tosave = {}
+			//console.Yolk.log(item);
+			//console.Yolk.log(body);
             if(item.type === 'album'){
+				tosave.metadata={
+					title:body.title,
+					artist:body['artist-credit'][0].name
+				}
+				tosave.id = body.id;
+				tosave.artist = body['artist-credit'][0].artist.id
                 tosave.tracks={};
-                if(body.media && body.media[0] && body.media[0].tracks){
-                    body.media[0].tracks.forEach(function(track){
-                        tosave.tracks[track.number]={
-                            title:track.recording.title,
-                            mbid:track.recording.id
-                        }
-                    })
-                }
+				var count = 1;
+				if(body.media && body.media.length){
+					body.media.forEach(function(media){
+						tosave.tracks['media-'+count]={};
+						media.tracks.forEach(function(track){
+	                        tosave.tracks['media-'+count][track.number]={
+	                            title:track.recording.title,
+	                            id:track.recording.id
+	                        }
+	                    })
+						count++;
+					})
+				}
                 if(links.length){
                     links.forEach(function(link){
                         if (link.type === 'discoqs'){
@@ -276,7 +294,8 @@ action.musicbrainz = function(){
 
             }else{
                 tosave.country = body.country;
-
+				tosave.id = body.id;
+				tosave.name = body.name;
                 if(links.length){
                     tosave.links={};
     				//look for image and discoq links
@@ -325,7 +344,7 @@ action.musicbrainz = function(){
             }
             //save item to database;
 			if(!item.needs){
-				var db_path = db_index+'.artists.'+item.track[item.type];
+				var db_path = db_index+'.'+item.type+'s.'+item.track[item.type];
 
                 //console.Yolk.log(tosave);
 
@@ -345,6 +364,10 @@ action.musicbrainz = function(){
             }
 			if(error){
 				console.Yolk.error(error);
+				if(queue.musicbrainz.length){
+					go('musicbrainz');
+				}
+
 			}
         }
     })

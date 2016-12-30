@@ -143,8 +143,10 @@ dbase.prototype.fetch = function(index,types,query,flags){
 		//path = path.split('.');
 		var search = {
 			index:index,
-			type:types,
-			q:query
+			type:types
+		}
+		if(query){
+			search.q = query;
 		}
 		if(flags && flags.size){
 			search.size = flags.size;
@@ -168,7 +170,7 @@ dbase.prototype.fetch = function(index,types,query,flags){
 				})
 				//console.log(data.hits.hits)
 				resolve({
-					tracks:data.hits.hits,
+					items:data.hits.hits,
 					libsize:data.hits.total
 					});
 			}else{
@@ -271,7 +273,6 @@ dbase.prototype.fetchAll = function(path,query,sort){
 							scroll: '1m'
 						},getMore);
 					}else{
-						console.log(all)
 						resolve(all);
 					}
 				}else{

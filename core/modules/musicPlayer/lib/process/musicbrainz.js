@@ -9,6 +9,7 @@
 const {ipcMain} = require('electron');
 const request = require('request');
 const path = require('path');
+const q = require('promise');
 const tools = require('../tools/searchtools.js');
 const settings = require('../../musicPlayer.js');
 const db_index = settings.db_index.index;
@@ -20,7 +21,11 @@ const message = process.Yolk.message;
 const elastic = process.Yolk.db
 const meta = require('../process/meta.js');
 const headers = process.Yolk.modules["musicPlayer"].config.headers;
-
+const parse = {
+	status:['official','bootleg'],
+	type:['album'],
+	format:['cd','12" vinyl','7" vinyl','digital media']
+}
 
 var musicbrainz = function(){
 	this.mbq=[];
@@ -29,7 +34,6 @@ var musicbrainz = function(){
 
 //format musicbrainz response into metadata for track submission to database
 musicbrainz.prototype.process = function(tt,track){
-
 	var self = this;
 	function verify(item){
 		track.metadata.title = item.title;
@@ -49,24 +53,28 @@ musicbrainz.prototype.process = function(tt,track){
 		if(track.type === 'local'){
 			elastic.update(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
 				message.send('refresh');
+				meta.add(track);
 			},function(err){
 				console.Yolk.warn(err);
+				return;
 			});
 		}else{
 			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
 				message.send('refresh');
+				meta.add(track);
 			},function(err){
 				console.Yolk.warn(err);
+				return;
 			});
 		}
-
-		meta.add(track);
-		return true;
 	};
-
+	//compare two strings to determine the likelyhood of a comparative match
 	var stringCheck = function(title,type){
 		//console.log(title);
 		//console.log(track.metadata[type]);
+		if(title.toLowerCase().trim() === track.metadata[type].toLowerCase().trim()){
+			return 1;
+		}
 		var metas = track.metadata[type].
 		toLowerCase().
 		replace(/([\(\)\{\}\[\]\:\,'"`’\¦\~\@\#\*])/g,'').
@@ -91,33 +99,104 @@ musicbrainz.prototype.process = function(tt,track){
 			}
 		})
 		var rem = metas.length;
-		if(compare.length === got.length && (rem < 5 || track.type === 'youtube')){
+		var rem2 = got.length-compare.length;
 
-			return true;
-		}else{
-			if(rem === 0){
-				return true;
+		//if(compare.length === got.length && (rem < 5 || track.type === 'youtube')){
+		if(compare.length === got.length){
+			if(rem === 0 && rem2 === 0){
+				return 1
 			}
-			return false;
+			return 2;
+		}else if(compare.length){
+			if(rem === 0 || rem2===0){
+				return 3;
+			}
+			return rem+rem2;
 		}
 	}
-	var checkRels = function(recording){
+	//parse over the recording releases and find the best candidate
+	var checkRels = function(recording,releases){
+		/*
 		if(!recording.releases){
 			return false;
 		}
+		*/
 		var Release;
-		recording.releases.forEach(function(release){
-			var date = new Date(release.date);
-			date = Number(date);
-			if(typeof date === 'number'){
-				if(!Release || Release.date > date){
-					Release = release;
-					Release.date = date;
+		var sorted = {};
+		releases.forEach(function(release){
+			if(!release.status){
+				release.status = 'unknown'
+			}
+			if(!sorted[release.status.toLowerCase()]){
+				sorted[release.status.toLowerCase()]={};
+			}
+			if(!release['release-group']){
+				release['release-group']={
+					'primary-type':'unknown'
 				}
 			}
+			if(!sorted[release.status.toLowerCase()][release['release-group']['primary-type'].toLowerCase()]){
+				sorted[release.status.toLowerCase()][release['release-group']['primary-type'].toLowerCase()]={}
+			}
+			if(!release.media[0].format){
+				release.media[0].format = 'unknown'
+			}
+			if(!sorted[release.status.toLowerCase()][release['release-group']['primary-type'].toLowerCase()][release.media[0].format.toLowerCase()]){
+				sorted[release.status.toLowerCase()][release['release-group']['primary-type'].toLowerCase()][release.media[0].format.toLowerCase()] = []
+			}
+			sorted[release.status.toLowerCase()][release['release-group']['primary-type'].toLowerCase()][release.media[0].format.toLowerCase()].push(release);
+
 		})
+		var status = parse.status;
+		Object.keys(sorted).forEach(function(key){
+			if(status.indexOf(key) === -1){
+				status.push(key)
+			}
+		})
+
+		status.every(function(Type){
+			if(!sorted[Type]){
+				return true;
+			}
+			var type = parse.type;
+			Object.keys(sorted[Type]).forEach(function(key){
+				if(type.indexOf(key) === -1){
+					type.push(key)
+				}
+			})
+
+			return type.every(function(Format){
+				if(!sorted[Type][Format]){
+					return true;
+				}
+				var format = parse.format;
+				Object.keys(sorted[Type][Format]).forEach(function(key){
+					if(format.indexOf(key) === -1){
+						format.push(key)
+					}
+				})
+
+				return format.every(function(Releases){
+					if(!sorted[Type][Format][Releases]){
+						return true;
+					}
+
+					sorted[Type][Format][Releases].forEach(function(release){
+						var date = new Date(release.date);
+						date = Number(date);
+						if(typeof date === 'number'){
+							if(!Release || Release.date > date){
+								Release = release;
+								Release.date = date;
+							}
+						}
+					})
+				})
+			})
+		})
+
 		if(!Release){
-			Release = recording.releases[0]
+			Release = releases[0]
 		}
 		if(!Release){
 			return false;
@@ -130,95 +209,205 @@ musicbrainz.prototype.process = function(tt,track){
 			artist:recording['artist-credit'][0].artist
 		}
 	}
+	//parse over the track recordings and find the best candidate
 	var checkRecs = function(recordings){
 
-		if(track.type !== 'youtube'){
+		return new q(function(resolve,reject){
+			if(track.type !== 'youtube'){
 
-			function Filter(album){
-				if(album){
+				function Filter(album){
+					if(album){
+						//console.Yolk.log(track.metadata.title)
 
-					var foo = recordings.filter(function(recording){
-						var Releases;
-						if(recording.releases && recording.releases.length){
-							Releases = recording.releases.filter(function(item){
-								if(stringCheck(item.title,'album')){
+						var titleWeight;
+						var foo = recordings.map(function(recording){
+
+							if(recording.releases && recording.releases.length){
+
+								recording.titleWeight = stringCheck(recording.title,'title');
+								if(!titleWeight || recording.titleWeight < titleWeight){
+									titleWeight = recording.titleWeight;
+								}
+								return recording;
+
+							}
+						})
+						/*
+						foo.forEach(function(recording){
+
+							console.Yolk.log(recording.title+' : '+track.metadata.title+' = '+recording.titleWeight);
+							recording.releases.forEach(function(release){
+								console.Yolk.say(release.title)
+							})
+							console.Yolk.say('+ + + + + + + + + + + + + + ')
+
+						})
+						*/
+						console.Yolk.say('---------------------------------------------------------------------------------------')
+						foo = foo.filter(function(recording){
+							if(recording.titleWeight === titleWeight){
+								return true;
+							}
+						})
+
+						foo = foo.map(function(recording){
+							if(recording.releases && recording.releases.length){
+								var Weight;
+								recording.releases = recording.releases.map(function(item){
+									var weight = stringCheck(item.title,'album');
+									item.weight = weight;
+									if(!Weight || weight < Weight){
+										Weight = weight;
+									}
+									return item;
+								})
+								var Releases = recording.releases.filter(function(release){
+									if(release.weight === Weight){
+										return true;
+									}
+								})
+								if(Releases.length > 0){
+									recording.weight = Weight;
+									recording.releases = Releases;
+									return recording;
+								}
+							}
+						})
+
+						var weight;
+						foo.forEach(function(recording){
+							if(!weight || recording.weight < weight){
+								weight = recording.weight;
+							}
+						})
+						foo = foo.filter(function(recording){
+							if(recording.weight === weight){
+								return true;
+							}
+						})
+						return foo;
+					}else{
+						var foo = recordings.filter(function(recording){
+							if(recording.releases && recording.releases.length){
+								return true;
+							}
+						})
+						return foo;
+					}
+
+				}
+				if(track.metadata.album){
+					var result = Filter(true);
+				}else{
+					var result = Filter();
+				}
+				if(!result.length && track.metadata.album){
+					console.Yolk.warn(track);
+					result = Filter();
+				}
+				if(!result.length){
+					console.Yolk.error(track);
+				}
+			}else{
+				var result = recordings.filter(function(recording){
+
+					var weight = stringCheck(recording.title,'title');
+					if(weight){
+
+						if(!recording.weight || weight < recording.weight){
+							//recording.weight = weight;
+						}
+						recording.weight = weight;
+						return true;
+					}
+				})
+				result = result.filter(function(recording){
+					if(recording['artist-credit'] && recording['artist-credit'][0]){
+						var artist = recording['artist-credit'][0].artist.name;
+						if(stringCheck(artist,'artist')){
+							return true;
+						}
+					}else{
+						return false;
+					}
+
+				})
+			}
+			if(result.length > 0){
+
+				var releases;
+				result.forEach(function(recording){
+					if(!releases){
+						releases = recording.releases
+					}else{
+						releases = releases.concat(recording.releases)
+					}
+				})
+
+				var flags={
+					size:1
+				}
+				var query = 'metadata.title:"'+tools.sanitise(releases[0].title)+'" AND (metadata.artist:'+tools.sanitise(track.metadata.artist)+' OR metadata.artist:"Various Artists")';
+				function dedupe(query,recording,releases){
+					elastic.fetch(db_index,['albums'],query,flags).then(function(data){
+						if(!data.items.length){
+							resolve(checkRels(recording,releases));
+						}else{
+							var id = data.items[0].id;
+							var good = releases.filter(function(release){
+								if(release.id === id){
 									return true;
 								}
 							})
-							if(Releases.length > 0){
-								recording.releases = Releases;
-								return true;
+							if(good.length){
+								resolve(checkRels(recording,good));
+							}else{
+								releases = releases.map(function(release){
+									release.id = id;
+									return release;
+								})
+								resolve(checkRels(recording,releases));
 							}
 						}
-					})
-					return foo;
-				}else{
-					var foo = recordings.filter(function(recording){
-						if(recording.releases && recording.releases.length){
-							return true;
-						}
-					})
-					return foo;
-				}
 
-			}
-			if(track.metadata.album){
-				var result = Filter(true);
+					})
+				}
+				new dedupe(query,result[0],releases);
+
 			}else{
-				var result = Filter();
+				resolve(false);
 			}
-			if(!result.length && track.metadata.album){
-				result = Filter();
-			}
-		}else{
-			var result = recordings.filter(function(recording){
-				if(stringCheck(recording.title,'title')){
-					return true;
-				}
-			})
-			var result = result.filter(function(recording){
-				if(recording['artist-credit'] && recording['artist-credit'][0]){
-					var artist = recording['artist-credit'][0].artist.name;
-					if(stringCheck(artist,'artist')){
-						return true;
-					}
-				}else{
-					return false;
-				}
-
-			})
-		}
-		if(result.length > 0){
-			return checkRels(result[0]);
-		}else{
-			return false;
-		}
+		})
 	}
 
 	if(track.musicbrainz_id && tt.releases && tt.releases.length){
 		//has a musicbrainz id - so verify
-		var recording = checkRels(tt);
+		var recording = checkRels(tt,tt.releases);
 		verify(recording);
 	}else if(tt.recordings && tt.recordings.length){
 		//found results for lookup search, so process each result
 		var recordings = tt.recordings;
-		var recording = checkRecs(recordings);
-		if(!recording){
-			if(track.type === 'internetarchive'){
-				elastic.update(db_index+'.internetarchivesearch.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
-					console.Yolk.warn(err);
-				});
+
+		checkRecs(recordings).then(function(data){
+			recording = data
+			if(!recording){
+				if(track.type === 'internetarchive'){
+					elastic.update(db_index+'.internetarchivesearch.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
+						console.Yolk.warn(err);
+					});
+				}
+				return;
 			}
-			return;
-		}
-		verify(recording)
+			verify(recording)
+		});
+
+
 	}
 }
 
 //submit query to musicbrainz server
 musicbrainz.prototype.submit = function(track){
 	track.deleted = 'no';
-
 	new function(track2,self){
 		var options={};
 		options.headers = headers;
@@ -258,6 +447,7 @@ musicbrainz.prototype.submit = function(track){
 				}
 				if(error){
 					console.Yolk.warn(error);
+					self.pacer();
 				}
 			}
 
@@ -273,6 +463,7 @@ musicbrainz.prototype.submit = function(track){
 //limit the submission rate to musicbrainz server to sane
 var resume = false;
 musicbrainz.prototype.pacer=function(){
+	//console.Yolk.say('pacer: '+this.mbq.length)
 	var self = this;
 	if(this.timeout || (process.Yolk.musicbrainzQ && process.Yolk.musicbrainzQ.length)){
 		if(process.Yolk.musicbrainzQ && process.Yolk.musicbrainzQ.length){
@@ -306,25 +497,28 @@ musicbrainz.prototype.pacer=function(){
 
 
 musicbrainz.prototype.add = function(track){
+
 	var self = this;
-	if(track.type === 'local'){
-		go(track);
-		return;
-	}
 	if(dupe(track)){
 		return;
 	}
+
 	elastic.client.get({
 		index:db_index,
 		type:track.type,
 		id:track.id
 	},function(err,data){
-		if(err){
+		if(data['_source'] && data['_source'].musicbrainzed && data['_source'].musicbrainzed === 'yes'){
+			return;
+		}else if(err){
+			go(track);
+		}else{
 			go(track);
 		}
 	});
 
 	function go(track){
+
 		if(track.type === 'youtube'){
 			var artist = tools.sanitise(track.metadata.artist);
 			artist = tools.uri(artist);
@@ -342,24 +536,24 @@ musicbrainz.prototype.add = function(track){
 				track.query = mb_url+'recording/'+track.musicbrainz_id+'?'+mb_query;
 			}else{
 				if(track.type === 'local'){
-					var title = tools.sanitise(track.metadata.title);
+					var title = tools.boost(track.metadata.title,2);
 					title = tools.uri(title);
 					var artist = tools.sanitise(track.metadata.artist);
 					artist = tools.uri(artist);
 					var album = tools.sanitise(track.metadata.album);
 					album = tools.uri(album);
 				}else{
-					var title = tools.fuzzy(track.metadata.title,10);
+					var title = tools.fuzzy(track.metadata.title,3);
 					title = tools.uri(title);
 					var artist = tools.fuzzy(track.metadata.artist,5);
 					artist = tools.uri(artist);
-					var album = tools.fuzzy(track.metadata.album);
+					var album = tools.fuzzy(track.metadata.album,2);
 					album = tools.uri(album);
 				}
 
 				var query = '?query=(artist:"'+(artist || "")+'" AND recording:('+(title || "");
 				if(album){
-					query = query + ') AND release:('+album
+					query = query + ') release:('+album
 				}
 				if(track.type!=='local'){
 					query = query + ')) OR (artist:"'+(artist || "")+'" AND recording:('+(title || "");

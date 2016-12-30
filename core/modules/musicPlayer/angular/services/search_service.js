@@ -92,6 +92,17 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		pinned:{},
 		sortby:{}
 	};
+	search.prototype.album = function(){
+		var flags = {
+			size:1000
+		}
+		$scope.db.fetch($scope.db_index,['albums'],false,flags).then(function(data){
+			$timeout(function(){
+				$scope.lib.albums = data.items;
+			})
+
+		})
+	}
 	search.prototype.go = function(next,refresh){
 		/*
 		try{
@@ -146,7 +157,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			flags.from = next
 		}
 
-
 		if(!$scope.lib.deleted){
 			var q = 'deleted:"no" ';
 			//q=q+') AND deleted:"no")'
@@ -183,6 +193,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				$scope.sortby.field !== oldChunk.sortby.field ||
 				$scope.sortby.term !== oldChunk.sortby.term ||
 				$scope.searchTerm !== oldChunk.searchTerm ||
+				$scope.sources !== oldChunk.sources ||
 				refresh
 			)
 		){
@@ -196,7 +207,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 					album:$scope.pinned.album
 				},
 				sources:$scope.sources,
-				sortby:$scope.sortby,
+				sortby:{
+					dir:$scope.sortby.dir
+				},
 				searchTerm:$scope.searchTerm
 			}
 		}
@@ -205,12 +218,12 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			if(!next){
 				$scope.lazy.libSize = data.libsize;
 			}else{
-				res(data.tracks);
+				res(data.items);
 				return;
 			}
 
 			var count = 0;
-			data.tracks.map(function(track){
+			data.items.map(function(track){
 				track.filter.pos = count+flags.from;
 				count++;
 				return track
@@ -229,7 +242,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				}
 				$('#tracks').css({paddingTop:padding})
 				$('#tracks').height(height-padding)
-				$scope.lib.tracks = data.tracks;
+				$scope.lib.tracks = data.items;
 			})
 
 		})

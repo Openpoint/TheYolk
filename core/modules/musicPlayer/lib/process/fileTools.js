@@ -174,10 +174,11 @@ ft.getTags=function(){
 
 				track.tagged = true;
 				track.type = 'local';
+				track.file = track.file.replace(/\#/g,'%23');
 				db.put(db_index+'.local.'+track.id,track).then(function(data){
 					//console.Yolk.log(data);
 				},function(err){
-					console.Yolk.warn(err);
+					//console.Yolk.warn(err);
 				})
 				musicbrainz.add(track);
 				self.getTags();
@@ -188,6 +189,7 @@ ft.getTags=function(){
 				track.tagged = false;
 				track.type = 'local';
 				console.Yolk.warn(track);
+				track.file = track.file.replace(/\#/g,'%23');
 				db.put(db_index+'.local.'+track.id,track).then(function(data){
 					console.Yolk.warn(data);
 				},function(err){

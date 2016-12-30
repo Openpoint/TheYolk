@@ -8,7 +8,10 @@ var q = require('promise');
 var request = require('request');
 
 const os = require("os");
-var message = process.Yolk.message;
+if(process.Yolk){
+	var message = process.Yolk.message;
+}
+
 function getMessage(){
 	return process.Yolk.message;
 }

@@ -27,8 +27,23 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 
 			$scope.sortby = $scope.Sortby[key];
+
+
 			$timeout(function(){
-				$scope.search.go(deleted);
+				if($scope.Sort === 'deleted'){
+					$scope.lib.deleted = true;
+				}else{
+					$scope.lib.deleted = false;
+				}
+				if($scope.Sort === 'album'){
+					$scope.search.album();
+					return;
+				}
+				if($scope.Sort === 'artist'){
+					$scope.search.artist();
+					return;
+				}
+				$scope.search.go();
 			})
 
 		}
@@ -49,7 +64,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			if(data.length){
 				$scope.lib.next = data[0];
 				$scope.lib.next.filter.pos=$scope.lib.playing.filter.pos+1
-				console.log($scope.lib.next);
+
 			}else{
 				$scope.lib.next = $scope.search.go('0').then(function(data){
 					$scope.lib.next = data[0];

@@ -114,7 +114,15 @@ process.Yolk.dbReady = new promise(function(resolve,reject){
 process.Yolk.coreprocess = function(module){
 	if(boot.coreProcesses[module]){
 		boot.coreProcesses[module].forEach(function(file){
-			require(file);
+			try{
+				require(file);
+			}
+			catch(err){
+
+				console.error(err);
+				console.Yolk.error(file+'\nSee the main process console');
+			}
+
 		})
 	}
 }

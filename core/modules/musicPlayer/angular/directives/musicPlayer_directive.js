@@ -1,18 +1,21 @@
 "use strict"
-
-angular.module('yolk').directive('yolkReady', function() {
+const path = require('path');
+const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'))
+angular.module('yolk').directive('yolkThumb', function() {
 
     return function(scope, element, attrs) {
-        if(scope.$first||scope.$last){
-
-            var count = 0;
-            scope.$parent.lib.tracks.map(function(track){
-                //track.filter.pos = scope.$parent.lazy.Top+count;
-                //count++;
-            })
+        var parent = scope.$parent;
+        if(parent.$parent){
+            parent = parent.$parent;
+        }
+        var paths=parent.settings.paths
+        var thisPath = path.join(paths[attrs.type+'s'],scope[attrs.type].id,'thumb.jpg');
+        if(filetools.isThere('file',thisPath)){
+            scope[attrs.type].image = thisPath
+        }else{
+            scope[attrs.type].image = parent.lib.noart
         }
 
-        //scope.$parent.lib.tracks[scope.$index].filter.pos = scope.$index+scope.$parent.lazy.Top
-        //scope.track.filter.pos = scope.$index+scope.$parent.lazy.Top;
+        //console.log(scope[attrs.type].image);
     };
 });

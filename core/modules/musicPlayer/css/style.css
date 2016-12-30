@@ -93,6 +93,26 @@ body,html{
 #sidebar .wrap{
 	flex-grow:1;
 }
+.album{
+	display:flex;
+	flex-direction:row;
+	position:relative;
+}
+.album .image{
+	padding:5px 10px;
+	position:relative;
+	height:100%;
+	box-sizing:border-box;
+}
+.album .info{
+	flex-grow:2;
+}
+.album img{
+	height:100%;
+	width:auto;
+	display:block;
+	line-height:0;
+}
 #tracks{
 	position:relative;
 }

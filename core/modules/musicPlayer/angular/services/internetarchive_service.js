@@ -65,8 +65,13 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 						var boost = 2;
 					}
 
-					qia = qia+index+':('+tools.boost(terms[term],boost,true)+') OR ';
-					qia = qia+index+':"'+tools.fuzzy(terms[term],false,true)+'" OR ';
+					var Boost = tools.boost(terms[term],boost,true)
+					Boost = tools.uri(Boost);
+					var Fuzzy = tools.fuzzy(terms[term],false,true)
+					Fuzzy = tools.uri(Fuzzy)
+
+					qia = qia+index+':('+Boost+') OR ';
+					qia = qia+index+':"'+Fuzzy+'" OR ';
 
 
 					//qia = qia+index+':('+tools.fuzzyAnd(terms[term],10,true)+') OR ';
@@ -116,9 +121,12 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 				}else{
 					var boost = 2;
 				}
-
-				qia = qia+index+':('+tools.boost(prefix,boost,true)+') OR ';
-				qia = qia+index+':"'+tools.fuzzy(prefix,false,true)+'" OR ';
+				var Boost = tools.boost(prefix,boost,true)
+				Boost = tools.uri(Boost);
+				var Fuzzy = tools.fuzzy(prefix,false,true)
+				Fuzzy = tools.uri(Fuzzy)
+				qia = qia+index+':('+Boost+') OR ';
+				qia = qia+index+':"'+Fuzzy+'" OR ';
 			})
 			var lastIndex = qia.lastIndexOf(" OR ");
 			qia = qia.substring(0, lastIndex)+') ';
@@ -158,7 +166,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 		var queries = self.searchString(term);
 		var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
-		//console.log(query);
 
 		$http({
 			method:'GET',

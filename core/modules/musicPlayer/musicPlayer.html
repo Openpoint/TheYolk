@@ -52,11 +52,26 @@
 		<div id = 'loading' class='ani-fOut' ng-if="!settings.paths.musicDir">
 			<div ng-click='fileSelect()'>Select your music folder</div>
 		</div>
+		<div id="albums" ng-if="Sort === 'album'">
+			<div ng-repeat="album in lib.albums track by album.id" class='ani-fIn'>
+				<div class='album'
+					ng-style="{
+						height: album.state ? lazy.playingHeight : lazy.trackHeight
+					} "
+					>
+						<div class='image'><img type="album" ng-src="{{album.image}}" yolk-thumb onerror=""/></div>
+						<div class='info'>{{album.metadata.title}}<br/>
+							{{album.metadata.artist}}<br/>
+							{{album.id}}
+						</div>
 
-		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-show="settings.paths.musicDir">
+					</div>
+			</div>
+		</div>
+		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-if="Sort==='title'||Sort==='recent'||Sort ==='deleted'" ng-show="settings.paths.musicDir">
 
 			<div class='ani-height' ng-if="!spacer" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div>
-			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn' yolk-ready>
+			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn'>
 				<div class='track'
 					ng-style="{
 						height: track.state ? lazy.playingHeight : lazy.trackHeight
@@ -199,8 +214,8 @@
 					width:dims.sidebarWidth,
 					height:dims.sidebarWidth/2
 				}" ng-if="lib.playing && !lib.playing.youtube" class='meta'>
-					<img ng-src="{{imagePath('artists',lib.playing.artist||false)}}" />
-					<img ng-src="{{imagePath('albums',lib.playing.album||false)}}" />
+					<img ng-src="{{imagePath('artists',lib.playing.artist)||lib.noart}}" />
+					<img ng-src="{{imagePath('albums',lib.playing.album)||lib.noart}}" />
 					<div class='shadow'></div>
 					<div class='shadow right'></div>
 				</div>
@@ -210,8 +225,6 @@
 						<div class='icon-fullscreen_out'></div>
 					</div>
 					<div id='shadow'></div>
-					<div class='artist'><img ng-src="{{imagePath('artists',lib.playing.artist||false) || false}}" /></div>
-
 				</div>
 			</div>
 			<div class='anchor'

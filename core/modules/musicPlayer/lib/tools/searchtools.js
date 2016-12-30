@@ -49,7 +49,7 @@ search.prototype.uri = function(term){
 			newterm = newterm+term[i];
 		}
 	}
-	return newterm.replace(/\&/g,'%26');
+	return newterm.replace(/\&/g,'%26').replace(/\#/g,'%23');
 }
 //internetarchive has defacto problems with certain characters. Remove them.
 search.prototype.sanitiseMore = function(term){

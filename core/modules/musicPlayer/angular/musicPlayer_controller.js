@@ -35,8 +35,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	//$scope.sort('metadata.title','raw');
 	$scope.Sort = 'title';
 	$scope.dims.update();
-	$scope.lib={};
-	$scope.lib.tracks=[];
+	$scope.lib={
+
+		tracks:[]
+	};
 	$scope.allTracks;
 
 	//$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
@@ -44,19 +46,24 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.db.get('global.settings.'+mod_name).then(function(data){
 		$scope.pinned.sources = ['local','online'];
 		$scope.sources=$scope.data_sources;
-		$scope.search.go();
-		$timeout(function(){
-			$scope.settings =data;
+
+		//$timeout(function(){
+			$scope.settings = data;
 			$scope.settings.paths.home = Yolk.home;
 			$scope.settings.paths.root = Yolk.root;
 			$scope.settings.paths.artists = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 			$scope.settings.paths.albums = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
+			$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
+			$scope.search.go();
+			$timeout(function(){
+				$scope.settings_loaded = true;
+			})
 			//$scope.dbReady = true;
 			//$scope.settings_loaded = true;
 			//$scope.tracks.checkLocal('local');
 			//todo - save state to db and restore on load
 
-		});
+		//});
 
 	});
 
@@ -89,7 +96,12 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 
 	$scope.$watch('settings',function(newVal,oldVal){
 		if(newVal!==oldVal && $scope.settings_loaded){
-			$scope.db.update('global.settings.'+mod_name,newVal);
+			$scope.db.update('global.settings.'+mod_name,newVal,function(err,data){
+				if(err){
+					console.error(err);
+				}
+				console.log(data)
+			});
 		}
 	},true);
 
@@ -133,4 +145,5 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
+
 }])
