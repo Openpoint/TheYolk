@@ -89,14 +89,15 @@ function Types(){
 			type:'artists',
 			mapping:{
 				properties:{
+					deleted:{
+						type:"string"
+					},
+					name:Mapping()
 				}
 			}
 		},{
 			type:'albums',
-			mapping:{
-				properties:{
-				}
-			}
+			mapping:mapping()
 		},{
 			type:'searches',
 			mapping:{

@@ -236,7 +236,6 @@ action.musicbrainz = function(){
 	}else{
 		return;
 	}
-	//console.Yolk.say('Meta:'+queue.musicbrainz.length);
 
     request.get(item.options,function(error, response, body){
         if (!error && response.statusCode == 200) {
@@ -293,6 +292,7 @@ action.musicbrainz = function(){
                 }
 
             }else{
+				console.Yolk.log(body);
                 tosave.country = body.country;
 				tosave.id = body.id;
 				tosave.name = body.name;

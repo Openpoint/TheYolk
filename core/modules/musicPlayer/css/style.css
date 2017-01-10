@@ -93,21 +93,34 @@ body,html{
 #sidebar .wrap{
 	flex-grow:1;
 }
-.album{
-	display:flex;
-	flex-direction:row;
+.album, .artist{
 	position:relative;
 }
-.album .image{
-	padding:5px 10px;
+.artist .inner, .album .inner{
+	display:flex;
+	flex-direction:row;
+}
+.album .image, .artist .image{
+	padding:2px 4px;
+	margin-right:3px;
 	position:relative;
 	height:100%;
 	box-sizing:border-box;
+	background:#302B22;
+
+}
+.album .image:hover, .artist .image:hover{
+	cursor:pointer;
+	background:tomato;
+	padding:4px 4px;
+	margin-right:3px;
+	border-left:2px solid #302B22;
+	border-right:2px solid #302B22;
 }
 .album .info{
 	flex-grow:2;
 }
-.album img{
+.album img, .artist img{
 	height:100%;
 	width:auto;
 	display:block;
@@ -116,10 +129,11 @@ body,html{
 #tracks{
 	position:relative;
 }
-.track.even{
+
+.track.even,.artist.even,.album.even{
 	background:white;
 }
-.track.odd{
+.track.odd,.artist.odd,.album.odd{
 	background:#E7E7E7;
 }
 .track .play{
@@ -169,6 +183,13 @@ body,html{
 .track.paused .inner{
 	display:none;
 }
+
+.drawer{
+	overflow:hidden;
+	width:100%;
+	transition:.5s linear height;
+}
+
 #playing .play.icon{
 	color:Tomato;
 }

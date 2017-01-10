@@ -52,27 +52,63 @@
 		<div id = 'loading' class='ani-fOut' ng-if="!settings.paths.musicDir">
 			<div ng-click='fileSelect()'>Select your music folder</div>
 		</div>
-		<div id="albums" ng-if="Sort === 'album'">
-			<div ng-repeat="album in lib.albums track by album.id" class='ani-fIn'>
-				<div class='album'
-					ng-style="{
-						height: album.state ? lazy.playingHeight : lazy.trackHeight
-					} "
-					>
-						<div class='image'><img type="album" ng-src="{{album.image}}" yolk-thumb onerror=""/></div>
-						<div class='info'>{{album.metadata.title}}<br/>
-							{{album.metadata.artist}}<br/>
-							{{album.id}}
-						</div>
 
-					</div>
-			</div>
-		</div>
-		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-if="Sort==='title'||Sort==='recent'||Sort ==='deleted'" ng-show="settings.paths.musicDir">
-
+		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-show="settings.paths.musicDir">
 			<div class='ani-height' ng-if="!spacer" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div>
-			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn'>
+
+			<div id="albums" ng-if="Sort === 'album'">
+				<div ng-repeat="album in lib.albums">
+
+					<div class='album'
+						ng-class="album.filter.zebra"
+					>
+						<div class='inner' ng-style="{height:lazy.trackHeight}">
+							<div class='image'  ng-click = 'drawer(album)' ng-style="{height:lazy.trackHeight}"><img type="album" ng-src="{{album.image}}" yolk-thumb onerror=""/></div>
+							<div class='info'>{{album.filter.pos}} {{album.metadata.title}}<br/>
+								{{album.metadata.artist}}<br/>
+							</div>
+							<div>{{lib.drawers[Sort][album.filter.pos]}}</div>
+						</div>
+						<div class='drawer' id="drawer{{album.filter.pos}}">
+							<div class='drawerInner' ng-repeat = "disc in album.tracks" ng-if="lib.drawers[Sort][album.filter.pos]">
+								<div ng-repeat = "track in disc">
+									{{track.title}}
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="artists" ng-if="Sort === 'artist'">
+				<div ng-repeat="artist in lib.artists">
+					<div class='artist'
+						ng-class="artist.filter.zebra"
+					>
+						<div class='inner' ng-style="{height:lazy.trackHeight}">
+							<div class='image' ng-click = 'drawer(artist)' ng-style="{height:lazy.trackHeight}">
+								<img type="artist" ng-src="{{artist.image}}" yolk-thumb />
+							</div>
+							<div class='info'>{{artist.filter.pos}} {{artist.name}}<br />
+								<span yolk-country>{{countries[artist.country]}}</span><br />
+								{{artist.country}} <br />
+								{{lib.drawers[Sort][artist.filter.pos]}}
+
+							</div>
+						</div>
+						<div class='drawer'  id="drawer{{artist.filter.pos}}">
+							<div class='drawerInner' ng-if="lib.drawers[Sort][artist.filter.pos]">
+								<div style="height:150px;width:100px"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+
+			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn' ng-if="Sort==='title'||Sort==='recent'||Sort ==='deleted'">
 				<div class='track'
+					ng-class="track.filter.zebra"
 					ng-style="{
 						height: track.state ? lazy.playingHeight : lazy.trackHeight
 					} "

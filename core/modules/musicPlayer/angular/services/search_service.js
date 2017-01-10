@@ -92,37 +92,21 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		pinned:{},
 		sortby:{}
 	};
-	search.prototype.album = function(){
-		var flags = {
-			size:1000
-		}
-		$scope.db.fetch($scope.db_index,['albums'],false,flags).then(function(data){
-			$timeout(function(){
-				$scope.lib.albums = data.items;
-			})
-
-		})
-	}
-	search.prototype.go = function(next,refresh){
+	var flags = {};
+	var prepare = function(next,refresh){
 		/*
-		try{
-			throw new Error();
-		}
-		catch(err){
-			console.error(err)
-		}
-
-		console.log('old:'+oldChunk.chunk+' new:'+$scope.lazy.chunk)
-		console.log('old:'+oldChunk.sources+' new:'+$scope.sources)
-		console.log('old:'+oldChunk.pinned.artist+' new:'+$scope.pinned.artist)
-		console.log('old:'+oldChunk.pinned.album+' new:'+$scope.pinned.album)
-		console.log('old:'+oldChunk.sortby.dir+' new:'+$scope.sortby.dir)
-		console.log('old:'+oldChunk.sortby.field+' new:'+$scope.sortby.field)
-		console.log('old:'+oldChunk.sortby.term+' new:'+$scope.sortby.term)
+		console.log(!next)
+		console.log(!refresh)
+		console.log($scope.lazy.chunk===oldChunk.chunk)
+		console.log($scope.sources === oldChunk.sources)
+		console.log($scope.pinned.artist === oldChunk.pinned.artist)
+		console.log($scope.pinned.album === oldChunk.pinned.album)
+		console.log($scope.sortby.dir===oldChunk.sortby.dir)
+		console.log($scope.sortby.field===oldChunk.sortby.field)
+		console.log($scope.sortby.term===oldChunk.sortby.term)
+		console.log($scope.searchTerm===oldChunk.searchTerm)
 		*/
-
 		//return if the search was triggered by a scroll only
-
 		if(
 			!next &&
 			!refresh &&
@@ -135,7 +119,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			$scope.sortby.term === oldChunk.sortby.term &&
 			$scope.searchTerm === oldChunk.searchTerm
 		){
-			return;
+			return false;
 		}
 
 
@@ -143,7 +127,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			$scope.lazy.refresh();
 		}
 
-		var flags = {
+		flags = {
 			sort:$scope.sortby,
 			size:$scope.lazy.Step*4,
 		}
@@ -152,6 +136,103 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}else{
 			flags.from = $scope.lazy.Top
 		}
+		return true;
+	}
+	var setOldChunk = function(){
+		oldChunk = {
+			chunk:$scope.lazy.chunk,
+			pinned:{
+				artist:$scope.pinned.artist,
+				album:$scope.pinned.album
+			},
+			sources:$scope.sources,
+			sortby:{
+				field:$scope.sortby.field,
+				dir:$scope.sortby.dir,
+				term:$scope.sortby.term
+			},
+			searchTerm:$scope.searchTerm
+		}
+	}
+
+	var playpos = function(items){
+		var count = 0;
+		items.map(function(track){
+			if(!track.filter){
+				track.filter = {};
+			}
+			track.filter.pos = count+flags.from;
+			if(track.filter.pos % 2 == 0){
+			  track.filter.zebra='even';
+			}else{
+			  track.filter.zebra='odd';
+			}
+			count++;
+			return track
+		})
+		return items;
+	}
+
+	search.prototype.album = function(next,refresh){
+		flags={};
+		if(!prepare(next,refresh)){
+			return;
+		}
+		flags.sort = [{
+			dir:'asc',
+			field:'raw',
+			term:'metadata.artist'
+		},{
+			dir:'asc',
+			field:'raw',
+			term:'metadata.title'
+		}]
+
+		if(!next){
+			setOldChunk();
+		}
+		$scope.db.fetch($scope.db_index,['albums'],false,flags).then(function(data){
+			$scope.lazy.libSize = data.libsize;
+			data.items = playpos(data.items);
+			$scope.lazy.refresh($('#playwindow').scrollTop());
+			$timeout(function(){
+				$scope.tracks.fixChrome(data.libsize);
+				$scope.lib.albums = data.items;
+			})
+
+		})
+	}
+	search.prototype.artist = function(next,refresh){
+		flags={};
+		if(!prepare(next,refresh)){
+			return;
+		}
+
+		flags.sort=[{
+			dir:'asc',
+			field:'raw',
+			term:'name'
+		}]
+		if(!next){
+			setOldChunk();
+		}
+		$scope.db.fetch($scope.db_index,['artists'],false,flags).then(function(data){
+			$scope.lazy.libSize = data.libsize;
+			data.items = playpos(data.items);
+			$scope.lazy.refresh($('#playwindow').scrollTop());
+			$timeout(function(){
+				$scope.tracks.fixChrome(data.libsize);
+				$scope.lib.artists = data.items;
+			})
+
+		})
+	}
+	search.prototype.go = function(next,refresh){
+		flags={};
+		if(!prepare(next,refresh)){
+			return;
+		}
+
 		if(next){
 			flags.size = 1,
 			flags.from = next
@@ -199,19 +280,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		){
 			$scope.tracks.isInFocus();
 		}
+
 		if(!next){
-			oldChunk = {
-				chunk:$scope.lazy.chunk,
-				pinned:{
-					artist:$scope.pinned.artist,
-					album:$scope.pinned.album
-				},
-				sources:$scope.sources,
-				sortby:{
-					dir:$scope.sortby.dir
-				},
-				searchTerm:$scope.searchTerm
-			}
+			setOldChunk();
 		}
 
 		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
@@ -222,26 +293,11 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				return;
 			}
 
-			var count = 0;
-			data.items.map(function(track){
-				track.filter.pos = count+flags.from;
-				count++;
-				return track
-			})
+
+			data.items = playpos(data.items);
 			$scope.lazy.refresh($('#playwindow').scrollTop());
 			$timeout(function(){
-
-				if($scope.lazy.chunk > 1){
-					var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
-				}else{
-					var padding = 0;
-				}
-				var height = data.libsize*$scope.lazy.trackHeight;
-				if(height < $('#tracks').outerHeight()){
-					$('#playwindow').scrollTop(0)
-				}
-				$('#tracks').css({paddingTop:padding})
-				$('#tracks').height(height-padding)
+				$scope.tracks.fixChrome(data.libsize);
 				$scope.lib.tracks = data.items;
 			})
 

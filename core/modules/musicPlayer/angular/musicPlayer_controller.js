@@ -24,6 +24,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
+	$scope.countries = require(path.join(Yolk.root,'core/modules/musicPlayer/lib/tools/countries.json'));
 
 
 	$scope.spacer = true;
@@ -113,6 +114,33 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			ipcRenderer.send('getDir', Dir[0]);
 		})
 	}
+
+	$scope.lib.drawers = {};
+	$scope.drawer = function(row){
+
+		if(!$scope.lib.drawers[$scope.Sort]){
+			$scope.lib.drawers[$scope.Sort]={};
+		}
+
+		if($scope.lib.drawers[$scope.Sort][row.filter.pos]){
+			$scope.lib.drawers[$scope.Sort][row.filter.pos] = false;
+			$('#drawer'+row.filter.pos).height(0);
+		}else{
+			Object.keys($scope.lib.drawers[$scope.Sort]).forEach(function(key){
+				if($scope.lib.drawers[$scope.Sort][key] && key!== row.filter.pos){
+					$scope.lib.drawers[$scope.Sort][key] = false;
+					$('#drawer'+key).height(0);
+				}
+			})
+			$scope.lib.drawers[$scope.Sort][row.filter.pos] = true;
+			$('#drawer'+row.filter.pos).height(0);
+			$timeout(function(){
+				var height = $('#drawer'+row.filter.pos+' .drawerInner').height();
+				$('#drawer'+row.filter.pos).height(height);
+			})
+		}
+
+	}
 	/*
 	if(!ipcRenderer._events.track){
 		ipcRenderer.on('track',function(event,data){
@@ -122,7 +150,16 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	*/
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			$scope.search.go(false,true);
+			switch($scope.Sort){
+				case "artist":
+					$scope.search.artist(false,true);
+					break;
+				case "album":
+					$scope.search.album(false,true);
+					break;
+				default:
+					$scope.search.go(false,true);
+			}
 		});
 	}
 	if(!ipcRenderer._events.progress){

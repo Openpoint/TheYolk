@@ -7,8 +7,18 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	var Process;
 	var tools = require('../../lib/tools/searchtools.js');
 
+
+
 	var tracks = function(scope){
 		$scope = scope;
+		var self = this;
+		$scope.$watch('Sort',function(){
+			$('#playwindow').scrollTop(0);
+			if($scope.lib.playing && ($scope.Sort === 'artist' || $scope.Sort === 'album')){
+				$scope.lib.playing.filter.pos=-1;
+			}
+
+		})
 		$scope.sort = function(type,field,deleted){
 			$scope.showDeleted = deleted;
 			var key = type.split('.').pop();
@@ -48,6 +58,8 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 		}
 	}
+
+	//find the next playing track
 	tracks.prototype.next = function(){
 
 		if($scope.lib.playing && $scope.lib.playing.filter.pos < 0){
@@ -74,6 +86,8 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		});
 
 	}
+
+	//check if the playing track is contained in the visible list
 	tracks.prototype.isInFocus = function(){
 		var self = this;
 		var q = $scope.lib.playing.query+' AND id:"'+$scope.lib.playing.id+'"';
@@ -82,8 +96,9 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			from:0,
 			size:1
 		}
+
 		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
-			if(!data.tracks.length){
+			if(!data.libsize){
 				$scope.lib.playing.filter.pos=-1;
 				self.next();
 				$timeout(function(){
@@ -103,6 +118,21 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}
 
 		})
+	}
+
+	//set the padding in the playwindow
+	tracks.prototype.fixChrome = function(libsize){
+		if($scope.lazy.chunk > 1){
+			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
+		}else{
+			var padding = 0;
+		}
+		var height = libsize*$scope.lazy.trackHeight;
+		if(height < $('#tracks').outerHeight()){
+			$('#playwindow').scrollTop(0)
+		}
+		$('#tracks').css({paddingTop:padding})
+		$('#tracks').height(height-padding)
 	}
 /*
 	//timer to set sane pace for bulk database submissions

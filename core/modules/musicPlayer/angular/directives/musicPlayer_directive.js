@@ -1,6 +1,8 @@
 "use strict"
 const path = require('path');
-const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'))
+const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'));
+
+
 angular.module('yolk').directive('yolkThumb', function() {
 
     return function(scope, element, attrs) {
@@ -15,7 +17,5 @@ angular.module('yolk').directive('yolkThumb', function() {
         }else{
             scope[attrs.type].image = parent.lib.noart
         }
-
-        //console.log(scope[attrs.type].image);
     };
 });

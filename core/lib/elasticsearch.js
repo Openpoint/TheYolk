@@ -154,14 +154,27 @@ dbase.prototype.fetch = function(index,types,query,flags){
 		if(flags && flags.from){
 			search.from = flags.from;
 		}
-		if(flags && flags.sort){
+
+		if(flags && flags.sort && flags.sort.length){
+			search.sort=[];
+			flags.sort.forEach(function(flag){
+				if(flag.field){
+					var field = '.'+flag.field;
+				}else{
+					var field='';
+				}
+				var sort= flag.term+field+":"+flag.dir;
+				search.sort.push(sort)
+			})
+		}else if(flags && flags.sort){
 			if(flags.sort.field){
 				var field = '.'+flags.sort.field;
 			}else{
 				var field='';
 			}
-			search.sort=flags.sort.term+field+":"+flags.sort.dir;
+			search.sort = flags.sort.term+field+":"+flags.sort.dir;
 		}
+		
 		self.client.search(search,function(err,data){
 
 			if(!err){

@@ -242,8 +242,9 @@ musicbrainz.prototype.process = function(tt,track){
 							console.Yolk.say('+ + + + + + + + + + + + + + ')
 
 						})
-						*/
+
 						console.Yolk.say('---------------------------------------------------------------------------------------')
+						*/
 						foo = foo.filter(function(recording){
 							if(recording.titleWeight === titleWeight){
 								return true;

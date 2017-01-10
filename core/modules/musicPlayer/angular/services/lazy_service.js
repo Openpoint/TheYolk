@@ -136,6 +136,9 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 				$scope.lib.playing.Pinned = false;
 
 			}
+			if($scope.lib.playing.filter.pos === -1){
+				$('#playing .inner').addClass('Top');
+			}
 		}
 	}
 
@@ -171,10 +174,17 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			}
 
 			scrollfix = $timeout(function(){
-				//$scope.tracks.Filter();
 				$scope.lazy.scroll();
-				$scope.search.go();
-				//$scope.lazy.playPos(scrollTop,true);
+				switch($scope.Sort){
+					case "artist":
+						$scope.search.artist();
+						break;
+					case "album":
+						$scope.search.album();
+						break;
+					default:
+						$scope.search.go();
+				}
 				$scope.scrolling =false;
 			},100);
 		});
