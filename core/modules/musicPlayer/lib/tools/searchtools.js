@@ -58,13 +58,27 @@ search.prototype.sanitiseMore = function(term){
 	return term;
 }
 //split term around defined search operators and return the string not assigned
-search.prototype.clean = function(term){
+search.prototype.clean = function(term,dirty){
 	this.fields.filter(function(field){
 		term = term.split(field+':')[0];
 	});
-	term = this.sanitise(term);
+	if(!dirty){
+		term = this.sanitise(term);
+	}
 	return term;
 };
+//split search term into identifiers and return Object
+search.prototype.terms = function(term){
+	var self = this;
+	var terms = {};
+	this.fields.forEach(function(field){
+		if(term.split(field+':')[1]){
+			terms[field] = self.clean(term.split(field+':')[1]);
+		};
+	});
+	terms.prefix = this.clean(term,true).trim();
+	return terms;
+}
 
 //format term to fuzzy ~ operator
 search.prototype.fuzzy = function(term,boost,more){

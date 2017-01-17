@@ -9,6 +9,8 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
+	const Q = require('promise');
+
 
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
@@ -26,27 +28,20 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.dims = new dims($scope);
 	$scope.countries = require(path.join(Yolk.root,'core/modules/musicPlayer/lib/tools/countries.json'));
 
+	$scope.Sort = {};
 
-	$scope.spacer = true;
-	$scope.sortby={
-		dir:'asc',
-		field:'raw',
-		term:'metadata.title'
-	}
-	//$scope.sort('metadata.title','raw');
-	$scope.Sort = 'title';
 	$scope.dims.update();
 	$scope.lib={
-
+		bios:{},
 		tracks:[]
 	};
 	$scope.allTracks;
 
 	//$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
-	$scope.data_sources = ['local','internetarchive','youtube'];
+	//$scope.data_sources = ['local','internetarchive','youtube'];
 	$scope.db.get('global.settings.'+mod_name).then(function(data){
-		$scope.pinned.sources = ['local','online'];
-		$scope.sources=$scope.data_sources;
+		//$scope.pinned.sources = ['local','online'];
+		//$scope.sources=$scope.data_sources;
 
 		//$timeout(function(){
 			$scope.settings = data;
@@ -106,6 +101,16 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		}
 	},true);
 
+	$scope.$watch('pin.Page',function(){
+		$timeout(function(){
+
+			if($scope.lib.playing && ($scope.pin.Page === 'artist' || $scope.pin.Page === 'album')){
+				$scope.lib.playing.filter.pos=-1;
+			}
+		})
+
+
+	})
 	//set the local music library location and scan files
 	$scope.fileSelect= function(){
 		dialog.showOpenDialog({properties: ['openDirectory']},function(Dir){
@@ -118,28 +123,127 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.lib.drawers = {};
 	$scope.drawer = function(row){
 
-		if(!$scope.lib.drawers[$scope.Sort]){
-			$scope.lib.drawers[$scope.Sort]={};
+		if(!$scope.lib.drawers[$scope.pin.Page]){
+			$scope.lib.drawers[$scope.pin.Page]={};
 		}
+		if(!$scope.lib.drawers[$scope.pin.Page][row.id]){
+			$scope.lib.drawers[$scope.pin.Page][row.id]={}
+		}
+		if($scope.lib.drawers[$scope.pin.Page][row.id].state){
+			$scope.lib.drawers[$scope.pin.Page][row.id].state = false;
+			$('#drawer'+row.id).height($('#drawer'+row.id+' .drawerInner').outerHeight());
+			$timeout(function(){
+				$('#drawer'+row.id).height(0);
+			})
 
-		if($scope.lib.drawers[$scope.Sort][row.filter.pos]){
-			$scope.lib.drawers[$scope.Sort][row.filter.pos] = false;
-			$('#drawer'+row.filter.pos).height(0);
 		}else{
-			Object.keys($scope.lib.drawers[$scope.Sort]).forEach(function(key){
-				if($scope.lib.drawers[$scope.Sort][key] && key!== row.filter.pos){
-					$scope.lib.drawers[$scope.Sort][key] = false;
+			Object.keys($scope.lib.drawers[$scope.pin.Page]).forEach(function(key){
+				if($scope.lib.drawers[$scope.pin.Page][key].state && key!== row.id){
+					$scope.lib.drawers[$scope.pin.Page][key].state = false;
+					$('#drawer'+key).height($('#drawer'+key+' .drawerInner').outerHeight());
+					$timeout(function(){
+						$('#drawer'+key).height(0);
+					})
 					$('#drawer'+key).height(0);
 				}
 			})
-			$scope.lib.drawers[$scope.Sort][row.filter.pos] = true;
-			$('#drawer'+row.filter.pos).height(0);
-			$timeout(function(){
-				var height = $('#drawer'+row.filter.pos+' .drawerInner').height();
-				$('#drawer'+row.filter.pos).height(height);
+			$scope.lib.drawers[$scope.pin.Page][row.id].state = true;
+			$('#drawer'+row.id).height(0);
+			$scope.drawerContent(row).then(function(){
+				var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
+				$('#drawer'+row.id).height(height);
 			})
 		}
 
+	}
+	$scope.drawerContent = function(row){
+		switch($scope.pin.Page){
+			case "artist":
+				return new Q(function(resolve,reject){
+
+					$scope.search.artistAlbums(row.name).then(function(data){
+						if(data){
+							var albums=[{
+								id:'youtube',
+								name:'Youtube',
+								count:0
+							}]
+							var sort = {};
+							data.forEach(function(track){
+								if(track.type === 'youtube'){
+									albums[0].count++
+								}else if(track.album){
+									if(!sort[track.album]){
+										sort[track.album] = {
+											count:1,
+											name:track.metadata.album
+										}
+									}else{
+										sort[track.album].count++
+									}
+								}
+							})
+							if(!albums[0].count){
+								albums=[];
+							}
+							Object.keys(sort).sort(function(a,b){return sort[b].count-sort[a].count}).forEach(function(key){
+								sort[key].id=key;
+								albums.push(sort[key]);
+							})
+							$scope.lib.drawers[$scope.pin.Page][row.id].albums = albums;
+							//row.albums = albums;
+							$timeout(function(){
+								resolve(true);
+							})
+
+						}
+					});
+				})
+			break;
+			case 'album':
+				function update(key,key2,updated,title,id,name){
+					$timeout(function(){
+						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2] = updated;
+						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].title = title;
+
+						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].album = id;
+						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].metadata.album = name;
+						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].filter={pos:-1}
+					})
+				}
+				return new Q(function(resolve,reject){
+					console.log(row)
+					$scope.lib.drawers[$scope.pin.Page][row.id].tracks = row.tracks;
+					Object.keys(row.tracks).forEach(function(key){
+						Object.keys(row.tracks[key]).forEach(function(key2){
+							$scope.search.albumTrack(row.tracks[key][key2],row.metadata).then(function(data){
+
+								var types = {};
+								data.forEach(function(track){
+									if(!types[track.type]){
+										types[track.type] = [];
+									}
+									types[track.type].push(track)
+								})
+								if(types.local){
+									update(key,key2,types.local[0],row.tracks[key][key2].title,row.id,row.metadata.title)
+								}else if(types.internetarchive){
+									update(key,key2,types.internetarchive[0],row.tracks[key][key2].title,row.id,row.metadata.title)
+								}else if(types.youtube){
+									update(key,key2,types.youtube[0],row.tracks[key][key2].title,row.id,row.metadata.title)
+								}
+							})
+						})
+
+					})
+					$timeout(function(){
+						resolve(true);
+					})
+
+				})
+			break;
+
+		}
 	}
 	/*
 	if(!ipcRenderer._events.track){
@@ -150,7 +254,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	*/
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			switch($scope.Sort){
+			switch($scope.pin.Page){
 				case "artist":
 					$scope.search.artist(false,true);
 					break;

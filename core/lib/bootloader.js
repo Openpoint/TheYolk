@@ -15,7 +15,6 @@ var checkEnd = function(end,file){
 
 
 var bootloader = function(){
-	//this.root = process.cwd();
 	this.root = process.cwd();
 	this.home = path.join(os.homedir(),'.yolk');
 	this.modules={};

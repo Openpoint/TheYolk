@@ -39,6 +39,7 @@ musicbrainz.prototype.process = function(tt,track){
 		track.metadata.title = item.title;
 		track.metadata.artist=item.artist.name;
 		track.artist=item.artist.id;
+		track.musicbrainz_id = item.id;
 		if(track.type !== 'youtube'){
 			track.metadata.album = item.release.title;
 			track.album = item.release.id;
@@ -206,7 +207,8 @@ musicbrainz.prototype.process = function(tt,track){
 			title:recording.title,
 			release:Release,
 			tags:recording.tags,
-			artist:recording['artist-credit'][0].artist
+			artist:recording['artist-credit'][0].artist,
+			id:recording.id
 		}
 	}
 	//parse over the track recordings and find the best candidate
@@ -338,6 +340,7 @@ musicbrainz.prototype.process = function(tt,track){
 
 				var releases;
 				result.forEach(function(recording){
+
 					if(!releases){
 						releases = recording.releases
 					}else{

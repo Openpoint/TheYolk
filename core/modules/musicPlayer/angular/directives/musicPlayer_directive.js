@@ -1,5 +1,6 @@
 "use strict"
 const path = require('path');
+const fs = require('fs');
 const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'));
 
 
@@ -11,11 +12,20 @@ angular.module('yolk').directive('yolkThumb', function() {
             parent = parent.$parent;
         }
         var paths=parent.settings.paths
-        var thisPath = path.join(paths[attrs.type+'s'],scope[attrs.type].id,'thumb.jpg');
+        var thisPath = path.join(paths[attrs.cat+'s'],scope[attrs.cat].id,'thumb.jpg');
         if(filetools.isThere('file',thisPath)){
-            scope[attrs.type].image = thisPath
+            scope[attrs.cat].image = thisPath
         }else{
-            scope[attrs.type].image = parent.lib.noart
+            scope[attrs.cat].image = parent.lib.noart
         }
     };
 });
+
+angular.module('yolk').directive('yolkAlbum', function() {
+    return function(scope, element, attrs){
+        var parent = scope.$parent.$parent.$parent.$parent;
+        var Path = parent.settings.paths.albums;
+        var thisPath = path.join(Path,scope.album.id,'thumb.jpg');
+        scope.album.image = thisPath;    
+    }
+})

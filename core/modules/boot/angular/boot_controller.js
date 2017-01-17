@@ -17,7 +17,7 @@ function($scope,$timeout,utils) {
 				if(Yolk.modules[property].config.db_index){
 					length ++;
 
-					var db_index = Yolk.modules[property].config.db_index.index;
+					var db_index = Yolk.modules[property].config.db_index;
 					var types = Yolk.modules[property].config.db_index.types;
 					$scope.utils = new utils(Yolk.modules[property].name);
 					$scope.utils.boot(db_index,types).then(function(db){
@@ -91,7 +91,7 @@ function($scope,$timeout,utils) {
 	};
 	if(!ipcRenderer._events.install){
 		ipcRenderer.on('install',function(event,data){
-			
+
 			$timeout(function(){
 				if(data.message){
 					$scope.installed.message = data.message;

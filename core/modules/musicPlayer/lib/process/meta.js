@@ -162,7 +162,7 @@ artwork.add = function(track){
 	            if(!exists || exists === type){
 					//console.Yolk.log(track.metadata[type]+': Adding to queue')
 					if(type === 'album'){
-						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels+artists';
+						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels+artists+artist-credits';
 					}else{
 						var query = mb_url+type+'/'+id+mb_query+'&inc=url-rels';
 					}
@@ -265,7 +265,8 @@ action.musicbrainz = function(){
 						media.tracks.forEach(function(track){
 	                        tosave.tracks['media-'+count][track.number]={
 	                            title:track.recording.title,
-	                            id:track.recording.id
+	                            id:track.recording.id,
+								artist:track['artist-credit'][0].artist.name
 	                        }
 	                    })
 						count++;
@@ -292,7 +293,6 @@ action.musicbrainz = function(){
                 }
 
             }else{
-				console.Yolk.log(body);
                 tosave.country = body.country;
 				tosave.id = body.id;
 				tosave.name = body.name;
@@ -347,7 +347,8 @@ action.musicbrainz = function(){
 				var db_path = db_index+'.'+item.type+'s.'+item.track[item.type];
 
                 //console.Yolk.log(tosave);
-
+				tosave.date = Date.now();
+				tosave.deleted = 'no';
 	            db.put(db_path,tosave).then(function(data){
 
 	            },function(err){

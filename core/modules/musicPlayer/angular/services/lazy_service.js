@@ -64,21 +64,27 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		var self = this;
 		$timeout(function(){
 			if($scope.lib.playing && $scope.lib.playing.state){
-				$scope.spacer=true;
+				self.spacer=true;
 				//var i = $scope.lib.tracks.indexOf($scope.lib.playing);
 				var i = $scope.lib.playing.filter.pos;
 				if(i >= 0){
 					$scope.lib.playing.top = i*$scope.lazy.trackHeight;
-					$scope.lib.playing.index=i;
-
+					$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
+					self.playPos($('#playwindow').scrollTop(),true);
+					$('#playing').css({
+						position:'absolute'
+					});
 				}else{
-					$scope.lib.playing.top = 0;
-					$scope.lib.playing.index = $scope.lib.tracks.length
-					$scope.spacer=false;
+					self.spacer=false;
+					$scope.lib.playing.top = false;
+					console.log($scope.lib.playing.top)
+					$('#playing').css({
+						position:'fixed',
+						top:'auto',
+						bottom:0
+					});
+					$('#playing .inner').addClass('Bottom')
 				}
-
-				$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
-				self.playPos($('#playwindow').scrollTop(),true);
 			}
 		});
 	}
@@ -86,7 +92,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 	// decide if the currently playing track should stick to top or bottom of screen
 	lazy.prototype.playPos = function(stop,fix){
 
-		if($scope.lib.playing){
+		if($scope.lib.playing && $scope.lib.playing.filter.pos > -1){
 
 			if(fix){
 				$scope.lib.playing.Top = false;
@@ -136,9 +142,6 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 				$scope.lib.playing.Pinned = false;
 
 			}
-			if($scope.lib.playing.filter.pos === -1){
-				$('#playing .inner').addClass('Top');
-			}
 		}
 	}
 
@@ -161,6 +164,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 
 			$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
+			$scope.pin.scroll[$scope.pin.Page] = $('#playwindow').scrollTop();
 			$scope.lazy.playPos(scrollTop);
 			if(
 				scrollTop > $scope.lazy.chunkHeight*($scope.lazy.chunk+1) ||
@@ -175,7 +179,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 
 			scrollfix = $timeout(function(){
 				$scope.lazy.scroll();
-				switch($scope.Sort){
+				switch($scope.pin.Page){
 					case "artist":
 						$scope.search.artist();
 						break;

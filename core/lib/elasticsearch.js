@@ -63,14 +63,19 @@ dbase.prototype.exists = function(index){
 	})
 	return promise;
 }
-dbase.prototype.create = function(Index,Mapping,Body){
+dbase.prototype.create = function(Index,Mapping,Settings,Body){
 	var self = this;
 	if(!Body){
 		Body = def;
 	}
+
 	var done = new q(function(resolve,reject){
-		new function(index,mapping,body,res){
-			//console.log(index);
+		new function(index,mapping,settings,body,res){
+			if(settings){
+				Object.keys(settings).forEach(function(key){
+					body.settings[key]=settings[key]
+				})
+			}
 			return self.client.indices.create({
 				index:index,
 				body:body
@@ -98,7 +103,7 @@ dbase.prototype.create = function(Index,Mapping,Body){
 					}
 				}
 			})
-		}(Index,Mapping,Body,resolve)
+		}(Index,Mapping,Settings,Body,resolve)
 	})
 
 	return done;
@@ -125,22 +130,14 @@ dbase.prototype.get = function(path){
 	})
 	return result;
 }
-dbase.prototype.fetch = function(index,types,query,flags){
 
-	/*
-	try{
-		throw new Error();
-	}
-	catch(err){
-		console.warn(err);
-	}
-	*/
-
+//dbase.prototype.fetch = function(index,types,query,flags){
+dbase.prototype.fetch = function(search){
 	var self = this;
 
 	var result = new q(function(resolve,reject){
 
-		//path = path.split('.');
+		/*
 		var search = {
 			index:index,
 			type:types
@@ -174,16 +171,18 @@ dbase.prototype.fetch = function(index,types,query,flags){
 			}
 			search.sort = flags.sort.term+field+":"+flags.sort.dir;
 		}
-		
+		*/
+
+
 		self.client.search(search,function(err,data){
 
 			if(!err){
-				data.hits.hits = data.hits.hits.map(function(hit){
+				var hits = data.hits.hits.map(function(hit){
 					return hit['_source'];
 				})
 				//console.log(data.hits.hits)
 				resolve({
-					items:data.hits.hits,
+					items:hits,
 					libsize:data.hits.total
 					});
 			}else{
@@ -238,65 +237,37 @@ dbase.prototype.findPos = function(index,types,query,flags,id){
 	})
 	return result;
 }
-dbase.prototype.fetchAll = function(path,query,sort){
+//dbase.prototype.fetchAll = function(path,query,sort,hash){
+dbase.prototype.fetchAll = function(query){
+
 	var self = this;
+	query.scroll = '1m';
+	query.size = 1000;
+
 	var result = new q(function(resolve,reject){
-		if(!path){
-			resolve(false);
-			return;
-		}
-		path = path.split('.');
 		var all = [];
-
 		var len = 0;
-		var search = {
-			index:path[0],
-			scroll:'1m',
-			size:1000
-		}
-		if(path[1]){
-			search.type = path[1];
-		}
-		if(path[2]){
-			search.q = '_id:'+path[2];
-		}
-		if(query){
-			search.q = query;
-		}
-		if(sort){
-			if(sort.field){
-				var field = '.'+sort.field;
-			}else{
-				var field='';
-			}
-			search.sort=sort.term+field+":"+sort.dir;
-		}
-		//search.sort='metadata.title.raw:asc'
-		function go(){
-			self.client.search(search,function getMore(err,data){
+		self.client.search(query,function getMore(err,data){
 
-				if(!err){
-					data.hits.hits.forEach(function(hit){
-						all.push(hit._source);
-						len++;
-					});
-					if(data.hits.total !== len){
-						self.client.scroll({
-							scrollId: data._scroll_id,
-							scroll: '1m'
-						},getMore);
-					}else{
-						resolve(all);
-					}
+			if(!err){
+				data.hits.hits.forEach(function(hit){
+					all.push(hit._source);
+					len++;
+				});
+				if(data.hits.total !== len){
+					self.client.scroll({
+						scrollId: data._scroll_id,
+						scroll: '1m'
+					},getMore);
 				}else{
-					console.log(err);
-					//go();
-					//todo: error handling
+					resolve(all);
 				}
-			});
-		};
-		go();
-	});
+			}else{
+				console.log(err)
+				reject(err);
+			}
+		});
+	})
 	return result;
 }
 

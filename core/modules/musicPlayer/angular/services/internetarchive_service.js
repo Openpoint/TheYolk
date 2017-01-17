@@ -27,8 +27,49 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 	//process the query to a database search string
 	ia.prototype.searchString = function(term){
+		var hash = tools.terms(term);
+		var qdb = {
+			index:$scope.db_index,
+			type:"internetarchivesearch",
+			body:{
+				query:{
+					bool:{
+						must:[
+							{bool:{should:[]}},
+							{match:{'musicbrainzed':{
+								query:'no'
+							}}}
+						]
+					}
+				}
+			}
+		}
+		if (hash.prefix){
+			qdb.body.query.bool.must[0].bool.should.push({
+				multi_match:{
+					query:hash.prefix,
+					operator : "and",
+					fuzziness:'auto',
+					fields:['title','artist','album'],
+				}
+			})
+		}
+		tools.fields.forEach(function(field){
+			if(hash[field]){
+				var match = {};
+				match[field] = {
+					query:hash[field],
+					fuzziness:'auto',
+					operator:'and'
+				}
+				qdb.body.query.bool.must.push({
+					match:match
+				})
+			}
+		})
+
 		var qia='(';
-		var qdb='(';
+		//var qdb='(';
 		var fields_ia = [
 			'title',
 			'description',
@@ -68,36 +109,25 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 					var Boost = tools.boost(terms[term],boost,true)
 					Boost = tools.uri(Boost);
 					var Fuzzy = tools.fuzzy(terms[term],false,true)
-					Fuzzy = tools.uri(Fuzzy)
-
+					Fuzzy = tools.uri(Fuzzy);
 					qia = qia+index+':('+Boost+') OR ';
 					qia = qia+index+':"'+Fuzzy+'" OR ';
-
-
-					//qia = qia+index+':('+tools.fuzzyAnd(terms[term],10,true)+') OR ';
-					/*
-					if(index === 'title'){
-						qia = qia+index+':('+$scope.search.fuzzyAnd(terms[term],4)+') OR ';
-					}else{
-						qia = qia+index+':('+$scope.search.fuzzyAnd(terms[term])+') OR ';
-					}
-					* */
 				});
 				qia = qia.trim();
 				var lastIndex = qia.lastIndexOf(" OR");
 				qia = qia.substring(0, lastIndex);
-				qdb = qdb+term+':'+'('+tools.fuzzyAnd(terms[term],10)+') AND ';
+				//qdb = qdb+term+':'+'('+tools.fuzzyAnd(terms[term],10)+') AND ';
 
 			}
 			qia =qia+') OR ';
 		}
-
+		/*
 		if(qdb.length > 1){
 			qdb = qdb.trim();
 			var lastIndex = qdb.lastIndexOf(" AND");
 			qdb = qdb.substring(0, lastIndex);
 		}
-
+		*/
 
 		if(qia.length > 1){
 			qia = qia.trim();
@@ -110,8 +140,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			if(qia.length !== 1){
 				qia =qia+' OR '
 			}
-
-			//qia=qia+'description:('+tools.boost(prefix,10)+') OR title:('+tools.boost(prefix,10)+') OR subject:('+tools.boost(prefix,10)+') OR description:('+tools.fuzzyAnd(prefix)+') OR title:('+tools.fuzzyAnd(prefix)+') OR subject:('+tools.fuzzyAnd(prefix)+'))';
 
 			fields_ia.forEach(function(index){
 				if(index === 'title'){
@@ -130,23 +158,21 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			})
 			var lastIndex = qia.lastIndexOf(" OR ");
 			qia = qia.substring(0, lastIndex)+') ';
-			//qia=qia+'"'+tools.boost(prefix,10,true)+'" OR "'+tools.fuzzy(prefix,false,true)+'")';
-			//qia=qia+'("'+tools.boost(prefix,10)+'"))';
-
-
+			/*
 			if(qdb.length !== 1){
 				qdb=qdb+') OR ("'+tools.fuzzyAnd(prefix,false)+'")';
 			}else{
 				qdb = '("'+tools.fuzzyAnd(prefix,10,true)+'") OR ("'+tools.fuzzy(prefix,false)+'")'
 			}
+			*/
 		}else{
 			qia=qia+')';
-			qdb=qdb+')';
+			//qdb=qdb+')';
 
 		}
 
-		qia = qia+' AND title:(-podcast'+cover+bootleg+') AND description:(-podcast'+cover+bootleg+') AND subject:(-podcast'+cover+bootleg+') AND mediatype:audio &fl[]=title,subject,collection,identifier,description,creator AND collection:opensource_audio&rows=100&page=1&output=json'
-		qdb = '('+qdb+') AND musicbrainzed:no'
+		qia = qia+' AND title:(-podcast'+cover+bootleg+') AND description:(-podcast'+cover+bootleg+') AND subject:(-podcast'+cover+bootleg+') AND mediatype:audio &fl[]=title,subject,collection,identifier,description,creator AND collection:opensource_audio&rows=100&page=1&output=json';
+		//qdb = '('+qdb+') AND musicbrainzed:no'
 
 		this.musicbrainz(qdb,0);
 
@@ -370,12 +396,14 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 
 	ia.prototype.musicbrainz = function(query,timeout){
+
 		var self = this;
 
-		//console.log(query);
+		console.log(query);
 		$timeout(function(){
-			$scope.db.fetchAll($scope.db_index+'.internetarchivesearch',query).then(function(data){
-				//console.log(data);
+			//$scope.db.fetchAll($scope.db_index+'.internetarchivesearch',query).then(function(data){
+			$scope.db.fetchAll(query).then(function(data){
+				console.log(data);
 				data.forEach(function(track){
 					if(submitted.indexOf(track.id) === -1){
 

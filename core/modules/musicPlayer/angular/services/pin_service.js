@@ -4,105 +4,84 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	var $scope;
 	var pin = function(scope){
 		$scope = scope;
+		this.pinned = {
+			sources:['local','internetarchive','youtube'],
+		};
+		this.direction = {
+			title:'asc',
+			artist:'asc',
+			album:'asc'
+		}
+		this.Page = 'title';
+		this.sortby = ['metadata.title.raw:'+this.direction[this.Page]];
+		this.scroll={
+			title:0,
+			artist:0,
+			album:0
+		}
+		/*
 		$scope.pinned = {
 			sources:[],
 			oldSources:['local','online']
 		};
 		$scope.sources = [];
+		*/
 	}
-	pin.prototype.pin = function(type,name){
-		if(type === 'source'){
-			if($scope.pinned.sources.indexOf(name) > -1){
-				if(name === 'suggestions'){
-					$scope.pinned.sources = $scope.pinned.oldSources;
-				}else{
-					if($scope.pinned.sources.length > 1){
-						$scope.pinned.sources.splice($scope.pinned.sources.indexOf(name),1);
-					}else{
-						return;
+	pin.prototype.source = function(name){
+		if(this.pinned.sources.indexOf(name) > -1){
+			if(this.pinned.sources.length > 1){
+				this.pinned.sources = this.pinned.sources.filter(function(source){
+					if(source!==name){
+						return true;
 					}
-				}
-
-			}else{
-				if(name === 'suggestions'){
-					$scope.pinned.oldSources = $scope.pinned.sources;
-					$scope.pinned.sources = ['suggestions']
-				}else{
-					if($scope.pinned.sources.indexOf('suggestions') > -1){
-						$scope.pinned.sources.splice($scope.pinned.sources.indexOf('suggestions'),1);
-					}
-					$scope.pinned.sources.push(name);
-				}
+				})
 			}
-
-			$scope.sources=[];
-			$scope.pinned.sources.filter(function(pin){
-				switch(pin){
-
-					case 'local':
-						$scope.sources.push('local');
-						break;
-					case 'online':
-						$scope.sources.push('jamendo');
-						$scope.sources.push('internetarchive');
-						$scope.sources.push('youtube');
-						break;
-
-					case 'suggestions':
-						$scope.sources=[];
-						$scope.jamendo.pop().then(function(data){
-							$scope.allTracks = data;
-							$scope.tracks.Filter();
-						});
-						break;
-					case 'torrents':
-						$scope.sources.push('torrents');
-						break;
-
-				}
-			});
-			$scope.search.go();
-			return;
 
 		}else{
-
-			if(type === 'artist'){
-				$scope.pinned.album = false;
-			}else{
-				$scope.pinned.artist = false;
-			}
-
-			if(!$scope.pinned[type] || $scope.pinned[type] != name){
-				//filter by type
-				if(!$scope.pinned.scrollTop){
-					$scope.pinned.scrollTop = $('#playwindow').scrollTop();
-
-				}
-
-				$scope.pinned[type] = name;
-				//$('#playwindow').scrollTop(0);
-				//$scope.tracks.Filter();
-				$scope.search.go();
-				$timeout(function(){
-					//$scope.lazy.refresh($('#playwindow').scrollTop());
-				});
-
-
-			}else{
-				//return to full track listing
-				$scope.pinned[type] = false;
-				$scope.search.go();
-				//$scope.tracks.Filter();
-
-				$timeout(function(){
-					//$scope.lazy.refresh($scope.pinned.scrollTop);
-					$scope.pinned.scrollTop = false;
-				});
-
-
-
-			}
+			this.pinned.sources.push(name);
 		}
+		$scope.search.go(false,true);
+	}
+	pin.prototype.artist = function(name){
+		this.pinned.album=false;
+		this.pinned.artist ? this.pinned.artist = false:this.pinned.artist = name
+		$scope.search.go();
+	}
+	pin.prototype.album = function(name){
+		this.pinned.artist=false;
+		this.pinned.album ? this.pinned.album = false:this.pinned.album = name;
+		$scope.search.go();
+	}
+	pin.prototype.page = function(page,skip){
+		if(this.Page === page && !skip){
+			this.direction[page] === 'asc' ? this.direction[page] = 'desc':this.direction[page] = 'asc';
+		}
+		this.Page = page;
+		switch (page){
+			case 'title':
+				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
+				$scope.search.go(false,true);
+			break;
+			case 'artist':
+				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['name.raw:'+this.direction[page]];
+				$scope.search.artist(false,true);
+			break;
+			case 'album':
+				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
+				$scope.search.album(false,true);
+			break;
+		}
+	}
+	pin.prototype.filter = function(filter){
+		this.Filter === filter ? this.Filter = false:this.Filter = filter;
+		this.page(this.Page,true);
+	}
+	pin.prototype.tracks = function(artist,album){
+		$scope.searchTerm = "artist:"+artist+" album:"+album;
+		this.scroll.title = 0;
+		this.pinned.artist = false;
+		this.pinned.album = false;
+		this.page('title')
 	}
 	return pin;
 }])

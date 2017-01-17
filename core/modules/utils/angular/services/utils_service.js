@@ -11,6 +11,11 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 
 	//create the datbase indexes
 	utils.prototype.boot = function(index,ids){
+		if(typeof index === 'object'){
+			var settings = index.settings;
+			index = index.index;
+		}
+
 		this.index_root = index;
 		var self = this;
 		return new $q(function(resolve,reject){
@@ -26,7 +31,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 					if(exists){
 						res();
 					}else{
-						self.db.create(index,mapping).then(function(data){
+						self.db.create(index,mapping,settings).then(function(data){
 							res();
 						},function(err){
 							console.log(err);
@@ -38,7 +43,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 				if(exists){
 					go();
 				}else{
-					self.db.create(index).then(function(mess){
+					self.db.create(index,false,settings).then(function(mess){
 						go();
 					});
 				}
@@ -47,7 +52,7 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 			function go(){
 				if(ids && ids.length){
 					ids.forEach(function(id){
-						new check(index+'.'+id.type,id.mapping);
+						new check(index+'.'+id.type,id.mapping,id.settings);
 					});
 				}else{
 					res();

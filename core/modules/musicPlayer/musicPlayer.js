@@ -13,6 +13,18 @@ var define = {
 	],
 	db_index:{
 		index:"music_player",
+		settings:{
+			analysis: {
+			   analyzer: {
+				  case_insensitive: {
+					 tokenizer: "keyword",
+					 filter: [
+						"lowercase"
+					 ]
+				  }
+			   }
+			}
+		},
 		types:Types()
 	},
 	module_name:"musicPlayer",
@@ -34,6 +46,7 @@ var define = {
 	    'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )' //todo - automatically update version in UA
 	}
 }
+
 function Mapping(){
 	return {
 		type: "string",
@@ -42,6 +55,10 @@ function Mapping(){
 			raw:{
 				type:  "string",
 				index: "not_analyzed"
+			},
+			exact:{
+				type:  "string",
+				analyzer: "case_insensitive"
 			}
 		}
 	}
@@ -94,10 +111,10 @@ function Types(){
 					},
 					name:Mapping()
 				}
-			}
+			},
 		},{
 			type:'albums',
-			mapping:mapping()
+			mapping:mapping(),
 		},{
 			type:'searches',
 			mapping:{

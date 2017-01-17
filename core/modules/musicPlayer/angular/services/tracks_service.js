@@ -12,56 +12,11 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	var tracks = function(scope){
 		$scope = scope;
 		var self = this;
-		$scope.$watch('Sort',function(){
-			$('#playwindow').scrollTop(0);
-			if($scope.lib.playing && ($scope.Sort === 'artist' || $scope.Sort === 'album')){
-				$scope.lib.playing.filter.pos=-1;
-			}
-
-		})
-		$scope.sort = function(type,field,deleted){
-			$scope.showDeleted = deleted;
-			var key = type.split('.').pop();
-			if(!$scope.Sortby[key]){
-				$scope.Sortby[key]={};
-			}
-			$scope.Sortby[key].term = type;
-			$scope.Sortby[key].field = field;
-
-			if(!$scope.Sortby[key].dir){
-				$scope.Sortby[key].dir = 'asc'
-			}else if($scope.Sortby[key].dir === 'desc'){
-				$scope.Sortby[key].dir = 'asc'
-			}else{
-				$scope.Sortby[key].dir = 'desc'
-			}
-
-			$scope.sortby = $scope.Sortby[key];
-
-
-			$timeout(function(){
-				if($scope.Sort === 'deleted'){
-					$scope.lib.deleted = true;
-				}else{
-					$scope.lib.deleted = false;
-				}
-				if($scope.Sort === 'album'){
-					$scope.search.album();
-					return;
-				}
-				if($scope.Sort === 'artist'){
-					$scope.search.artist();
-					return;
-				}
-				$scope.search.go();
-			})
-
-		}
 	}
 
 	//find the next playing track
 	tracks.prototype.next = function(){
-
+		return;
 		if($scope.lib.playing && $scope.lib.playing.filter.pos < 0){
 			$scope.lib.next = $scope.search.go('0').then(function(data){
 				$scope.lib.next = data[0];
@@ -97,7 +52,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			size:1
 		}
 
-		$scope.db.fetch($scope.db_index,$scope.sources,q,flags).then(function(data){
+		$scope.db.fetch($scope.db_index,$scope.pin.pinned.sources,q,flags).then(function(data){
 			if(!data.libsize){
 				$scope.lib.playing.filter.pos=-1;
 				self.next();
@@ -105,7 +60,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 					$scope.lazy.refresh($('#playwindow').scrollTop());
 				})
 			}else{
-				$scope.db.findPos($scope.db_index,$scope.sources,$scope.lib.playing.query,$scope.lib.playing.flags,$scope.lib.playing.id).then(function(data){
+				$scope.db.findPos($scope.db_index,$scope.pin.pinned.sources,$scope.lib.playing.query,$scope.lib.playing.flags,$scope.lib.playing.id).then(function(data){
 					$scope.lib.playing.filter.pos = data;
 					self.next();
 					$timeout(function(){
@@ -129,10 +84,11 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		}
 		var height = libsize*$scope.lazy.trackHeight;
 		if(height < $('#tracks').outerHeight()){
-			$('#playwindow').scrollTop(0)
+			$('#playwindow').scrollTop(0);
 		}
-		$('#tracks').css({paddingTop:padding})
-		$('#tracks').height(height-padding)
+		$('#tracks').css({paddingTop:padding});
+		$('#tracks').height(height-padding);
+		$('#playwindow').scrollTop($scope.pin.scroll[$scope.pin.Page]);
 	}
 /*
 	//timer to set sane pace for bulk database submissions
@@ -287,7 +243,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			date:Date.now()
 		}).then(function(data){
 			$timeout(function(){
-				$scope.search.go();
+				$scope.search.go(false,true);
 			})
 
 		})
@@ -302,7 +258,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			date:Date.now()
 		}).then(function(data){
 			$timeout(function(){
-				$scope.search.go(true);
+				$scope.search.go(false,true);
 			})
 
 		})
