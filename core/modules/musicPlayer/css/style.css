@@ -46,6 +46,11 @@ body,html{
 	font-size:30px;
 	position:relative;
 }
+#search .cancel{
+	padding:0;
+	text-align:right;
+	width:38px;
+}
 #search .icon-cancel{
 	color:tomato;
 	font-size:18px;
@@ -219,6 +224,7 @@ body,html{
 	margin:4px;
 	position:relative;
 	cursor:pointer;
+	background:white;
 }
 .album_image img{
 	width:100%;
@@ -313,7 +319,7 @@ body,html{
 
 #playing{
 
-	width:100%;
+	width:0;
 	position:absolute;
 
 }
@@ -547,6 +553,7 @@ body,html{
 	position:relative;
 	width:25px;
 	height:25px;
+	margin-left:17px;
 }
 
 #search .icon.active .front{
@@ -565,7 +572,7 @@ body,html{
 	height:100%;
 	display:block;
 	margin:0;
-	margin-left:10px;
+	margin-left:5px;
 	border:none;
 	box-sizing:border-box;
 	font-size:15px;

@@ -90,27 +90,8 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		}
 	}
 
-	$scope.$watch('settings',function(newVal,oldVal){
-		if(newVal!==oldVal && $scope.settings_loaded){
-			$scope.db.update('global.settings.'+mod_name,newVal,function(err,data){
-				if(err){
-					console.error(err);
-				}
-				console.log(data)
-			});
-		}
-	},true);
-
-	$scope.$watch('pin.Page',function(){
-		$timeout(function(){
-
-			if($scope.lib.playing && ($scope.pin.Page === 'artist' || $scope.pin.Page === 'album')){
-				$scope.lib.playing.filter.pos=-1;
-			}
-		})
 
 
-	})
 	//set the local music library location and scan files
 	$scope.fileSelect= function(){
 		dialog.showOpenDialog({properties: ['openDirectory']},function(Dir){
@@ -212,7 +193,6 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 					})
 				}
 				return new Q(function(resolve,reject){
-					console.log(row)
 					$scope.lib.drawers[$scope.pin.Page][row.id].tracks = row.tracks;
 					Object.keys(row.tracks).forEach(function(key){
 						Object.keys(row.tracks[key]).forEach(function(key2){
@@ -286,5 +266,63 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
+	$scope.$watch('settings',function(newVal,oldVal){
+		if(newVal!==oldVal && $scope.settings_loaded){
+			$scope.db.update({
+				index:'global',
+				type:'settings',
+				id:mod_name,
+				body:{doc:newVal}
+			}).then(function(data){
+				//console.log(data)
+			},function(err){
+				console.error(err)
+			})
+		}
+	},true);
 
+	$scope.$watch('pin.Page',function(){
+		$timeout(function(){
+
+			if($scope.lib.playing && ($scope.pin.Page === 'artist' || $scope.pin.Page === 'album')){
+				$scope.lib.playing.filter.pos=-1;
+			}
+		})
+
+
+	})
+
+	var searchTime;
+	$scope.$watch('searchTerm',function(oldVal,newVal){
+		if($scope.searchTerm && $scope.searchTerm.length){
+			$('#search .hide').html($scope.searchTerm);
+			$('#search input').width($('#search .hide').width()+10+'px');
+		}else{
+			$('#search input').width('100px')
+		}
+
+		if(oldVal!==newVal){
+			if($scope.searchTerm && $scope.searchTerm.length > 1){
+				$scope.goSearch = true;
+			}else{
+				$scope.goSearch = false;
+			}
+			$timeout.cancel(searchTime);
+			searchTime = $timeout(function(){
+				$scope.search.go();
+			},500);
+		}
+	});
+
+	$scope.$watch('lib.playing.filter.pos',function(oldVal,newVal){
+		if(oldVal!==newVal){
+			if($scope.lib.playing.filter.pos === -1){
+				$('#playing .inner').css({
+					position:'fixed',
+					top:'auto',
+					bottom:0
+				}).addClass('Bottom').removeClass('Top');
+			}
+		}
+	})
 }])

@@ -9,55 +9,43 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 		this.index_root;
 	};
 
-	//create the datbase indexes
-	utils.prototype.boot = function(index,ids){
+	//create the database indexes
+	utils.prototype.boot = function(index){
+
 		if(typeof index === 'object'){
 			var settings = index.settings;
+			var ids = index.types
 			index = index.index;
 		}
 
 		this.index_root = index;
 		var self = this;
+
 		return new $q(function(resolve,reject){
-			var count = 0;
-			var res=function(){
-				count++
-				if(!ids || count === ids.length){
-					resolve();
-				}
-			}
-			var check = function(index,mapping){
-				self.db.exists(index).then(function(exists){
-					if(exists){
-						res();
-					}else{
-						self.db.create(index,mapping,settings).then(function(data){
-							res();
-						},function(err){
-							console.log(err);
-						});
-					}
-				});
-			}
 			self.db.exists(index).then(function(exists){
-				if(exists){
-					go();
-				}else{
-					self.db.create(index,false,settings).then(function(mess){
-						go();
+				if(!exists){
+					var hash = {
+						index:index,
+						body:{}
+					}
+					if(ids && ids.length){
+						var mappings = {}
+						ids.forEach(function(id){
+							mappings[id.type]=id.mapping;
+
+						})
+						hash.body.mappings = mappings;
+					}
+					if(settings){
+						hash.body.settings = settings;
+					}
+					self.db.create(hash).then(function(data){
+						resolve(true);
+					},function(err){
+						console.error(err);
 					});
 				}
 			});
-
-			function go(){
-				if(ids && ids.length){
-					ids.forEach(function(id){
-						new check(index+'.'+id.type,id.mapping,id.settings);
-					});
-				}else{
-					res();
-				}
-			}
 		})
 	}
 

@@ -255,7 +255,7 @@ action.musicbrainz = function(){
 					title:body.title,
 					artist:body['artist-credit'][0].name
 				}
-				tosave.id = body.id;
+				tosave.id = body.id.toString();
 				tosave.artist = body['artist-credit'][0].artist.id
                 tosave.tracks={};
 				var count = 1;
@@ -265,7 +265,7 @@ action.musicbrainz = function(){
 						media.tracks.forEach(function(track){
 	                        tosave.tracks['media-'+count][track.number]={
 	                            title:track.recording.title,
-	                            id:track.recording.id,
+	                            id:track.recording.id.toString(),
 								artist:track['artist-credit'][0].artist.name
 	                        }
 	                    })
@@ -294,7 +294,7 @@ action.musicbrainz = function(){
 
             }else{
                 tosave.country = body.country;
-				tosave.id = body.id;
+				tosave.id = body.id.toString();
 				tosave.name = body.name;
                 if(links.length){
                     tosave.links={};
@@ -344,16 +344,23 @@ action.musicbrainz = function(){
             }
             //save item to database;
 			if(!item.needs){
-				var db_path = db_index+'.'+item.type+'s.'+item.track[item.type];
+				//var db_path = db_index+'.'+item.type+'s.'+item.track[item.type];
 
                 //console.Yolk.log(tosave);
 				tosave.date = Date.now();
 				tosave.deleted = 'no';
-	            db.put(db_path,tosave).then(function(data){
-
-	            },function(err){
-	                console.Yolk.warn(err);
-	            })
+				db.client.create({
+					index:db_index,
+					type:item.type+'s',
+					id:item.track[item.type],
+					body:tosave
+				},function(err,data){
+					if(err){
+						console.Yolk.warn(err);
+					}else{
+						//console.Yolk.log(data)
+					}
+				})
 			}
 
         }else{
@@ -560,10 +567,17 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 			.extract({width: crop.width, height: crop.height, left: crop.x, top: crop.y})
 			.resize(width, height)
 			.toFile(dest);
-			db.update(db_index+'.'+item.type+'s.'+track[item.type],{
-				artwork:true
+
+			db.update({
+				index:db_index,
+				type:item.type+'s',
+				id:track[item.type],
+				body:{doc:{
+					artwork:true
+				}}
+			}).then(function(data){},function(err){
+				console.Yolk.error(err);
 			})
-			//console.Yolk.log(track.metadata[item.type]+': Image saved')
 		});
 	}
 	catch(err){

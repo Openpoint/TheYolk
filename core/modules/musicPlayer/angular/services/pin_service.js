@@ -76,12 +76,12 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		this.Filter === filter ? this.Filter = false:this.Filter = filter;
 		this.page(this.Page,true);
 	}
-	pin.prototype.tracks = function(artist,album){
+	pin.prototype.tracks = function(artist,album,destination){
 		$scope.searchTerm = "artist:"+artist+" album:"+album;
 		this.scroll.title = 0;
 		this.pinned.artist = false;
 		this.pinned.album = false;
-		this.page('title')
+		this.page(destination)
 	}
 	return pin;
 }])

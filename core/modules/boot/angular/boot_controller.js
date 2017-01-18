@@ -18,9 +18,9 @@ function($scope,$timeout,utils) {
 					length ++;
 
 					var db_index = Yolk.modules[property].config.db_index;
-					var types = Yolk.modules[property].config.db_index.types;
+					//var types = Yolk.modules[property].config.db_index.types;
 					$scope.utils = new utils(Yolk.modules[property].name);
-					$scope.utils.boot(db_index,types).then(function(db){
+					$scope.utils.boot(db_index).then(function(db){
 						length --;
 						if(length === 0){
 							getSettings();

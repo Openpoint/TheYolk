@@ -20,7 +20,6 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 	}
 
 	lazy.prototype.refresh = function(sTop){
-
 		if(sTop){
 			var top = sTop;
 		}else{
@@ -30,8 +29,6 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		}
 		this.step(top);
 		this.getPos();
-
-
 	}
 
 	lazy.prototype.scroll = function(sTop){
@@ -65,25 +62,24 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		$timeout(function(){
 			if($scope.lib.playing && $scope.lib.playing.state){
 				self.spacer=true;
-				//var i = $scope.lib.tracks.indexOf($scope.lib.playing);
 				var i = $scope.lib.playing.filter.pos;
+				if(i > -1){
+					$scope.lib.playing.top = i*$scope.lazy.trackHeight;
+					$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
+					self.playPos($('#playwindow').scrollTop(),true);
+				}
+
+				return;
+				//var i = $scope.lib.tracks.indexOf($scope.lib.playing);
+
 				if(i >= 0){
 					$scope.lib.playing.top = i*$scope.lazy.trackHeight;
 					$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
 					self.playPos($('#playwindow').scrollTop(),true);
-					$('#playing').css({
-						position:'absolute'
-					});
+
 				}else{
 					self.spacer=false;
 					$scope.lib.playing.top = false;
-					console.log($scope.lib.playing.top)
-					$('#playing').css({
-						position:'fixed',
-						top:'auto',
-						bottom:0
-					});
-					$('#playing .inner').addClass('Bottom')
 				}
 			}
 		});
@@ -142,6 +138,8 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 				$scope.lib.playing.Pinned = false;
 
 			}
+		}else if($scope.lib.playing){
+			
 		}
 	}
 

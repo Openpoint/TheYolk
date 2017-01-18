@@ -9,7 +9,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	var $scope;
 	var tools = require('../../lib/tools/searchtools.js');
 
-	var submitted = [];
 	var q = {
 		queries:[],
 		meta:[],
@@ -69,7 +68,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 		})
 
 		var qia='(';
-		//var qdb='(';
 		var fields_ia = [
 			'title',
 			'description',
@@ -95,7 +93,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 		for(var term in terms){
 			qia = qia+'(';
-			//qdb = qdb+'(';
 			if(terms[term]){
 				fields_ia.forEach(function(index){
 					if(index === 'title'){
@@ -121,13 +118,6 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			}
 			qia =qia+') OR ';
 		}
-		/*
-		if(qdb.length > 1){
-			qdb = qdb.trim();
-			var lastIndex = qdb.lastIndexOf(" AND");
-			qdb = qdb.substring(0, lastIndex);
-		}
-		*/
 
 		if(qia.length > 1){
 			qia = qia.trim();
@@ -158,16 +148,9 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			})
 			var lastIndex = qia.lastIndexOf(" OR ");
 			qia = qia.substring(0, lastIndex)+') ';
-			/*
-			if(qdb.length !== 1){
-				qdb=qdb+') OR ("'+tools.fuzzyAnd(prefix,false)+'")';
-			}else{
-				qdb = '("'+tools.fuzzyAnd(prefix,10,true)+'") OR ("'+tools.fuzzy(prefix,false)+'")'
-			}
-			*/
+
 		}else{
 			qia=qia+')';
-			//qdb=qdb+')';
 
 		}
 
@@ -396,18 +379,12 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 
 	ia.prototype.musicbrainz = function(query,timeout){
-
 		var self = this;
-
-		console.log(query);
 		$timeout(function(){
-			//$scope.db.fetchAll($scope.db_index+'.internetarchivesearch',query).then(function(data){
 			$scope.db.fetchAll(query).then(function(data){
-				console.log(data);
 				data.forEach(function(track){
-					if(submitted.indexOf(track.id) === -1){
-
-						submitted.push(track.id);
+					if(self.searches.indexOf(track.id) === -1){
+						self.searches.push(track.id);
 						var file = self.format(track);
 						ipcRenderer.send('musicbrainz',file);
 					}
@@ -419,6 +396,5 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 		},timeout);
 
 	}
-
 	return ia;
 }])

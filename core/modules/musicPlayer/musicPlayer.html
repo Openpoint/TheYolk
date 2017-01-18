@@ -31,14 +31,14 @@
 			<div class='item sort' ng-class="{active:pin.Filter==='deleted'}" ng-click="pin.filter('deleted')">Deleted</div>
 	</div>
 	<div id='search' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
-		<div class="cancel">
-			<div class="icon-cancel" ng-if="searchTerm" ng-click="search.clear()"></div>
-		</div>
+
 		<div class="icon search" ng-click='search.remoteSearch(searchTerm)' ng-class={active:goSearch}>
 			<div class='icon-search front'></div>
 			<div class='searchfocus'></div>
 		</div>
-
+		<div class="cancel">
+			<div class="icon-cancel" ng-if="searchTerm" ng-click="search.clear()"></div>
+		</div>
 		<div class='input'>
 			<input ng-model="searchTerm" type='text' placeholder="Search" ng-keypress="search.remoteSearch(searchTerm,$event)" />
 			<div class ='hide'></div>
@@ -100,9 +100,9 @@
 						</div>
 						<div class='drawer'  id="drawer{{artist.id}}">
 							<div class='drawerInner ani-fOut' ng-if="lib.drawers[pin.Page][artist.id].state">
-								<div ng-repeat="album in lib.drawers[pin.Page][artist.id].albums" class="album_image" ng-click="pin.tracks(artist.name,album.name)">
-										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" />
-										<span class='youtube' ng-include ="'core/lib/css/icons/youtube.svg'" ng-if="album.id==='youtube'" ></span>
+								<div ng-repeat="album in lib.drawers[pin.Page][artist.id].albums" class="album_image" >
+										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
+										<span class='youtube' ng-include ="'core/lib/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
 								</div>
 							</div>
 						</div>
@@ -171,7 +171,7 @@
 							<div class='icons' ng-click="audio.play(track)">
 								<div class='play icon icon-play'></div>
 							</div>
-							<div class='title'>{{track.filter.pos}} {{::track.metadata.title || track.file}}</div>
+							<div class='title'>{{::track.metadata.title || track.file}}</div>
 						</div>
 						<div class='below'>
 							<div class='icons'>
@@ -284,7 +284,7 @@
 							ng-if="lib.playing.Top && lazy.spacer"></div>
 						</div>
 					</div>
-					<div id='devinfo' ng-if="dims.dev"><pre>{{lib.devinfo}}</pre></div>
+					<div id='devinfo' ng-if="dims.dev" ng-style="{width:dims.playwindowWidth-dims.scroller}"><pre>{{lib.devinfo}}</pre></div>
 				</div>
 
 			</div>

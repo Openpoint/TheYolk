@@ -12,29 +12,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		this.fields = tools.fields;
 
 		var self = this;
-		var searchTime;
-		$scope.$watch('searchTerm',function(oldVal,newVal){
-			if($scope.searchTerm && $scope.searchTerm.length){
-				$('#search .hide').html($scope.searchTerm);
-				$('#search input').width($('#search .hide').width()+10+'px');
-			}else{
-				$('#search input').width('100px')
-			}
 
-			if(oldVal!==newVal){
-				if($scope.searchTerm && $scope.searchTerm.length > 1){
-					$scope.goSearch = true;
-				}else{
-					$scope.goSearch = false;
-				}
-				$timeout.cancel(searchTime);
-				//$timeout.cancel($scope.iaTimer);
-				//$timeout.cancel($scope.ytTimer);
-				searchTime = $timeout(function(){
-					self.go();
-				},500);
-			}
-		});
 	}
 	search.prototype.clear = function(){
 		$timeout(function(){
@@ -43,58 +21,12 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 	}
 
-
-	//process the search term into a database query string
-	search.prototype.searchString = function(term,pre){
-
-		if(!pre){
-			pre='metadata';
-		}
-		var self = this;
-		var q='(';
-		var terms = {};
-
-
-		var prefix = tools.clean(term);
-		this.fields.filter(function(field){
-			if(term.split(field+':')[1]){
-				terms[field] = tools.clean(term.split(field+':')[1]);
-			};
-		});
-		for(var term in terms){
-			if(terms[term]){
-				var fuzz = tools.fuzzy(terms[term]);
-				q=q+pre+'.'+term+':"'+fuzz+'" AND ';
-			}
-			//console.log(q);
-		}
-		q=q.trim();
-		q=q.split(' ');
-		if(q[q.length -1] === 'AND'){
-			q.pop();
-		}
-		q = q.join(" ");
-		q=q+") "
-		if(q ==='() '){
-			q='';
-		}
-		if(prefix.length){
-			var fields = ['title','artist','album','description'];
-			var term = tools.fuzzy(prefix);
-			fields.forEach(function(field){
-				q=q+pre+'.'+field+':"'+term+'" ';
-			})
-			q=q+'description:"'+term+'"';
-		}
-		return q;
-	}
-
 	var oldChunk = {
 		pinned:{},
 		sortby:{}
 	};
 	var flags = {};
-	var prepare = function(next,refresh){
+	var prepare = function(){
 		/*
 		console.log($scope.pin.sortby)
 		console.log(!next)
@@ -111,8 +43,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		*/
 		//return if the search was triggered by a scroll only
 		if(
-			!next &&
-			!refresh &&
 			$scope.lazy.chunk === oldChunk.chunk &&
 			$scope.pin.pinned.sources === oldChunk.sources &&
 			$scope.pin.pinned.artist === oldChunk.pinned.artist &&
@@ -170,14 +100,14 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		return items;
 	}
 
-	search.prototype.album = function(next,refresh){
+	search.prototype.album = function(){
 		flags={};
-		if(!prepare(next,refresh)){
+		if(!prepare()){
 			return;
 		}
-		if(!next){
-			setOldChunk();
-		}
+
+		setOldChunk();
+
 		var search = {
 			index:$scope.db_index,
 			type:['albums'],
@@ -186,6 +116,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				query:{
 					bool:{
 						must:[
+							{bool:{should:[]}},
 							{match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}},
 						]
 					}
@@ -193,16 +124,43 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				}
 			}
 		}
-		if($scope.pin.pinned.album){
-			search.body.query.bool.must.unshift({match:{'metadata.title.exact':$scope.pin.pinned.album}})
+		var terms = false;
+		if($scope.searchTerm && $scope.searchTerm.length > 1){
+			terms = tools.terms($scope.searchTerm);
+			if(terms.prefix){
+				search.body.query.bool.must[0].bool.should.push({multi_match:{
+					query:terms.prefix,
+					fuzziness:'auto',
+					operator:'and',
+					fields:['metadata.artist','metadata.title']
+
+				}})
+			}
+			if(terms.artist && (!terms.album || terms.album.toLowerCase()==='youtube')){
+				search.body.query.bool.must.push({match:{'metadata.artist':{
+					query:terms.artist,
+					fuzziness:'auto',
+					operator:'and',
+				}}})
+			}
+			if(terms.album && terms.album.toLowerCase()!=='youtube'){
+				search.body.query.bool.must.push({match:{'metadata.title':{
+					query:terms.album,
+					fuzziness:'auto',
+					operator:'and',
+				}}})
+			}
 		}
-		if($scope.pin.pinned.artist){
-			search.body.query.bool.must.unshift({match:{'metadata.artist.exact':$scope.pin.pinned.artist}})
+		if($scope.pin.pinned.album && !terms){
+			search.body.query.bool.must[0].bool.should.push({match:{'metadata.title.exact':$scope.pin.pinned.album}})
+		}
+		if($scope.pin.pinned.artist && !terms){
+			search.body.query.bool.must[0].bool.should.push({match:{'metadata.artist.exact':$scope.pin.pinned.artist}})
 		}
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
-		//$scope.db.fetch($scope.db_index,['albums'],false,flags).then(function(data){
+
 		$scope.db.fetch(search).then(function(data){
 			$scope.lazy.libSize = data.libsize;
 			data.items = playpos(data.items);
@@ -214,16 +172,15 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 		})
 	}
-	search.prototype.artist = function(next,refresh){
-
+	search.prototype.artist = function(){
 		flags={};
-		if(!prepare(next,refresh)){
+		if(!prepare()){
 			return;
 		}
 
-		if(!next){
-			setOldChunk();
-		}
+
+		setOldChunk();
+
 		var search = {
 			index:$scope.db_index,
 			type:['artists'],
@@ -232,6 +189,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				query:{
 					bool:{
 						must:[
+							{bool:{
+								should:[]
+							}},
 							{match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}},
 						]
 					}
@@ -239,25 +199,35 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				}
 			}
 		}
-		if($scope.pin.pinned.artist){
-			search.body.query.bool.must.unshift({match:{'name.exact':$scope.pin.pinned.artist}})
+		var terms = false;
+		if($scope.searchTerm && $scope.searchTerm.length > 1){
+			terms = tools.terms($scope.searchTerm);
+			if(terms.prefix || terms.artist){
+				search.body.query.bool.must[0].bool.should.push({match:{'name':{
+					query:terms.prefix ? terms.prefix:terms.artist,
+					fuzziness:'auto',
+					operator:'and'
+				}}})
+			}
+		}
+		if($scope.pin.pinned.artist && !terms){
+			search.body.query.bool.must[0].bool.should.push({match:{'name.exact':$scope.pin.pinned.artist}})
 		}
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
 
-		//$scope.db.fetch($scope.db_index,['artists'],false,flags).then(function(data){
 		$scope.db.fetch(search).then(function(data){
 			$scope.lazy.libSize = data.libsize;
 
 			data.items = playpos(data.items);
 
 			$scope.lazy.refresh($('#playwindow').scrollTop());
+
 			$timeout(function(){
 				$scope.tracks.fixChrome(data.libsize);
 				$scope.lib.artists = data.items;
 				data.items.forEach(function(row){
-
 					if(row.links && row.links.wikipedia && !$scope.lib.bios[row.id]){
 						$scope.lib.bios[row.id]={}
 						var wid = path.basename(row.links.wikipedia);
@@ -283,49 +253,24 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			})
 		})
 	}
-	search.prototype.go = function(next,refresh){
+
+	search.prototype.go = function(){
 		switch($scope.pin.Page){
 			case 'artist':
-				this.artist(next,refresh);
+				this.artist();
 				return;
 			break;
 			case 'album':
-				this.album(next,refresh);
+				this.album();
 				return;
 			break
 		}
 		flags={};
-		if(!prepare(next,refresh)){
+		if(!prepare()){
 			return;
 		}
 
-		if(next){
-			flags.size = 1,
-			flags.from = next
-		}
-		/*
-		if($scope.lib.playing && !next){
-			$scope.lib.playing.query = q;
-			$scope.lib.playing.flags = flags;
-		}
-		*/
-		//if the search was triggered by a change in track scope, check if the playing track is still in scope
-		if(!next && $scope.lib.playing && (
-				$scope.pin.pinned.artist !== oldChunk.pinned.artist ||
-				$scope.pin.pinned.album !== oldChunk.pinned.album ||
-				$scope.pin.sortby !== oldChunk.sortby ||
-				$scope.searchTerm !== oldChunk.searchTerm ||
-				$scope.pin.pinned.sources !== oldChunk.sources ||
-				refresh
-			)
-		){
 
-			$scope.tracks.isInFocus();
-		}
-
-		if(!next){
-			setOldChunk();
-		}
 		var search = {
 			index:$scope.db_index,
 			type:$scope.pin.pinned.sources.toString(),
@@ -334,6 +279,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				query:{
 					bool:{
 						must:[
+							{bool:{should:[]}},
 							{match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}},
 						]
 					}
@@ -341,67 +287,81 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				}
 			}
 		}
-		if($scope.pin.pinned.artist){
-			search.body.query.bool.must.unshift({match:{'metadata.artist.exact':$scope.pin.pinned.artist}})
-		}
-		if($scope.pin.pinned.album){
-			search.body.query.bool.must.unshift({match:{'metadata.album.exact':$scope.pin.pinned.album}})
-		}
+
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
-
+		var terms = false;
 		if($scope.searchTerm && $scope.searchTerm.length > 1){
-			delete search.sort;
-			search.body.query.bool.must.push({
-				multi_match:{
-					query:$scope.searchTerm,
-					operator : "and",
-					fuzziness:'auto',
-					fields:['metadata.title','metadata.artist^10','metadata.album^5'],
+			terms = tools.terms($scope.searchTerm);
+			if(terms.prefix){
+				search.body.query.bool.must[0].bool.should.push({
+					multi_match:{
+						query:terms.prefix,
+						operator : "and",
+						fuzziness:'auto',
+						fields:['metadata.title','metadata.artist','metadata.album'],
+					}
+				})
+			}
+			['artist','title','album'].forEach(function(field){
+				if(terms[field]){
+					var match = {match:{}};
+					match.match['metadata.'+field]={
+						query:terms[field],
+						fuzziness:'auto',
+						operator:'and'
+					}
+					search.body.query.bool.must.push(match);
 				}
 			})
-			/*
-			var more = this.searchString($scope.searchTerm);
-			console.log(more)
-			if(more.length){
-				q=q+' AND (';
-				q = q + more + ')';
-			}
-			*/
+
+		}
+		if($scope.pin.pinned.artist && !terms){
+			search.body.query.bool.must[0].bool.should.push({match:{'metadata.artist.exact':$scope.pin.pinned.artist}})
+		}
+		if($scope.pin.pinned.album && !terms){
+			search.body.query.bool.must[0].bool.should.push({match:{'metadata.album.exact':$scope.pin.pinned.album}})
 		}
 
-		//$scope.db.fetch($scope.db_index,$scope.pin.pinned.sources,q,flags).then(function(data){
+		this.activesearch = search;
+
 		$scope.db.fetch(search).then(function(data){
-			if(!next){
-				$scope.lazy.libSize = data.libsize;
-			}else{
-				res(data.items);
-				return;
-			}
-
-
+			$scope.lazy.libSize = data.libsize;
 			data.items = playpos(data.items);
-			$scope.lazy.refresh($('#playwindow').scrollTop());
-			$timeout(function(){
-				$scope.tracks.fixChrome(data.libsize);
-				$scope.lib.tracks = data.items;
-			})
+			//if the search was triggered by a change in track scope, check if the playing track is still in scope
+			if($scope.lib.playing && (
+					$scope.pin.pinned.artist !== oldChunk.pinned.artist ||
+					$scope.pin.pinned.album !== oldChunk.pinned.album ||
+					$scope.pin.sortby !== oldChunk.sortby ||
+					$scope.searchTerm !== oldChunk.searchTerm ||
+					$scope.pin.pinned.sources !== oldChunk.sources
+				)
+			){
 
+				setOldChunk();
+
+				$scope.tracks.isInFocus().then(function(){
+					$scope.lazy.refresh($('#playwindow').scrollTop());
+					$timeout(function(){
+						$scope.tracks.fixChrome(data.libsize);
+						$scope.lib.tracks = data.items;
+					})
+				});
+			}else{
+				setOldChunk();
+				$scope.lazy.refresh($('#playwindow').scrollTop());
+				$timeout(function(){
+					$scope.tracks.fixChrome(data.libsize);
+					$scope.lib.tracks = data.items;
+				})
+			}
 		})
-		if(next){
-			var res;
-			return new Q(function(resolve,reject){
-				res = function(data){
-					resolve(data);
-				}
-			})
-		}
 	}
+
 	search.prototype.artistAlbums = function(artist){
 		return new Q(function(resolve,reject){
-			artist = tools.sanitise(artist);
-			//var query = '(_type:local OR _type:internetarchive OR _type:youtube) AND metadata.artist:"'+artist+'"';
+
 			var query = {
 				index:$scope.db_index,
 				type:"local,internetarchive,youtube",
@@ -409,13 +369,13 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 					query:{
 						constant_score: {
 							filter: {
-								term: { "metadata.artist.exact":artist }
+								term: { "metadata.artist.exact":artist.toLowerCase()}
 							}
 						}
 					}
 				}
 			}
-			$scope.db.fetchAll(false,false,false,query).then(function(data){
+			$scope.db.fetchAll(query).then(function(data){
 				resolve(data)
 			},function(err){
 				reject(err)
@@ -469,12 +429,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 		return new Q(function(resolve,reject){
 
-			//var Artist = tools.sanitise(track.artist);
-			//var Album = tools.sanitise(album);
-			//var Track = tools.sanitise(track.title);
-
-			//var query = '(_type:local _type:internetarchive _type:youtube musicbrainz_id:"'+track.id+'" metadata.album:"'+Album+'") AND (metadata.title:"'+Track+'" AND  metadata.artist:"'+Artist+'")';
-			//$scope.db.fetchAll($scope.db_index,query).then(function(data){
 			$scope.db.fetchAll(query).then(function(data){
 				resolve(data)
 			},function(err){
@@ -507,68 +461,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				$scope[source].search($scope.searchTerm);
 			}
 		})
-		/*
-		if(sources.length){
-			this.search_id = search_id;
-			var self = this;
-			$scope.db.client.get({
-				index:$scope.db_index,
-				type:'searches',
-				id:search_id
-			},function(err,data){
-				$scope.goSearch = false;
-				if(err){
-					var body={};
-					body.time = {};
-					sources.forEach(function(source){
-						if(source!=='local'){
-							body.time[source]= Date();
-							Tools.remote_search(source);
-						}
-					})
-					$scope.db.put($scope.db_index+'.searches.'+search_id,body).then(function(data){
-						//console.log(data);
-					},function(err){
-						console.log(err);
-					})
-				}else{
-
-					sources.forEach(function(source){
-						if(data._source.time[source]){
-							if($scope.utils.dateDiff(Date(),data._source.time[source],'minutes') > 10){
-								Tools.remote_search(source);
-								Tools.update(source,self.search_id);
-							}else{
-								console.log($scope.utils.dateDiff(Date(),data._source.time[source],'minutes'))
-							}
-						}else{
-							Tools.remote_search(source);
-							Tools.update(source,self.search_id);
-						}
-					})
-				}
-			})
-		}
-		*/
 	}
-	/*
-	var Tools = {
-		remote_search:function(source){
 
-			if($scope[source]&&$scope[source].search){
-				$scope[source].search($scope.searchTerm);
-			}
-		},
-		update:function(type,id){
-			var body = {};
-			body.time = {};
-			body.time[type]=Date();
-			$scope.db.update($scope.db_index+'.searches.'+id,body).then(function(data){
-				//console.log('updated')
-				//console.log(data);
-			})
-		}
-	}
-	*/
 	return search;
 }])

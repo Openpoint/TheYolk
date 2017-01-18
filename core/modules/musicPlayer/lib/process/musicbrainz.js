@@ -45,28 +45,45 @@ musicbrainz.prototype.process = function(tt,track){
 			track.album = item.release.id;
 		}
 		if(track.type === 'internetarchive'){
-			elastic.update(db_index+'.internetarchivesearch.'+track.id,{musicbrainzed:'yes'}).then(function(data){},function(err){
-				console.Yolk.warn(err);
-			});
+			elastic.update({
+				index:db_index,
+				type:'internetarchivesearch',
+				id:track.id,
+				body:{doc:{
+					musicbrainzed:'yes'
+				}}
+			},function(data){},function(err){
+				console.Yolk.error(err);
+			})
 		}
 		track.date = Date.now();
 		track.musicbrainzed = 'yes';
 		if(track.type === 'local'){
-			elastic.update(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
+			elastic.update({
+				index:db_index,
+				type:track.type,
+				id:track.id,
+				body:{doc:track}
+			}).then(function(data){
 				message.send('refresh');
 				meta.add(track);
 			},function(err){
-				console.Yolk.warn(err);
-				return;
-			});
+				console.Yolk.error(err);
+			})
 		}else{
-			elastic.put(db_index+'.'+track.type+'.'+track.id,track).then(function(data){
-				message.send('refresh');
-				meta.add(track);
-			},function(err){
-				console.Yolk.warn(err);
-				return;
-			});
+			elastic.client.create({
+				index:db_index,
+				type:track.type,
+				id:track.id,
+				body:track
+			},function(err,data){
+				if(err){
+					console.Yolk.warn(err);
+				}else{
+					message.send('refresh');
+					meta.add(track);
+				}
+			})
 		}
 	};
 	//compare two strings to determine the likelyhood of a comparative match
@@ -348,12 +365,39 @@ musicbrainz.prototype.process = function(tt,track){
 					}
 				})
 
-				var flags={
-					size:1
-				}
-				var query = 'metadata.title:"'+tools.sanitise(releases[0].title)+'" AND (metadata.artist:'+tools.sanitise(track.metadata.artist)+' OR metadata.artist:"Various Artists")';
+
+				//var query = 'metadata.title:"'+tools.sanitise(releases[0].title)+'" AND (metadata.artist:'+tools.sanitise(track.metadata.artist)+' OR metadata.artist:"Various Artists")';
+				var query = {
+					index:db_index,
+					type:['albums'],
+					size:1,
+					body:{
+						query:{
+							bool:{
+								must:[
+									{match:{'metadata.title':{
+										query:releases[0].title,
+										operator:'and',
+										fuzziness:'auto'
+									}}},
+									{bool:{should:[
+										{match:{'metadata.artist':{
+											query:track.metadata.artist,
+											operator:'and',
+											fuzziness:'auto'
+										}}},
+										{match:{'metadata.artist':{
+											query:'Various Artists',
+											operator:'and',
+											fuzziness:'auto'
+										}}}
+									]}}
+								]
+							}
+						}
+				}}
 				function dedupe(query,recording,releases){
-					elastic.fetch(db_index,['albums'],query,flags).then(function(data){
+					elastic.fetch(query).then(function(data){
 						if(!data.items.length){
 							resolve(checkRels(recording,releases));
 						}else{
@@ -396,9 +440,16 @@ musicbrainz.prototype.process = function(tt,track){
 			recording = data
 			if(!recording){
 				if(track.type === 'internetarchive'){
-					elastic.update(db_index+'.internetarchivesearch.'+track.id,{musicbrainzed:'fail'}).then(function(data){},function(err){
-						console.Yolk.warn(err);
-					});
+					elastic.update({
+						index:db_index,
+						type:"internetarchivesearch",
+						id:track.id,
+						body:{doc:{
+							musicbrainzed:'fail'
+						}}
+					}).then(function(data){},function(err){
+						console.Yolk.error(err);
+					})
 				}
 				return;
 			}

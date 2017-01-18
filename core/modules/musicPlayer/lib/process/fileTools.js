@@ -175,10 +175,15 @@ ft.getTags=function(){
 				track.tagged = true;
 				track.type = 'local';
 				track.file = track.file.replace(/\#/g,'%23');
-				db.put(db_index+'.local.'+track.id,track).then(function(data){
-					//console.Yolk.log(data);
-				},function(err){
-					//console.Yolk.warn(err);
+				db.client.create({
+					index:db_index,
+					type:'local',
+					id:track.id,
+					body:track
+				},function(err,data){
+					if(err){
+						console.Yolk.warn(err);
+					}
 				})
 				musicbrainz.add(track);
 				self.getTags();
@@ -190,10 +195,15 @@ ft.getTags=function(){
 				track.type = 'local';
 				console.Yolk.warn(track);
 				track.file = track.file.replace(/\#/g,'%23');
-				db.put(db_index+'.local.'+track.id,track).then(function(data){
-					console.Yolk.warn(data);
-				},function(err){
-					console.Yolk.warn(err);
+				db.client.create({
+					index:db_index,
+					type:'local',
+					id:track.id,
+					body:track
+				},function(err,data){
+					if(err){
+						console.Yolk.warn(err);
+					}
 				})
 				self.getTags();
 			}

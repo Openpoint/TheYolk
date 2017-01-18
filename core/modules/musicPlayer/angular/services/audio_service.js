@@ -66,6 +66,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		$scope.lib.next = false;
 		$scope.lib.nextshow =false;
 		$scope.lib.prevshow =false;
+
+
+
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
@@ -92,11 +95,25 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			vidprogress = 0;
 
 			clearTimeout(Progress);
-
 			$scope.lib.playing = track;
+
+
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
-			$scope.tracks.next();
+			if(!$scope.tracks.playlists.default){
+				$scope.tracks.isInFocus().then(function(){
+					$scope.tracks.next();
+					if($scope.pin.pinned.Page!=='title'){
+						$scope.lib.playing.pos = -1;
+					}
+				})
+			}else{
+				$scope.tracks.next();
+				if($scope.pin.pinned.Page!=='title'){
+					$scope.lib.playing.pos = -1;
+				}
+			}
+
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;

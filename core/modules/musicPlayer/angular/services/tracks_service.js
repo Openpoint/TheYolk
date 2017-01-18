@@ -5,73 +5,63 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	var body = [];
 	var q = [];
 	var Process;
-	var tools = require('../../lib/tools/searchtools.js');
+	const tools = require('../../lib/tools/searchtools.js');
+	const Q = require('promise');
 
 
 
 	var tracks = function(scope){
 		$scope = scope;
 		var self = this;
+		this.playlists = {};
 	}
 
 	//find the next playing track
 	tracks.prototype.next = function(){
-		return;
-		if($scope.lib.playing && $scope.lib.playing.filter.pos < 0){
-			$scope.lib.next = $scope.search.go('0').then(function(data){
-				$scope.lib.next = data[0];
-				$scope.lib.next.filter.pos = 0;
-			});
-			return;
+		var playing = this.playlists.default.indexOf($scope.lib.playing.id);
+		var next = this.playlists.default[playing+1] ? playing+1:0;
+		var id = this.playlists.default[next];
+		var search = {
+			index:$scope.db_index,
+			type:$scope.pin.pinned.sources.toString(),
+			size:1,
+			body:{query:{bool:{must:[
+				{match:{
+					id:id
+				}}
+			]}}}
 		}
-
-		$scope.search.go($scope.lib.playing.filter.pos+1).then(function(data){
-			$scope.lib.next = data;
-
-			if(data.length){
-				$scope.lib.next = data[0];
-				$scope.lib.next.filter.pos=$scope.lib.playing.filter.pos+1
-
-			}else{
-				$scope.lib.next = $scope.search.go('0').then(function(data){
-					$scope.lib.next = data[0];
-					$scope.lib.next.filter.pos = 0;
-				});
-			}
-		});
-
+		$scope.db.fetch(search).then(function(data){
+			data.items[0].filter.pos = next;
+			$scope.lib.next = data.items[0]
+		},function(err){
+			console.error(err);
+		})
 	}
 
-	//check if the playing track is contained in the visible list
+	//check if the playing track is contained in the visible list and update the default playlist
 	tracks.prototype.isInFocus = function(){
 		var self = this;
-		var q = $scope.lib.playing.query+' AND id:"'+$scope.lib.playing.id+'"';
-
-		var flags = {
-			from:0,
-			size:1
-		}
-
-		$scope.db.fetch($scope.db_index,$scope.pin.pinned.sources,q,flags).then(function(data){
-			if(!data.libsize){
-				$scope.lib.playing.filter.pos=-1;
-				self.next();
-				$timeout(function(){
-					$scope.lazy.refresh($('#playwindow').scrollTop());
+		delete $scope.search.activesearch.from;
+		delete $scope.search.activesearch.size;
+		$scope.search.activesearch.body._source = "id";
+		return new Q(function(resolve,reject){
+			$scope.db.fetchAll($scope.search.activesearch).then(function(data){
+				data = data.map(function(id){
+					return id.id;
 				})
-			}else{
-				$scope.db.findPos($scope.db_index,$scope.pin.pinned.sources,$scope.lib.playing.query,$scope.lib.playing.flags,$scope.lib.playing.id).then(function(data){
-					$scope.lib.playing.filter.pos = data;
+
+				self.playlists.default = data;
+				if(data.indexOf($scope.lib.playing.id) > -1){
+					$scope.lib.playing.filter.pos = data.indexOf($scope.lib.playing.id);
+				}else{
+					$scope.lib.playing.filter.pos = -1;
 					self.next();
-					$timeout(function(){
-						$scope.lazy.refresh($('#playwindow').scrollTop());
-					})
-				},function(err){
-					console.error(err)
-				})
-
-			}
-
+				}
+				resolve(true);
+			},function(err){
+				reject(err);
+			})
 		})
 	}
 
@@ -90,162 +80,26 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		$('#tracks').height(height-padding);
 		$('#playwindow').scrollTop($scope.pin.scroll[$scope.pin.Page]);
 	}
-/*
-	//timer to set sane pace for bulk database submissions
-	function proceed(newtrack){
-		if(newtrack){
-			q.push(newtrack);
-		}
 
-		if(q.length > 150){
-			process();
-		}
-
-		Process=$timeout(function(){
-			process();
-		},500);
-
-	};
-
-
-	//process the queued tracks into a bulk database submission
-	function process(){
-		$scope.lib.loading=true;
-		q = q.filter(function(data){
-			var action = {index:{
-				_index:$scope.db_index,
-				_type:data.type,
-				_id:data.id
-			}}
-			var info = data;
-			body.push(action);
-			body.push(info);
-		});
-
-		$scope.db.client.bulk({
-			body: body
-		},function(err,data){
-			$timeout(function(){
-				$scope.search.go();
-			},1000);
-
-		})
-	};
-
-	//compare two track details to check if they are the same
-	function compare(foo,bar,type){
-
-		if(!foo.metadata){
-			console.log('foo');
-			console.log(foo);
-		}
-
-		if(!bar.metadata){
-			console.log('bar');
-			console.log(bar);
-		}
-
-		var title_foo = tools.sanitise(foo.metadata.title);
-		var title_bar = tools.sanitise(bar.metadata.title);
-		var artist_foo = tools.sanitise(foo.metadata.artist);
-		var artist_bar = tools.sanitise(bar.metadata.artist);
-		var album_foo = tools.sanitise(foo.metadata.album);
-		var album_bar = tools.sanitise(bar.metadata.album);
-
-		if(title_foo === title_bar && artist_foo === artist_bar && album_foo === album_bar){
-			return true;
-		}else{
-			return false;
-		}
-	};
-
-
-	//check if new track is already queued for database submission
-	function checkq(track){
-		for(var i = 0; i< q.length; i++){
-			if (compare(track,q[i],'queue')){
-				return true;
-			}else{
-				return false;
-			}
-		}
-	};
-
-	//check if a new track already exists in the database
-	function indbase(track){
-
-		var q = $q.defer();
-
-		if(!track.metadata.title || !track.metadata.artist){
-			q.resolve(true);
-		}
-
-		var query='(';
-		$scope.data_sources.filter(function(source){
-			query = query+'_type:'+source+' '
-		});
-		query = query+') AND metadata.title:('+tools.fuzzy(track.metadata.title)+') AND metadata.artist:('+tools.fuzzy(track.metadata.artist)+')';
-
-		$scope.db.fetch($scope.db_index,query).then(function(found){
-			if(found.length){
-				for(var i=0;i<found.length;i++){
-					if (compare(track,found[i],'found')){
-
-						q.resolve(true);
-						break;
-						return;
-					};
-				}
-				q.resolve(false);
-			}else{
-				q.resolve(false);
-			}
-		});
-
-		return q.promise;
-	}
-
-
-	//Add a track to the database
-	tracks.prototype.add = function(track){
-		$timeout.cancel(Process);
-		if(track.type==='local'){
-			indbase(track).then(function(isin){
-				if(!isin){
-					proceed(track);
-				}
-			});
-		}else{
-
-			if(q.length){
-				var inqueue = checkq(track);
-			}else{
-				var inqueue = false;
-			}
-
-			if(!inqueue){
-				indbase(track).then(function(isin){
-					if(!isin){
-						proceed(track);
-					}
-				});
-			}
-		}
-	};
-	*/
 	//delete a track
 	tracks.prototype.delete = function(type,id,playing){
 		if(playing){
 			$scope.audio.next();
 		}
-		$scope.db.update($scope.db_index+'.'+type+'.'+id,{
-			deleted:"yes",
-			date:Date.now()
+		$scope.db.update({
+			index:$scope.db_index,
+			type:type,
+			id:id,
+			body:{doc:{
+				deleted:"yes",
+				date:Date.now()
+			}}
 		}).then(function(data){
 			$timeout(function(){
 				$scope.search.go(false,true);
 			})
-
+		},function(err){
+			console.error(err);
 		})
 	}
 	//undelete a track
@@ -253,14 +107,20 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		if(playing){
 			$scope.audio.next();
 		}
-		$scope.db.update($scope.db_index+'.'+type+'.'+id,{
-			deleted:"no",
-			date:Date.now()
+		$scope.db.update({
+			index:$scope.db_index,
+			type:type,
+			id:id,
+			body:{doc:{
+				deleted:"no",
+				date:Date.now()
+			}}
 		}).then(function(data){
 			$timeout(function(){
 				$scope.search.go(false,true);
 			})
-
+		},function(err){
+			console.error(err);
 		})
 	}
 	/*
@@ -271,9 +131,14 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	*/
 	//Send database tracks to be verified against local file system
 	tracks.prototype.checkLocal = function(index){
+		console.log(index)
 		if($scope.settings.paths.musicDir){
-			$scope.db.fetch($scope.db_index,'_type:'+index).then(function(data){
-
+			var query = {
+				index:$scope.db_index,
+				type:[index],
+			}
+			$scope.db.fetchAll(query).then(function(data){
+				console.log(data)
 				ipcRenderer.send('verify', {
 					dir:$scope.settings.paths.musicDir,
 					tracks:data
