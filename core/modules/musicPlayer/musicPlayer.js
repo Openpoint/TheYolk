@@ -23,15 +23,14 @@ var define = {
 					 ]
 				  }
 			   }
-			}
+		   },
+		   "index.mapping.total_fields.limit": 5000
 		},
 		types:Types()
 	},
 	module_name:"musicPlayer",
 	settings:{
-		paths:{
-
-		},
+		paths:{},
 		state:{
 			state1:"",
 			state2:""
@@ -39,8 +38,8 @@ var define = {
 		fileTypes:[".mp3",".wav",".ogg"]
 	},
 	data:{
-		artist_images:"images/artists",
-		album_images:"images/albums"
+		artist_images:"images/artist",
+		album_images:"images/album"
 	},
 	headers:{
 	    'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )' //todo - automatically update version in UA
@@ -75,35 +74,36 @@ function mapping(){
 					artist:Mapping(),
 					album:Mapping()
 				}
+			},
+			tracks:{
+				type:'nested',
+				properties:{
+					title:Mapping(),
+					artist:{
+						properties:{
+							title:Mapping()
+						}
+					}
+				}
 			}
 		}
 	}
 }
 function Types(){
 	return [
+		{type:'local',mapping:mapping()},
+		{type:'jamendo',mapping:mapping()},
+		{type:'internetarchive',mapping:mapping()},
+		{type:'youtube',mapping:mapping()},
+		{type:'torrents',mapping:mapping()},
 		{
-			type:'local',
-			mapping:mapping()
-		},{
-			type:'jamendo',
-			mapping:mapping()
-		},{
-			type:'internetarchive',
-			mapping:mapping()
-		},{
-			type:'youtube',
-			mapping:mapping()
-		},{
-			type:'torrents',
-			mapping:mapping()
-		},{
 			type:'internetarchivesearch',
 			mapping:{
 				properties:{
 				}
 			}
 		},{
-			type:'artists',
+			type:'artist',
 			mapping:{
 				properties:{
 					deleted:{
@@ -113,12 +113,19 @@ function Types(){
 				}
 			},
 		},{
-			type:'albums',
+			type:'album',
 			mapping:mapping(),
 		},{
 			type:'searches',
 			mapping:{
 				properties:{
+				}
+			}
+		},{
+			type:'release',
+			mapping:{
+				properties:{
+					album:Mapping()
 				}
 			}
 		}

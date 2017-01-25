@@ -26,7 +26,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		sortby:{}
 	};
 	var flags = {};
-	var prepare = function(){
+	var prepare = function(refresh){
 		/*
 		console.log($scope.pin.sortby)
 		console.log(!next)
@@ -43,6 +43,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		*/
 		//return if the search was triggered by a scroll only
 		if(
+			!refresh &&
 			$scope.lazy.chunk === oldChunk.chunk &&
 			$scope.pin.pinned.sources === oldChunk.sources &&
 			$scope.pin.pinned.artist === oldChunk.pinned.artist &&
@@ -100,9 +101,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		return items;
 	}
 
-	search.prototype.album = function(){
+	search.prototype.album = function(refresh){
 		flags={};
-		if(!prepare()){
+		if(!prepare(refresh)){
 			return;
 		}
 
@@ -110,7 +111,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 		var search = {
 			index:$scope.db_index,
-			type:['albums'],
+			type:['album'],
 			sort:$scope.pin.sortby,
 			body:{
 				query:{
@@ -172,9 +173,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 		})
 	}
-	search.prototype.artist = function(){
+	search.prototype.artist = function(refresh){
 		flags={};
-		if(!prepare()){
+		if(!prepare(refresh)){
 			return;
 		}
 
@@ -183,7 +184,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 		var search = {
 			index:$scope.db_index,
-			type:['artists'],
+			type:['artist'],
 			sort:$scope.pin.sortby,
 			body:{
 				query:{
@@ -254,19 +255,20 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 	}
 
-	search.prototype.go = function(){
+	search.prototype.go = function(refresh){
 		switch($scope.pin.Page){
 			case 'artist':
-				this.artist();
+				this.artist(refresh);
 				return;
 			break;
 			case 'album':
-				this.album();
+				this.album(refresh);
 				return;
 			break
 		}
+
 		flags={};
-		if(!prepare()){
+		if(!prepare(refresh)){
 			return;
 		}
 
@@ -329,6 +331,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		$scope.db.fetch(search).then(function(data){
 			$scope.lazy.libSize = data.libsize;
 			data.items = playpos(data.items);
+
 			//if the search was triggered by a change in track scope, check if the playing track is still in scope
 			if($scope.lib.playing && (
 					$scope.pin.pinned.artist !== oldChunk.pinned.artist ||
@@ -342,18 +345,19 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				setOldChunk();
 
 				$scope.tracks.isInFocus().then(function(){
-					$scope.lazy.refresh($('#playwindow').scrollTop());
 					$timeout(function(){
 						$scope.tracks.fixChrome(data.libsize);
 						$scope.lib.tracks = data.items;
+						$scope.lazy.refresh($('#playwindow').scrollTop());
 					})
 				});
 			}else{
 				setOldChunk();
-				$scope.lazy.refresh($('#playwindow').scrollTop());
+
 				$timeout(function(){
 					$scope.tracks.fixChrome(data.libsize);
 					$scope.lib.tracks = data.items;
+					$scope.lazy.refresh($('#playwindow').scrollTop());
 				})
 			}
 		})
@@ -383,7 +387,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 	}
 	search.prototype.albumTrack = function(track,album){
-
 		var query = {
 			index:$scope.db_index,
 			type:"local,internetarchive,youtube",
@@ -401,7 +404,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 							{bool:{
 								should:[
 									{match:{'metadata.artist':{
-											query:track.artist,
+											query:track.artist.name,
 											operator:'and',
 											fuzziness:'auto'
 										}
@@ -427,6 +430,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				}
 			}
 		}
+
 		return new Q(function(resolve,reject){
 
 			$scope.db.fetchAll(query).then(function(data){

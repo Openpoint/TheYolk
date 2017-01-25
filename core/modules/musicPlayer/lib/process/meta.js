@@ -20,6 +20,7 @@ const mb_query="?fmt=json";
 var options = {};
 const headers = process.Yolk.modules["musicPlayer"].config.headers;
 const artwork = {};
+var kill = false;
 
 //Keep track of submissions to avoid duplication and limit lookup rates
 const queue = {
@@ -29,12 +30,10 @@ const queue = {
 	album:{
 	    ids:[]
 	},
-	musicbrainz:[],
     google:[],
-    discoq:[],
+    discogs:[],
     wikimedia:[]
 };
-process.Yolk.musicbrainzQ = queue.musicbrainz;
 
 //create a browser window for face detection on images and scraping
 let imageWindow = new BrowserWindow({
@@ -75,24 +74,24 @@ google.webContents.on('dom-ready',function(){
 })
 //google.webContents.openDevTools();
 
-//window for discoqs scraping
-let discoqs = new BrowserWindow({
+//window for discogs scraping
+let discogs = new BrowserWindow({
     parent:imageWindow,
     show:false,
     webPreferences:webPreferences
 });
-var discoq_item;
-var discoqItem = function(foo){
-	discoq_item = foo;
+var discogs_item;
+var discogsItem = function(foo){
+	discogs_item = foo;
 }
-discoqs.webContents.on('dom-ready',function(){
-	var item = discoq_item;
-	discoqs.webContents.executeJavaScript('scrape()',true).then(function(data){
-		discoqBusy = false;
+discogs.webContents.on('dom-ready',function(){
+	var item = discogs_item;
+	discogs.webContents.executeJavaScript('scrape()',true).then(function(data){
+		discogsBusy = false;
 		if(data && data.length){
 			new downart(data,item);
 		}else{
-			//couldn't get the image from discoq, so try Google
+			//couldn't get the image from discogs, so try Google
 			queue.google.push(item);
 			go('google');
 		}
@@ -111,79 +110,39 @@ ipcMain.on('chrome', function(event, data) {
 })
 */
 
-//check if the artist or album is already in the database
-artwork.exists=function(type,id){
-    var promise = new q(function(resolve,reject){
-        var exists =  db.client.get({
-            index:db_index,
-            type:type+'s',
-            id:id
-        },function(err,data){
-            if(err){
-                resolve(false);
-            }else{
-				if(data['_source'].artwork){
-					resolve(true);
-				}else{
-					resolve(type);
-				}
 
-            }
-        })
-    })
-    return promise;
-}
 //add an artist and album to the processing queue
-var init = true;
-artwork.add = function(track){
-	if(queue.musicbrainz.length){
-		init = false
-	}else{
-		init = true;
+artwork.add = function(item){
+	switch (item.type){
+		case 'album':
+			if(item.coverart){
+				new downart("http://coverartarchive.org/release/"+item.id+"/front",item);
+			}else if(item.discogs){
+				queue.discogs.push(item);
+				go('discogs')
+			}else{
+				queue.google.push(item);
+				go('google')
+			}
+		break;
+		case 'artist':
+			if(item.images && item.images.length){
+				//found link to wikimedia image
+				queue.wikimedia.push(item)
+				go('wikimedia');
+				//new getart(images,item);
+			}else{
+
+				if(item.discogs){
+					queue.discogs.push(item)
+					go('discogs');
+				}else{
+					queue.google.push(item)
+					go('google');
+				}
+			}
+		break;
 	}
-	var both = [{
-		id:track.artist,
-		type:'artist'
-	},{
-		id:track.album,
-		type:'album'
-	}]
-
-	both.forEach(function(type){
-        //reject lookup for youtube video albums
-		if(type.type === 'album' && !track.album){
-			return;
-		}
-		var id = type.id;
-		var type = type.type;
-		if(queue[type].ids.indexOf(id) === -1){
-	        queue[type].ids.push(id);
-	        artwork.exists(type,id).then(function(exists){
-	            if(!exists || exists === type){
-					//console.Yolk.log(track.metadata[type]+': Adding to queue')
-					if(type === 'album'){
-						var query = mb_url+'release/'+id+mb_query+'&inc=recordings+url-rels+artists+artist-credits';
-					}else{
-						var query = mb_url+type+'/'+id+mb_query+'&inc=url-rels';
-					}
-
-	        		options.url = query;
-					var item = {
-	                    track:track,
-	                    options:{
-							headers:headers,
-							url:query
-						},
-						needs:exists,
-						type:type
-	                }
-					queue.musicbrainz.push(item);
-	                go('musicbrainz');
-					init = false;
-	            }
-	        })
-	    }
-	})
 }
 //the submission rate limiter
 var timeout={
@@ -195,7 +154,7 @@ var timeout={
 		to:false,
 		delay:1000
 	},
-    discoq:{
+    discogs:{
 		to:false,
 		delay:1000
 	},
@@ -209,16 +168,8 @@ var go = function(type){
     if(timeout[type].to){
         return;
     }
-    //console.Yolk.log(queue);
-	if(type === 'musicbrainz' && init){
-		timeout[type].to = setTimeout(function(){
-			timeout[type].to = false;
-			go('musicbrainz');
-		},1000);
-		return;
-	}else{
-		new action[type]();
-	}
+
+	new action[type]();
 
     timeout[type].to = setTimeout(function(){
         this.delay = timeout[type].delay;
@@ -228,178 +179,27 @@ var go = function(type){
         }
     },timeout[type].delay)
 }
-//submit query to musicbrainz server
-action.musicbrainz = function(){
 
-	if(queue.musicbrainz.length){
-		var item = queue.musicbrainz.shift();
-	}else{
-		return;
-	}
 
-    request.get(item.options,function(error, response, body){
-        if (!error && response.statusCode == 200) {
-			try{
-				body = JSON.parse(body);
-                var links = body.relations;
-			}
-            catch(err){
-				console.Yolk.warn(err);
-				return;
-			}
-            var tosave = {}
-			//console.Yolk.log(item);
-			//console.Yolk.log(body);
-            if(item.type === 'album'){
-				tosave.metadata={
-					title:body.title,
-					artist:body['artist-credit'][0].name
-				}
-				tosave.id = body.id.toString();
-				tosave.artist = body['artist-credit'][0].artist.id
-                tosave.tracks={};
-				var count = 1;
-				if(body.media && body.media.length){
-					body.media.forEach(function(media){
-						tosave.tracks['media-'+count]={};
-						media.tracks.forEach(function(track){
-	                        tosave.tracks['media-'+count][track.number]={
-	                            title:track.recording.title,
-	                            id:track.recording.id.toString(),
-								artist:track['artist-credit'][0].artist.name
-	                        }
-	                    })
-						count++;
-					})
-				}
-                if(links.length){
-                    links.forEach(function(link){
-                        if (link.type === 'discoqs'){
-                            item.discoq = link.url.resource+'/images';
-                        }
-                    })
-                }
-                if(body['cover-art-archive'] && body['cover-art-archive'].front){
-                    new downart("http://coverartarchive.org/release/"+body.id+"/front",item);
-                }else if(item.discoq){
-                    queue.discoq.push({
-                        discoq:item.discoq,
-                        item:item
-                    })
-                    go('discoq')
-                }else{
-                    queue.google.push(item);
-                    go('google')
-                }
-
-            }else{
-                tosave.country = body.country;
-				tosave.id = body.id.toString();
-				tosave.name = body.name;
-                if(links.length){
-                    tosave.links={};
-    				//look for image and discoq links
-                    var images = links.filter(function(object){
-    					if(object.type === 'discogs'){
-    						item.discoq = object.url.resource+'/images'
-    					}
-                        if(object.type === 'image'){
-                            return true;
-                        }
-                        if(object.type === 'official homepage'){
-                            tosave.links.home = object.url.resource;
-                        }
-                        if(object.type === 'official homepage'){
-                            tosave.links.home = object.url.resource;
-                        }
-                        if(object.type === 'wikipedia'){
-                            tosave.links.wikipedia = object.url.resource;
-                        }
-                    })
-                    if(images.length){
-    					//found links to wikimedia images
-                        queue.wikimedia.push({
-                            images:images,
-                            item:item
-                        })
-                        go('wikimedia');
-                        //new getart(images,item);
-                    }else{
-
-    					if(item.discoq){
-                            queue.discoq.push({
-                                discoq:item.discoq,
-                                item:item
-                            })
-                            go('discoq');
-    					}else{
-                            queue.google.push(item)
-                            go('google');
-    					}
-    				}
-                }else{
-					queue.google.push(item)
-    				go('google');
-    			}
-            }
-            //save item to database;
-			if(!item.needs){
-				//var db_path = db_index+'.'+item.type+'s.'+item.track[item.type];
-
-                //console.Yolk.log(tosave);
-				tosave.date = Date.now();
-				tosave.deleted = 'no';
-				db.client.create({
-					index:db_index,
-					type:item.type+'s',
-					id:item.track[item.type],
-					body:tosave
-				},function(err,data){
-					if(err){
-						console.Yolk.warn(err);
-					}else{
-						//console.Yolk.log(data)
-					}
-				})
-			}
-
-        }else{
-            if(response){
-				//console.Yolk.warn('retry MusicBrainz: '+item.track.metadata[item.type])
-                queue.musicbrainz.push(item);
-				go('musicbrainz');
-
-            }
-			if(error){
-				console.Yolk.error(error);
-				if(queue.musicbrainz.length){
-					go('musicbrainz');
-				}
-
-			}
-        }
-    })
-}
 //find the artist image fom wikimedia API
-action.wikimedia = function(images,item){
-    var object = queue.wikimedia.shift();
-	var item = object.item;
-	var images = object.images;
-	var track = item.track;
+action.wikimedia = function(){
+
+	var item = queue.wikimedia.shift()
     this.options={
 		headers:headers
 	};
-	this.id = track[item.type];
+
+	this.id = item.id;
     var self = this;
 
     var count=0;
-    images.forEach(function(image,index){
-		//console.Yolk.log(image);
+    item.images.forEach(function(image,index){
+
 		count++
-        var wikipage = image.url.resource.split('/');
+        var wikipage = image.split('/');
         wikipage = wikipage[wikipage.length-1];
         self.options.url='https://commons.wikimedia.org/w/api.php?action=query&titles='+wikipage+'&prop=imageinfo&iiprop=url&format=json';
-		////console.Yolk.log(track.metadata.artist+' : '+self.options.url)
+
         request.get(self.options,function(error, response, body){
             if(!error && response.statusCode == 200){
 				try{
@@ -426,17 +226,16 @@ action.wikimedia = function(images,item){
         })
     })
 }
-var discoqBusy;
-action.discoq = function(){
-	if(discoqBusy){
+var discogsBusy;
+action.discogs = function(){
+	if(discogsBusy){
         return;
     }
-	var object = queue.discoq.shift();
-	var discoq = object.discoq;
-	var item = object.item;
-	discoqBusy = true;
-	discoqItem(item)
-    discoqs.loadURL(discoq);
+
+	var item = queue.discogs.shift();
+	discogsBusy = true;
+	discogsItem(item)
+    discogs.loadURL(item.discogs);
 }
 
 //all else failed, so look for an image on google
@@ -454,10 +253,10 @@ action.google = function(){
 		};
 	}
 	if(item.type === 'album'){
-		var search = encodeURI(item.track.metadata.artist.replace(/&/g,'')+' '+item.track.metadata.album.replace(/&/g,'')+' album cover').replace(/%20/g,'+');
+		var search = encodeURI(item.artist.replace(/&/g,'')+' '+item.name.replace(/&/g,'')+' album cover').replace(/%20/g,'+');
 		var url ='https://www.google.ie/search?q='+search+'&tbm=isch';
 	}else{
-		var search = encodeURI(item.track.metadata[item.type]).replace(/%20/g,'+');
+		var search = encodeURI(item.name).replace(/%20/g,'+');
 		var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
 	}
 	googleItem(item);
@@ -467,12 +266,9 @@ action.google = function(){
 //download the artist or album image
 var downart = function(src,item){
 
-	var track2 = item.track;
-	//console.Yolk.log(track2.metadata[item.type]+': Downloading art from '+src);
-	var id = track2[item.type];
-	var dest = path.join(homedir,'data/modules/musicPlayer/images/'+item.type+'s/'+id);
+	var dest = path.join(homedir,'data/modules/musicPlayer/images/'+item.type+'/'+item.id);
 	if(!ft.isThere('dir',dest)){
-		ft.mkdir(homedir,'data/modules/musicPlayer/images/'+item.type+'s/'+id);
+		ft.mkdir(homedir,'data/modules/musicPlayer/images/'+item.type+'/'+item.id);
 	}
 	var reduced = path.join(dest,'reduced.jpg');
 	if(!ft.isThere('file',reduced)){
@@ -506,7 +302,7 @@ var downart = function(src,item){
 	}
 
 	function proceed(src,thumb,item){
-		var track = item.track;
+		//var track = item.track;
 		var face = "face('"+src+"')"
 	    var foo = imageWindow.webContents.executeJavaScript(face,true);
 
@@ -540,9 +336,7 @@ var downart = function(src,item){
 				crop(false);
 			}
 			function crop(boost){
-
 	            dest = path.join(thumb,'thumb.jpg');
-
 				new applySmartCrop(src,dest,250,250,boost,item);
 			}
 		},function(err){
@@ -552,7 +346,7 @@ var downart = function(src,item){
 }
 
 var applySmartCrop=function(src, dest, width, height,boost,item) {
-	var track = item.track;
+
 	var options = {
 		width: width,
 		height: height
@@ -562,6 +356,9 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 	}
 	try{
 		smartcrop.crop(src, options).then(function(result) {
+			if(kill){
+				return;
+			}
 			var crop = result.topCrop;
 			sharp(src)
 			.extract({width: crop.width, height: crop.height, left: crop.x, top: crop.y})
@@ -570,8 +367,8 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 
 			db.update({
 				index:db_index,
-				type:item.type+'s',
-				id:track[item.type],
+				type:item.type,
+				id:item.id,
 				body:{doc:{
 					artwork:true
 				}}
@@ -584,5 +381,19 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 		console.Yolk.err(err)
 	}
 }
+
+ipcMain.on('kill', function(event,data) {
+	if(data === 'revive'){
+		kill = false;
+		return;
+	}
+	kill = true;
+	queue.artist={ids:[]};
+	queue.album={ids:[]};
+    queue.google=[];
+    queue.discogs=[];
+    queue.wikimedia=[];
+
+})
 
 module.exports = artwork;

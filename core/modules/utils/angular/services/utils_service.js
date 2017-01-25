@@ -44,6 +44,8 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 					},function(err){
 						console.error(err);
 					});
+				}else{
+					resolve('Already Exists');
 				}
 			});
 		})

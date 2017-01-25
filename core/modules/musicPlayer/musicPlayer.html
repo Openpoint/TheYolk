@@ -129,7 +129,7 @@
 							<div class='info'>
 								<div class='title' ng-click="pin.album(album.metadata.title)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === album.metadata.title.toLowerCase()}">
 									<span class='cancel icon-cancel'></span>
-									{{album.metadata.title}}
+									{{album.metadata.title}} ({{tools.date(album.release_date)}})
 								</div>
 								<div class='row artist' ng-click="pin.artist(album.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === album.metadata.artist.toLowerCase()}">
 									<span class='cancel icon-cancel'></span>
@@ -144,12 +144,19 @@
 						</div>
 						<div class='drawer' id="drawer{{album.id}}">
 							<div class='drawerInner ani-fOut'  ng-if="lib.drawers[pin.Page][album.id].state">
-								<div class="disc" ng-repeat = "disc in lib.drawers[pin.Page][album.id].tracks">
+								<div class="disc" ng-repeat = "disc in lib.drawers[pin.Page][album.id].discs">
 									<div class='heading'>Disc {{$index+1}}</div>
 									<div class='songs'>
-										<div ng-repeat = "track in disc"  ng-click="audio.play(track)" class='track_row'>
+										<div ng-repeat = "track in disc"  ng-click="
+										audio.play(lib.drawers[pin.Page][album.id].tracks[track.id])
+										" class='track_row'>
 											<div class='number'>{{$index+1}}: </div>
-											<div class='track' ng-class="{active:track.type}">{{track.title}} <span ng-if="track.metadata.artist && album.metadata.artist.toLowerCase() !== track.metadata.artist.toLowerCase()" class='other_artist'>: {{track.metadata.artist}}</span></div>
+											<div class='track' ng-class="{active:lib.drawers[pin.Page][album.id].tracks[track.id].type}">
+												{{lib.drawers[pin.Page][album.id].tracks[track.id].metadata.title||track.title}}
+												<span ng-if="
+												tools.strim(album.metadata.artist) !== tools.strim(lib.drawers[pin.Page][album.id].tracks[track.id].metadata.artist.toLowerCase())
+												" class='other_artist'>: {{lib.drawers[pin.Page][album.id].tracks[track.id].metadata.artist}}</span>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -304,8 +311,8 @@
 					width:dims.sidebarWidth,
 					height:dims.sidebarWidth/2
 				}" ng-if="lib.playing && !lib.playing.youtube" class='meta'>
-					<img ng-src="{{imagePath('artists',lib.playing.artist)||lib.noart}}" />
-					<img ng-src="{{imagePath('albums',lib.playing.album)||lib.noart}}" />
+					<img ng-src="{{imagePath('artist',lib.playing.artist)||lib.noart}}" />
+					<img ng-src="{{imagePath('album',lib.playing.album)||lib.noart}}" />
 					<div class='shadow'></div>
 					<div class='shadow right'></div>
 				</div>
@@ -368,7 +375,7 @@
 		-->
 		</div>
 		<div class='temp'>
-			<div ng-click='db.nuke()'>NUKE!</div>
+			<div ng-click='nuke()'>NUKE!</div>
 			<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
 		</div>
 	</div>

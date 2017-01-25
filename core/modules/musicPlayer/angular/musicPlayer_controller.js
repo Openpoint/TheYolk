@@ -11,7 +11,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	const path = require('path');
 	const Q = require('promise');
 
-
+	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
 	$scope.Sortby={};
@@ -27,6 +27,18 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
 	$scope.countries = require(path.join(Yolk.root,'core/modules/musicPlayer/lib/tools/countries.json'));
+	$scope.tools = {
+		strim:function(phrase){
+			if(phrase){
+				return phrase.trim().toLowerCase().replace(/(\'|\?|\.|\(|\)|\:|\[|\]|\{|\})/g,'').replace(/\&/g,'and');
+			}else{
+				return false;
+			}
+		},
+		date:function(date){
+			return new Date(date).getFullYear();
+		}
+	}
 
 	$scope.Sort = {};
 
@@ -40,27 +52,16 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	//$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
 	//$scope.data_sources = ['local','internetarchive','youtube'];
 	$scope.db.get('global.settings.'+mod_name).then(function(data){
-		//$scope.pinned.sources = ['local','online'];
-		//$scope.sources=$scope.data_sources;
-
-		//$timeout(function(){
-			$scope.settings = data;
-			$scope.settings.paths.home = Yolk.home;
-			$scope.settings.paths.root = Yolk.root;
-			$scope.settings.paths.artists = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
-			$scope.settings.paths.albums = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
-			$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
-			$scope.search.go();
-			$timeout(function(){
-				$scope.settings_loaded = true;
-			})
-			//$scope.dbReady = true;
-			//$scope.settings_loaded = true;
-			//$scope.tracks.checkLocal('local');
-			//todo - save state to db and restore on load
-
-		//});
-
+		$scope.settings = data;
+		$scope.settings.paths.home = Yolk.home;
+		$scope.settings.paths.root = Yolk.root;
+		$scope.settings.paths.artist = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
+		$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
+		$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
+		$scope.search.go();
+		$timeout(function(){
+			$scope.settings_loaded = true;
+		})
 	});
 
 	//stop scanning the local filesystem if window dies
@@ -193,11 +194,31 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 					})
 				}
 				return new Q(function(resolve,reject){
-					$scope.lib.drawers[$scope.pin.Page][row.id].tracks = row.tracks;
-					Object.keys(row.tracks).forEach(function(key){
-						Object.keys(row.tracks[key]).forEach(function(key2){
-							$scope.search.albumTrack(row.tracks[key][key2],row.metadata).then(function(data){
+					if(!$scope.lib.drawers[$scope.pin.Page][row.id].discs){
+						var discs = []
+						Object.keys(row.tracks).forEach(function(key){
+							var p1=row.tracks[key].disc-1;
+							var p2=row.tracks[key].position-1;
+							if(!discs[p1]){
+								discs.splice(p1,0,[])
+							}
+							discs[p1].splice(p2,0,row.tracks[key])
+						})
+						$scope.lib.drawers[$scope.pin.Page][row.id].discs = discs
+					}
 
+					$scope.lib.drawers[$scope.pin.Page][row.id].tracks = {};
+
+					//row.tracks = discs;
+					var body = {index:$scope.db_index,type:$scope.pin.pinned.sources,body:{query:{
+						bool:{should:[{match:{album:{query:row.id,boost:2}}}]}
+					}}}
+					$scope.lib.drawers[$scope.pin.Page][row.id].discs.forEach(function(disc,key){
+						disc.forEach(function(Track,key2){
+							//console.log(Track)
+							body.body.query.bool.should.push({match:{musicbrainz_id:{query:Track.id}}})
+							/*
+							$scope.search.albumTrack(Track,row.metadata).then(function(data){
 								var types = {};
 								data.forEach(function(track){
 									if(!types[track.type]){
@@ -205,6 +226,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 									}
 									types[track.type].push(track)
 								})
+								//apply tracks to album list in order of type preference
 								if(types.local){
 									update(key,key2,types.local[0],row.tracks[key][key2].title,row.id,row.metadata.title)
 								}else if(types.internetarchive){
@@ -213,8 +235,21 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 									update(key,key2,types.youtube[0],row.tracks[key][key2].title,row.id,row.metadata.title)
 								}
 							})
+							*/
 						})
 
+					})
+
+					$scope.db.fetchAll(body).then(function(data){
+
+						data.forEach(function(track){
+							if(!$scope.lib.drawers[$scope.pin.Page][row.id].tracks[track.musicbrainz_id]){
+								$scope.lib.drawers[$scope.pin.Page][row.id].tracks[track.musicbrainz_id]=track;
+							}
+						})
+						$scope.$apply();
+					},function(err){
+						console.error(err)
 					})
 					$timeout(function(){
 						resolve(true);
@@ -225,24 +260,27 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 
 		}
 	}
-	/*
-	if(!ipcRenderer._events.track){
-		ipcRenderer.on('track',function(event,data){
-			$scope.tracks.add(data);
-		});
+	var refresh_time = {
+		artist:false,
+		album:false,
+		title:false
 	}
-	*/
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			switch($scope.pin.Page){
-				case "artist":
-					$scope.search.artist(false,true);
-					break;
-				case "album":
-					$scope.search.album(false,true);
-					break;
-				default:
-					$scope.search.go(false,true);
+			if(data === 'artist'||data ==='album'){
+				if($scope.pin.Page === data){
+					clearTimeout(refresh_time[data]);
+					refresh_time[data] = setTimeout(function(){
+						$scope.search[data](true);
+					},999)
+				}
+			}else{
+				if($scope.pin.Page === 'title'){
+					clearTimeout(refresh_time.title);
+					refresh_time.title = setTimeout(function(){
+						$scope.search.go(true);
+					},999)
+				}
 			}
 		});
 	}
@@ -255,6 +293,8 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	}
 	if(!ipcRenderer._events.verify){
 		ipcRenderer.on('verify',function(event,data){
+			console.log('verify');
+			console.log(data);
 			$scope.tracks.verify(data);
 		});
 	}
@@ -325,4 +365,45 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			}
 		}
 	})
+
+	//for development purposes - destroy the database and reload
+	$scope.nuke=function(){
+		ipcRenderer.send('kill');
+		$scope.db.client.search({
+			index:'global',
+			type:'settings',
+			size:1000
+		}).then(function(data){
+			var bulk = []
+			data.hits.hits.forEach(function(hit){
+
+				if(hit._id === 'musicPlayer'){
+					hit._source.paths.musicDir = false;
+				}
+				bulk.push({index:{_index:'global',_type:'settings',_id:hit._id}});
+				bulk.push(hit._source);
+
+			})
+			$scope.db.nuke().then(function(){
+				$scope.utils.boot('global').then(function(data){
+					$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
+						err ? console.error(err):console.log(data);
+						var count = 0;
+						Object.keys(Yolk.modules).forEach(function(key){
+							count++
+							if(Yolk.modules[key].config && Yolk.modules[key].config.db_index){
+								console.log(key)
+								$scope.utils.boot(Yolk.modules[key].config.db_index)
+							}
+							if(count === Object.keys(Yolk.modules).length){
+								setTimeout(function(){
+									window.location.reload();
+								},1000)
+							}
+						});
+					})
+				})
+			})
+		})
+	}
 }])

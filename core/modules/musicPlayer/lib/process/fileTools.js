@@ -12,6 +12,7 @@ const db = process.Yolk.db;
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const message = process.Yolk.message;
 const types = require('../../musicPlayer.js').settings.fileTypes;
+var kill = false;
 
 var ft = {
 	tracks:[],
@@ -31,6 +32,7 @@ ft.watch=function(dir){
 var watchtime;
 var watchtime2;
 function watcher(){
+	clearTimeout(watchtime);
 	watchtime = setTimeout(function(){
 		watcher();
 	},3000)
@@ -75,21 +77,22 @@ function watcher(){
 
 //Fetch all music files in directory into flat array of objects
 ft.getDir=function(dir){
+
 	if(!ft.rootDir){
 		ft.rootDir = dir;
 	}
 	ft.watch(dir);
 	var self = this;
 
+
+
 	if(!fs.statSync(dir).isDirectory()){
 		return;
 	}
 
 	fs.readdir(dir,function(err,files){
-
 		files.forEach(function(file){
 			var pt = path.join(dir,file);
-
 			if(!fs.statSync(pt)){
 				return;
 			}
@@ -142,7 +145,6 @@ ft.getDir=function(dir){
 					self.loaded = include.length;
 					self.getTags();
 				}
-
 			}
 		}
 	});
@@ -166,6 +168,9 @@ ft.getTags=function(){
 
 		jsmediatags.read(src, {
 			onSuccess: function(tag) {
+				if(kill){
+					return;
+				}
 				track.metadata = {};
 				track.metadata.title = tag.tags.title || self.tracks[self.q2].file;
 				track.metadata.artist =  tag.tags.artist;
@@ -179,16 +184,12 @@ ft.getTags=function(){
 					index:db_index,
 					type:'local',
 					id:track.id,
+					refresh:true,
 					body:track
 				},function(err,data){
-					if(err){
-						console.Yolk.warn(err);
-					}
+					err ? console.Yolk.error(err):musicbrainz.add(track);
 				})
-				musicbrainz.add(track);
 				self.getTags();
-
-
 			},
 			onError: function(error) {
 				track.tagged = false;
@@ -216,18 +217,13 @@ ft.getTags=function(){
 }
 
 ft.verify = function(tracks, dir){
-
 	this.verifyTracks = tracks;
-
 	this.init = false;
 	//this.active = tracks;
 	this.q=[];
 	this.tracks=[];
 	this.loaded=0;
-
-
 	this.getDir(dir);
-
 }
 
 //event listeners
@@ -242,4 +238,20 @@ ipcMain.on('getDir', (event, dir) => {
 ipcMain.on('verify', function(event, data){
 	ft.rootDir = data.dir;
 	ft.verify(data.tracks, data.dir);
+})
+ipcMain.on('kill', function(event,data) {
+	if(data === 'revive'){
+		delete ft.rootDir;
+		kill = false;
+		return;
+	}
+	kill = true;
+	clearTimeout(watchtime);
+
+	ft.loaded = 0;
+	ft.init = false;
+	ft.tracks=[],
+	ft.q=[],
+	ft.count=0,
+	ft.watchers={}
 })

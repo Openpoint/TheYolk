@@ -62,7 +62,7 @@ dbase.prototype.exists = function(index){
 	})
 }
 
-//create a new index and/or type
+//create a new index
 dbase.prototype.create = function(hash){
 	var self = this;
 
@@ -111,7 +111,6 @@ dbase.prototype.get = function(path){
 //get a formatted object with array of search results by hash query
 dbase.prototype.fetch = function(query){
 	var self = this;
-
 	return new q(function(resolve,reject){
 		self.client.search(query,function(err,data){
 
@@ -125,6 +124,7 @@ dbase.prototype.fetch = function(query){
 					});
 			}else{
 				console.error(err);
+				console.error(query)
 			}
 		})
 
@@ -222,8 +222,13 @@ dbase.prototype.update = function(query){
 }
 
 dbase.prototype.nuke = function(){
-	console.log('Database is nuked - hope you are happy now.....');
-	return this.client.indices.delete({index:'_all'})
+	var self = this;
+	return new q(function(resolve,reject){
+		console.log('Database is nuked - hope you are happy now.....');
+		self.client.indices.delete({index:'_all'},function(err,data){
+			resolve();
+		})
+	})
 }
 
 if(!db){

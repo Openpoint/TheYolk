@@ -12,7 +12,7 @@ angular.module('yolk').directive('yolkThumb', function() {
             parent = parent.$parent;
         }
         var paths=parent.settings.paths
-        var thisPath = path.join(paths[attrs.cat+'s'],scope[attrs.cat].id,'thumb.jpg');
+        var thisPath = path.join(paths[attrs.cat],scope[attrs.cat].id,'thumb.jpg');
         if(filetools.isThere('file',thisPath)){
             scope[attrs.cat].image = thisPath
         }else{
@@ -24,8 +24,8 @@ angular.module('yolk').directive('yolkThumb', function() {
 angular.module('yolk').directive('yolkAlbum', function() {
     return function(scope, element, attrs){
         var parent = scope.$parent.$parent.$parent.$parent;
-        var Path = parent.settings.paths.albums;
+        var Path = parent.settings.paths.album;
         var thisPath = path.join(Path,scope.album.id,'thumb.jpg');
-        scope.album.image = thisPath;    
+        scope.album.image = thisPath;
     }
 })
