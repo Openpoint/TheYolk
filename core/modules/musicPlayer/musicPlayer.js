@@ -35,7 +35,7 @@ var define = {
 			state1:"",
 			state2:""
 		},
-		fileTypes:[".mp3",".wav",".ogg"]
+		fileTypes:["mp3","ogg","wav"]
 	},
 	data:{
 		artist_images:"images/artist",
@@ -65,9 +65,8 @@ function Mapping(){
 function mapping(){
 	return {
 		properties:{
-			deleted:{
-				type:"string"
-			},
+			id:{type:"string"},
+			deleted:{type:"string"},
 			metadata:{
 				properties:{
 					title:Mapping(),
@@ -79,56 +78,75 @@ function mapping(){
 				type:'nested',
 				properties:{
 					title:Mapping(),
+					title2:Mapping(),
 					artist:{
 						properties:{
-							title:Mapping()
+							name:Mapping()
 						}
-					}
+					},
+					artists:{
+						type:'nested',
+						properties:{
+							name:Mapping()
+						}
+					},
+					id:Mapping()
 				}
-			}
+			},
+			musicbrainz_id:Mapping()
 		}
 	}
 }
 function Types(){
 	return [
 		{type:'local',mapping:mapping()},
-		{type:'jamendo',mapping:mapping()},
 		{type:'internetarchive',mapping:mapping()},
 		{type:'youtube',mapping:mapping()},
-		{type:'torrents',mapping:mapping()},
-		{
-			type:'internetarchivesearch',
+		{type:'internetarchivesearch',
 			mapping:{
 				properties:{
 				}
 			}
-		},{
-			type:'artist',
+		},
+		{type:'artist',
 			mapping:{
 				properties:{
-					deleted:{
-						type:"string"
-					},
+					deleted:{type:"string"},
+					id:{type:"string"},
 					name:Mapping()
 				}
 			},
-		},{
-			type:'album',
-			mapping:mapping(),
-		},{
-			type:'searches',
-			mapping:{
+		},
+		{type:'album',mapping:mapping()},
+		{type:'searches',mapping:{properties:{}}
+		},
+		{type:'release',mapping:{properties:{
+			tracks:{
+				type:'nested',
 				properties:{
+					title:Mapping(),
+					id:Mapping(),
+					artist:{
+						properties:{
+							name:Mapping()
+						}
+					},
+					artists:{
+						type:'nested',
+						properties:{
+							name:Mapping()
+						}
+					}
 				}
-			}
-		},{
-			type:'release',
-			mapping:{
-				properties:{
-					album:Mapping()
-				}
-			}
-		}
+			},
+			album:Mapping(),
+			artist:Mapping(),
+			type:Mapping(),
+			type2:Mapping(),
+			country:Mapping(),
+			format:Mapping(),
+			status:Mapping(),
+		}}},
 	]
 }
 module.exports = define

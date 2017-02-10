@@ -100,7 +100,7 @@ ft.getDir=function(dir){
 				self.q.push(pt);
 				ft.watch(pt);
 			}else if(fs.statSync(pt).isFile()){
-				if(types.indexOf(path.extname(file).toLowerCase()) > -1){
+				if(types.indexOf(path.extname(file).replace('.','').toLowerCase()) > -1){
 					var id = crypto.createHash('sha1').update(pt).digest('hex');
 					var track = {
 						path:dir,

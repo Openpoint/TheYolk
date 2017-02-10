@@ -462,6 +462,9 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 		sources.forEach(function(source){
 			if($scope[source]&&$scope[source].search){
+				if(source==='youtube'){
+					return;
+				}
 				$scope[source].search($scope.searchTerm);
 			}
 		})
