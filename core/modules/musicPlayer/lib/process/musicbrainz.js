@@ -17,88 +17,189 @@ const mb_url="https://musicbrainz.org/ws/2/";
 const message = process.Yolk.message;
 const elastic = process.Yolk.db
 const headers = process.Yolk.modules["musicPlayer"].config.headers;
-
 const mbq={
 	album:[],
 	youtube:[],
 	other:[],
-	fix:[]
+	fix:[],
+	artist:[]
 };
 var kill = false;
 var busy = false;
+var dupes;
+function getDupes(){
+	dupes = {mbid:[],album:[],artist:[],local:[],internetarchive:[],youtube:[]};
+	elastic.fetchAll({index:db_index,type:'local,internetarchive,youtube',body:{query:{match:{musicbrainzed:{query:'yes',type:'phrase'}}},_source:['musicbrainz_id','id','type']}}).then(function(data){
+		data.forEach(function(track){
+			if(!dupes[track.type]){dupes[track.type]=[]}
+			dupes[track.type].push(track.id)
+			if(track.musicbrainz_id){dupes.mbid.push(track.musicbrainz_id)}
+		})
+		console.Yolk.log(dupes)
+	})
+	elastic.fetchAll({index:db_index,type:'album,artist',body:{query:{},_source:['id','name']}}).then(function(data){
+
+		data.forEach(function(track){
+			track.name?dupes.artist.push(track.id) : dupes.album.push(track.id)
+		})
+	})
+}
 
 var musicbrainz = function(){
 	this.pace = 1000; //set the speed limit for MusicBrainz API calls
 }
-
-
-var saveTrack = function(track){
-	var self = mbz;
-	if(kill){
+//limit the submission rate to musicbrainz server to sane
+musicbrainz.prototype.pacer=function(bounce){
+	var self = this;
+	if(bounce || busy){
+		clearTimeout(this.timeout);
+		this.timeout = false;
+		if(busy){
+			console.Yolk.say('BUSY');
+			this.timeout = setTimeout(function(){
+				self.timeout = false;
+				self.pacer();
+			},self.pace);
+		}
+	}
+	if(this.timeout){
 		return;
 	}
-	if(track.type === 'internetarchive'){
-		elastic.update({index:db_index,type:'internetarchivesearch',id:track.id,body:{doc:{musicbrainzed:'yes'}}}).then(function(data){},function(err){
-			console.Yolk.error(err);
-		})
+	console.Yolk.say('*************************************************************************************************************************************** album: '+mbq.album.length+' | fix: '+mbq.fix.length+' | other:'+mbq.other.length);
+
+	message.send('progress',{
+		type:'musicbrainz',
+		//context:track.type,
+		size:mbq.other.length+mbq.album.length+mbq.fix.length
+	});
+	if(!(mbq.album.length+mbq.other.length+mbq.fix.length) && (dupes && dupes.newalbums && dupes.newalbums.length)){
+		mbtools.fixAlbums(dupes.newalbums);
+		dupes.newalbums = [];
 	}
-	if(track.type === 'local'){
-		elastic.update({index:db_index,type:track.type,id:track.id,body:{doc:track}}).then(function(data){
-			busy = false;
-			message.send('refresh',track.type);
-		},function(err){
-			busy = false;
-			console.Yolk.error(err);
-		})
+	if(mbq.album.length+mbq.other.length+mbq.artist.length+mbq.fix.length){
+		if(mbq.album.length){
+			var track = mbq.album.shift();
+		}else if(mbq.fix.length){
+			var track = mbq.fix.shift();
+		}else if(mbq.other.length){
+			var track = mbq.other.shift();
+		}else{
+			var track = mbq.artist.shift();
+		}
+		self.submit(track);
+		this.timeout = setTimeout(function(){
+			self.timeout = false;
+			self.pacer();
+		},self.pace);
+
 	}else{
-		elastic.client.create({index:db_index,type:track.type,id:track.id,body:track},function(err,data){
-			if(err){
-				busy = false;
-				console.Yolk.error(err);
-			}else{
-				busy = false;
-				message.send('refresh',track.type);
-			}
-		})
+		this.timeout = false;
+	}
+}
+//check for duplicates
+musicbrainz.prototype.dupe = function(track){
+	var self = this;
+	if(dupes[track.type].indexOf(track.id) > -1 || dupes.mbid.indexOf(track.musicbrainz_id || 'notmusicbrainzed') > -1){
+		return true;
+	}else{
+		dupes[track.type].push(track.id);
+		if(track.musicbrainz_id) dupes.mbid.push(track.musicbrainz_id);
+		return false;
 	}
 }
 
+//add a track to the processing queue
+musicbrainz.prototype.add = function(track,resub){
+	var self = this;
+	//strip out the "’" quotations which confuse the hell out of elasticsearch
+	if(track.metadata){
+		Object.keys(track.metadata).forEach(function(key){
+			track.metadata[key] = tools.fix(track.metadata[key]);
+		});
+	}else if(track.type!=='album' && track.type!=='artist'){
+		console.Yolk.error(track);
+		return;
+	}
+	if(!this.dupe(track)){
+		//construct the musicbrainz query string
+		try {
+			if(track.type === 'album'){
+				track.query = mb_url+'release/'+track.id+'?fmt=json&inc=recordings+artists+artist-rels+artist-credits+url-rels+release-groups+recording-level-rels+work-level-rels';
+				mbq.album.unshift(track);
+				busy = false;
+				if(!dupes.newalbums)(dupes.newalbums=[])
+				dupes.newalbums.push(track.id);
+			}else if(track.type === 'artist'){
+				track.query = mb_url+'artist/'+track.id+'?fmt=json&inc=url-rels';
+				mbq.artist.push(track);
+				busy = false;
+			}else if(track.type === 'youtube'){
+				//mbq.youtube.push(track);
+			}else{
+				track = tools.musicbrainz(track);
+				if(track && track.fix){
+					mbq.fix.push(track);
+				}else if(track){
+					mbq.other.unshift(track);
+				}
+			}
+		}
+		catch(err){
+			console.Yolk.error(err.stack);
+		}
+		if(resub){
+			var c;
+			resub.fix?c = 'fix' : c = 'other'
+			resub.fix = false;
+			mbq[c].unshift(resub);
+		}
+		self.pacer();
+	}else{
+		if(resub){
+			var c;
+			resub.fix?c = 'fix' : c = 'other'
+			resub.fix = false;
+			mbq[c].unshift(resub);
+			busy = false;
+		}
+		self.pacer();
+	}
+}
 //submit a query to musicbrainz server
 musicbrainz.prototype.submit = function(track){
+
 	var self = this;
 	track.deleted = 'no';
-	if(track.fix){ //skip the initial track to album match in favour of getting reliable metadata from the musicbrainz id
-		track.toalbum=1;
-		console.Yolk.say('FIX ----------------------------- '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id);
-		new go(track,self);
-		busy = false;
-	}else if(track.type!=='album' && track.type!=='artist'){
+	busy = true;
+
+	if(track.type!=='album' && track.type!=='artist'){
 		this.fromAlbum(track).then(function(message){ //first try to match the track to an existing album
 			if(!track.toalbum){ //this is the tracks first pass, so try to find an album for it
 				track.toalbum=1;
-				busy = true;
 				console.Yolk.say(track.type.toUpperCase()+' -------------------------- '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id);
 				new go(track,self);
 			}else{ //this is the tracks second pass and no album was found, so mark it as deleted
 				track.deleted = 'yes';
 				track.deleted_reason = message;
-				console.Yolk.say(message.toUpperCase()+' -------------------------- '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id);
-				console.Yolk.log(track);
-				saveTrack(track);
+				mbtools.saveTrack(track).then(function(){
+					console.Yolk.say(message.toUpperCase()+' -------------------------- '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id);
+					busy = false;
+					self.pacer();
+				});
 			}
-		},function(){ //track was successfully matched to an album
+		},function(track){ //track was successfully matched to an album
 			console.Yolk.say('FROM ALBUM --------------------- '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title)
 			busy = false;
 			self.pacer(true);
 		})
 	}else{
-		if(track.type === 'album') busy = true;
 		console.Yolk.say(track.type.toUpperCase()+' -------------------------- '+track.title+' | '+track.id);
 		new go(track,self);
 	}
 
 	//submit item to Musicbrainz server
 	function go(track,self){
+
 		var options={
 			headers:headers,
 			url:track.query
@@ -106,31 +207,41 @@ musicbrainz.prototype.submit = function(track){
 		request.get(options,function(error, response, body){
 			if(kill){return;}
 			if (!error && response.statusCode == 200) {
+				console.Yolk.say('no error')
 				try{
 					var tt = JSON.parse(body);
 				}
 				catch(err){
 					var tt=false;
 					console.Yolk.error(err);
-				}
-				if(!tt){
 					busy = false;
 					return;
 				}
 				if(track.fix){
 					track.metadata.artist = tools.fix(tt['artist-credit'][0].artist.name);
 					track.metadata.title = tools.fix(tt.title);
+					if(track.musicbrainz_id !== tt.id){
+						track.musicbrainz_id = tt.id;
+						if(!self.dupe(track)){
+							dupes.mbid.push(tt.id)
+						}else{
+							busy = false;
+							return;
+						}
+					}
 					if(tt.length){
 						track.duration = Number(tt.length)
 					}else{
 						track.duration = 0;
 					}
 				}
+
 				//save and return if album or artist lookup
 				if(track.type === 'artist'||track.type === 'album'){
+
 					mbtools.saveMeta(track.type,tt).then(function(message){
-						console.Yolk.say(message);
 						busy = false;
+						console.Yolk.say(message);
 					});
 					return;
 				}
@@ -154,11 +265,12 @@ musicbrainz.prototype.submit = function(track){
 
 				//return if no releases were found for track
 				if(!releases.length){
-					console.Yolk.error('No releases found for '+track.metadata.artist+': '+track.metadata.album+': '+track.metadata.title);
+					console.Yolk.warn('No releases found for '+track.metadata.artist+': '+track.metadata.album+': '+track.metadata.title);
 					track.deleted = 'yes'
 					track.deleted_reason = 'no releases found for track';
-					saveTrack(track);
-					busy = false;
+					mbtools.saveTrack(track).then(function(){
+						busy = false;
+					});
 					return
 				}
 				//First save the found releases to database
@@ -167,113 +279,159 @@ musicbrainz.prototype.submit = function(track){
 						console.Yolk.error(err);
 						new go(track,self);
 					}else{
-						//then query the releases for best candidate
+
+				//then query the releases for best candidate
 						var structure = {
-							query1:[
-								tools.wrap.constant_score({match:{'tracks.title.exact':{query:track.metadata.title}}},{boost:10}),
-								tools.wrap.constant_score({match:{'tracks.title2.exact':{query:track.metadata.title}}},{boost:10})
+							query1:[/*initial "should" inside of nested "must"*/
+								tools.wrap.constant_score({match:{'tracks.title.exact':{query:track.metadata.title}}},{boost:100}),
+								tools.wrap.constant_score({match:{'tracks.title2.exact':{query:track.metadata.title}}},{boost:100})
 							],
-							query2:[],
-							query3:[],
+							query2:[/*additional queries inside of nested "must"*/],
+							query3:[/*queries inside of nested "should"*/],
+							query4:[/*additional queries inside of outer "must"*/],
+							query5:[/*queries inside of outer "should"*/],
+
 							filters:[
 								tools.wrap.filter({match:{"type.exact":{query:'album',type:'phrase'}}},{weight:5}),
 								tools.wrap.filter({match:{"status.exact":{query:'official',type:'phrase'}}},{weight:5}),
 								tools.wrap.filter({match:{"type2.exact":{query:'lp'}}},{weight:10}),
+
+
+								tools.wrap.filter(tools.wrap.bool([{must:[
+
+									{match:{"type.exact":{query:'album',type:'phrase'}}},
+									{match:{"status.exact":{query:'official',type:'phrase'}}},
+									{match:{"type2.exact":{query:'lp',type:'phrase'}}}
+
+								]}]),{weight:8}),
+
+
 								tools.wrap.filter({match:{"type2.exact":{query:'single',type:'phrase'}}},{weight:2}),
 								tools.wrap.filter({match:{"type2.exact":{query:'soundtrack',type:'phrase'}}},{weight:3}),
 								tools.wrap.filter({match:{"type2.exact":{query:'compilation',type:'phrase'}}},{weight:3}),
 								tools.wrap.filter({match:{"type2.exact":{query:'live',type:'phrase'}}},{weight:2}),
+								tools.wrap.filter({match:{country:{query:'US',type:'phrase'}}},{weight:2}),
+								tools.wrap.filter({match:{country:{query:'GB',type:'phrase'}}},{weight:5}),
 								tools.wrap.filter({match:{format:{query:'vinyl',fuzziness:'auto'}}},{weight:8}),
 								tools.wrap.filter({match:{format:{query:'cd',type:'phrase'}}},{weight:4}),
 							]
 						}
+
 						var postfix = tools.postfix(track.metadata.title);
 						if(postfix){
-							['tracks.title','tracks.title2'].forEach(function(add){
-								var match = {};
-								match[add]={query:postfix.prefix,type:'phrase'}
-								structure.query1.push(tools.wrap.constant_score({match:match}));
-								var match2 = {};
-								match2[add]={query:postfix.postfix,type:'phrase',slop:2}
-								structure.query2.push(tools.wrap.constant_score({match:match2},{boost:20}))
-							})
-						}else{
-							['tracks.title','tracks.title2'].forEach(function(add){
+							structure.query3.push(tools.wrap.constant_score(
+								tools.wrap.nested('tracks.disambig',{match:{"tracks.disambig.dis":{query:postfix.postfix,type:'phrase',slop:2}}})
+							,{boost:100}))
+						}
+						['tracks.title','tracks.title2'].forEach(function(add){
+							if(postfix){
+									var match = {};
+									match[add]={query:postfix.prefix,type:'phrase'}
+									structure.query1.push(tools.wrap.constant_score({match:match},{boost:50}));
+									/*
+									var match2 = {};
+									match2[add]={query:postfix.postfix,type:'phrase',slop:2}
+									structure.query3.push(tools.wrap.constant_score({match:match2},{boost:20}));
+									*/
+
+							}else{
 								var match = {};
 								match[add] = {query:track.metadata.title,minimum_should_match:2};
-								structure.query1.push(tools.wrap.constant_score({match:match}))
-							})
-						}
+								structure.query1.push(tools.wrap.constant_score({match:match},{boost:50}))
+							}
+						})
 						if(track.metadata.artist && !track.classical){
 							structure.query2.push(
-								tools.wrap.constant_score({match:{'tracks.artist.name':{query:track.metadata.artist,fuzziness:'auto',minimum_should_match:1}}},{boost:100})
+								tools.wrap.constant_score({match:{'tracks.artist.name':{query:track.metadata.artist}}})
 							)
 						}
 						if(track.metadata.album && track.metadata.album !=='youtube'){
 							var foo = tools.wrap.bool([{should:[
-								{match:{'tracks.title':{query:track.metadata.title,minimum_should_match:1}}},
-								{match:{'tracks.title2':{query:track.metadata.title,minimum_should_match:1}}}
+								tools.wrap.constant_score({match:{'tracks.title':{query:track.metadata.title,minimum_should_match:1}}}),
+								tools.wrap.constant_score({match:{'tracks.title2':{query:track.metadata.title,minimum_should_match:1}}})
 							]}]);
 							foo = tools.wrap.nested('tracks',foo)
 							postfix = tools.postfix(track.metadata.album);
 
 							if(postfix){
-								foo = tools.wrap.bool([{must:[{match:{'album':{query:postfix.prefix,type:'phrase'}}},foo]}]);
-								structure.filters.push(tools.wrap.filter({match:{'album':{query:postfix.postfix,minimum_should_match:2}}},{weight:10}));
-								var nested = tools.wrap.nested('tracks',{match:{"tracks.disambig":{query:postfix.postfix,minimum_should_match:1}}});
-								structure.filters.push(tools.wrap.filter(nested,{weight:10}));
+								foo = foo = tools.wrap.constant_score(tools.wrap.bool([{must:[{match:{album:{query:postfix.prefix,type:'phrase'}}},foo]}]),{boost:500});
+
+								structure.query3.push(tools.wrap.constant_score(
+									tools.wrap.nested('tracks.disambig',{match:{"tracks.disambig.dis":{query:postfix.postfix,minimum_should_match:2}}}),{boost:200}
+								));
+
+								structure.query5.push(tools.wrap.constant_score({match:{'album':{query:postfix.postfix,minimum_should_match:1}}},{boost:20}));
 							}else{
-								foo = tools.wrap.bool([{must:[{match:{'album':{query:track.metadata.album,type:'phrase',slop:2}}},foo]}]);
+								foo = tools.wrap.constant_score(
+									tools.wrap.bool([{must:[{match:{'album':{query:track.metadata.album,type:'phrase',slop:2}}},foo]}]),{boost:500}
+								);
 							}
-							foo = tools.wrap.filter(foo,{weight:100});
-							structure.filters.push(foo);
+							structure.query5.push(foo);
 						}
 						if(track.musicbrainz_id){
-							structure.query3.push(tools.wrap.constant_score({match:{'tracks.id.exact':{query:track.musicbrainz_id,type:'phrase'}}},{boost:100}));
+							structure.query2.push(tools.wrap.constant_score({match:{'tracks.id.exact':{query:track.musicbrainz_id,type:'phrase'}}}));
 						}
 						if(track.duration && !track.musicbrainz_id){
 							var range = tools.wrap.constant_score({range:{'tracks.length':{
-								gte:Math.floor(track.duration/1000)*1000,
-								lte:(Math.floor(track.duration/1000)+1)*1000
+								gte:(Math.floor(track.duration/1000)*1000)-500,
+								lte:(Math.ceil(track.duration/1000)*1000)+500
 							}}},{boost:100});
 							var zero = tools.wrap.constant_score({term:{'tracks.length':0}});
 							var duration = tools.wrap.bool([{should:[range,zero]}]);
 							structure.query3.push(duration);
 						}
 
-						if(structure.query2.length){
-							structure.query1 = [tools.wrap.bool([{should:structure.query1}]),tools.wrap.bool([{should:structure.query2}])].concat(structure.query3);
-							structure.query1 = tools.wrap.bool([{must:structure.query1}]);
-						}else{
-							if(structure.query3.length){
-								structure.query1 = [tools.wrap.bool([{should:structure.query1}])].concat(structure.query3);
-								structure.query1 = tools.wrap.bool([{must:structure.query1}]);
-							}else{
-								structure.query1 = tools.wrap.bool([{should:structure.query1}]);
-							}
-						}
+						structure.query1 = [tools.wrap.bool([{should:structure.query1}])];
+						structure.query1 = tools.wrap.bool([{must:structure.query1.concat(structure.query2)},{should:structure.query3}]);
+						structure.query1 = [tools.wrap.nested('tracks',structure.query1,{inner_hits:{}})];
+						structure.query1 = tools.wrap.bool([{must:structure.query1.concat(structure.query4)},{should:structure.query5}]);
 
-						structure.query1 = [
-							tools.wrap.nested('tracks',structure.query1,{inner_hits:{}})
-						];
-						structure.query = tools.wrap.bool([{must:structure.query1}]);
 						var fs = tools.wrap.function_score({score_mode:'sum',boost_mode:'multiply'});
 						fs = tools.wrap.function_score_add(fs,structure.filters);
-						fs = tools.wrap.function_score_add(fs,structure.query);
-						var body = {index:db_index,type:'release',size:10,body:{query:fs}};
+						fs = tools.wrap.function_score_add(fs,structure.query1);
+						var body = {index:db_index,type:'release',size:100,body:{query:fs}};
+
+						//console.Yolk.warn(JSON.stringify(body,true,2))
 
 						elastic.client.search(body,function(err,data){
 							if(err){
 								console.Yolk.error(err);
-								//console.Yolk.warn(JSON.stringify(body,false,2))
 								busy = false;
 								return;
 							}
-							if(data.hits.hits.length && data.hits.hits[0].inner_hits.tracks.hits.hits.length && data.hits.hits[0]._score > 1000){
+							var hits = data.hits.hits.filter(function(album){
+								if(album.inner_hits.tracks.hits.hits.length){return album}
+							})
 
-								var newtitle = tools.fix(data.hits.hits[0].inner_hits.tracks.hits.hits[0]._source.title);
-								var newartist = tools.fix(data.hits.hits[0].inner_hits.tracks.hits.hits[0]._source.artist.name);
-								var newalbum = tools.fix(data.hits.hits[0]._source.album);
+							if(hits.length && hits[0]._score > 500){
+
+
+
+								var highscore = hits[0]._score;
+								var hits = data.hits.hits.filter(function(album){
+									if(album._score === highscore ){return album}
+								})
+								if(hits.length > 1){
+									hits.sort(function compare(a,b) {
+										if (!a._source.date){return 1;}
+										if (!b._source.date){return -1;}
+										if (a._source.date < b._source.date){return -1;}
+										if (a._source.date > b._source.date){return 1;}
+										return 0;
+									})
+									var album = hits[0]
+								}else{
+									var album = hits[0]
+								}
+
+								var newtitle = tools.fix(album.inner_hits.tracks.hits.hits[0]._source.title);
+								var newartist = tools.fix(album.inner_hits.tracks.hits.hits[0]._source.artist.name);
+								var newalbum = tools.fix(album._source.album);
+								var newlength = album.inner_hits.tracks.hits.hits[0]._source.length;
+
+								if(newlength && !track.duration){
+									track.duration = newlength;
+								}
 
 								if(track.metadata.title!==newtitle){
 									track.metadata.old_title = track.metadata.title;
@@ -287,106 +445,56 @@ musicbrainz.prototype.submit = function(track){
 									track.metadata.old_album = track.metadata.album;
 									track.metadata.album = newalbum;
 								}
-								var album = {
+								var Album = {
 									type:'album',
-									id:data.hits.hits[0]._source.id,
+									id:album._source.id,
 									title:track.metadata.album
 								}
-								track.album = album.id;
-								track.musicbrainz_id = data.hits.hits[0].inner_hits.tracks.hits.hits[0]._source.id;
-								track.fix = false;
-								self.add(album,track);
-								busy = false;
+								track.album = Album.id;
+								track.musicbrainz_id = album.inner_hits.tracks.hits.hits[0]._source.id;
+								self.add(Album,track);
+
 							}else{
-								if(data.hits.hits.length){
-									var message = 'NO RELEASES | '+data.hits.hits[0]._score+' | '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id;
+								if(hits.length){
+									var message = 'NO RELEASES | '+highscore+' | '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id;
 								}else{
 									var message = 'NO RELEASES | '+track.metadata.artist+' : '+track.metadata.album+' : '+track.metadata.title+' | '+track.musicbrainz_id;
 								}
 								console.Yolk.say(message);
-								busy = false;
+								if(track.fix){track.fix=false}
+								track.deleted = 'yes';
+								track.deleted_reason = message;
+								mbtools.saveTrack(track).then(function(){
+									busy = false;
+								});
 							}
 						})
 					}
 				})
-				return;
-
 			}else{
-				var types = {youtube:'youtube',artist:'other',local:'other',internetarchive:'other',album:'album'};
+				console.Yolk.warn('Error in musicbrainz lookup')
+				var types = {youtube:'youtube',artist:'artist',local:'other',internetarchive:'other',album:'album'};
 				if(response){
 					response = response.toJSON();
+					console.Yolk.say(response.statusCode)
 					if((response.statusCode === 503 || response.statusCode === 500) && !kill){
-						//console.Yolk.warn(response.statusCode)
 						if(track.toalbum){track.toalbum--}
-						if(track.fix){
-							mbq.fix.unshift(track);
-						}else{
-							mbq[types[track.type]].unshift(track);
-						}
+						if(track.fix){mbq.fix.unshift(track);}else{mbq[types[track.type]].unshift(track);}
 					}
 				}
 				if(error){
-					//console.Yolk.error(error);
-					if(track.fix){
-						mbq.fix.push(track);
-					}else{
-						mbq[types[track.type]].push(track);
-					}
+					console.Yolk.error(error);
+					if(track.fix){mbq.fix.push(track)}else{mbq[types[track.type]].push(track)}
 				}
 				busy = false;
+				self.pacer();
 			}
 		})
 	}
 }
 
-//limit the submission rate to musicbrainz server to sane
-musicbrainz.prototype.pacer=function(bounce){
-	var self = this;
-	if(bounce || busy){
-		clearTimeout(this.timeout);
-		this.timeout = false;
-		if(busy){
-			this.timeout = setTimeout(function(){
-				self.timeout = false;
-				self.pacer();
-			},self.pace);
-		}
-	}
-	if(this.timeout){
-		return;
-	}
-	console.Yolk.say('*************************************************************************************************************************************** album: '+mbq.album.length+' | fix: '+mbq.fix.length+' | other:'+mbq.other.length);
-
-	message.send('progress',{
-		type:'musicbrainz',
-		//context:track.type,
-		size:mbq.other.length+(mbq.album.length*2)+(mbq.fix.length*2)
-	});
-
-	if(mbq.album.length+mbq.other.length+mbq.fix.length){
-		if(mbq.fix.length){
-			var track = mbq.fix.shift();
-		}else if(mbq.album.length){
-			var track = mbq.album.shift();
-		}else{
-			var track = mbq.other.shift();
-		}
-
-		self.submit(track);
-		this.timeout = setTimeout(function(){
-			self.timeout = false;
-			self.pacer();
-		},self.pace);
-	}else{
-		this.timeout = false;
-	}
-}
-
 //attempt to find track details from an existing album
 musicbrainz.prototype.fromAlbum = function(track){
-
-	//track.musicbrainz_id = 'bec8765f-777e-474a-bf19-e39d7b3b41a1';
-
 	var self = this;
 	return new q(function(resolve,reject){
 		if(kill){
@@ -398,22 +506,24 @@ musicbrainz.prototype.fromAlbum = function(track){
 		if(!track.musicbrainz_id && (!track.metadata.title || (!track.metadata.artist && !track.metadata.album))){
 			resolve();
 		}
-		var should2 = [
-			tools.wrap.constant_score({match:{'tracks.title.exact':{query:track.metadata.title}}},{boost:10}),
-			tools.wrap.constant_score({match:{'tracks.title2.exact':{query:track.metadata.title}}},{boost:10})
-		]
 		var structure = {
-			query1:[
-				tools.wrap.bool([{should:should2}]),
+			query1:[/*initial "should" inside of nested "must"*/
+				tools.wrap.constant_score({match:{'tracks.title.exact':{query:track.metadata.title}}},{boost:100}),
+				tools.wrap.constant_score({match:{'tracks.title2.exact':{query:track.metadata.title}}},{boost:100})
 			],
-			query2:[],
-			query3:[],
+			query2:[/*additional queries inside of nested "must"*/],
+			query3:[/*queries inside of nested "should"*/],
+			query4:[/*additional queries inside of outer "must"*/],
+			query5:[/*queries inside of outer "should"*/],
+
 			filters:[
 				tools.wrap.filter({match:{primary_type:{query:'album'}}},{weight:5}),
 				tools.wrap.filter({match:{secondary_type:{query:'lp'}}},{weight:10}),
 				tools.wrap.filter({match:{secondary_type:{query:'single'}}},{weight:4}),
 				tools.wrap.filter({match:{secondary_type:{query:'compilation'}}},{weight:3}),
 				tools.wrap.filter({match:{secondary_type:{query:'live'}}},{weight:2}),
+				tools.wrap.filter({match:{country:{query:'US',type:'phrase'}}},{weight:2}),
+				tools.wrap.filter({match:{country:{query:'GB',type:'phrase'}}},{weight:5}),
 
 				tools.wrap.filter(tools.wrap.nested('tracks',tools.wrap.bool([{should:[
 					{match:{'tracks.title.exact':{query:track.metadata.title}}},
@@ -429,108 +539,115 @@ musicbrainz.prototype.fromAlbum = function(track){
 				]}])),{weight:80}),
 			]
 		}
+
 		var postfix = tools.postfix(track.metadata.title);
 		if(postfix){
-			['tracks.title','tracks.title2'].forEach(function(add){
-				var match = {};
-				match[add]={query:postfix.prefix,type:'phrase'}
-				structure.query1.push(tools.wrap.constant_score({match:match}));
-				var match2 = {};
-				match2[add]={query:postfix.postfix,type:'phrase',slop:2}
-				structure.query2.push(tools.wrap.constant_score({match:match2},{boost:20}))
-			})
-		}else{
-			['tracks.title','tracks.title2'].forEach(function(add){
-				var match = {};
-				match[add] = {query:track.metadata.title,minimum_should_match:2};
-				structure.query1.push(tools.wrap.constant_score({match:match}))
-			})
+			structure.query3.push(tools.wrap.constant_score(
+				tools.wrap.nested('tracks.disambig',{match:{"tracks.disambig.dis":{query:postfix.postfix,type:'phrase',slop:2}}})
+			,{boost:100}))
 		}
+		['tracks.title','tracks.title2'].forEach(function(add){
+			if(postfix){
+					var match = {};
+					match[add]={query:postfix.prefix,type:'phrase'}
+					structure.query1.push(tools.wrap.constant_score({match:match},{boost:50}));
+					/*
+					var match2 = {};
+					match2[add]={query:postfix.postfix,type:'phrase',slop:2}
+					structure.query3.push(tools.wrap.constant_score({match:match2},{boost:20}))
+					*/
+			}else{
+					var match = {};
+					match[add] = {query:track.metadata.title,minimum_should_match:2};
+					structure.query1.push(tools.wrap.constant_score({match:match},{boost:50}))
+			}
+		})
 		if(track.metadata.artist){
-			structure.query2.push(
-				tools.wrap.bool([{should:[
-					tools.wrap.constant_score({match:{'tracks.artist.name':{query:artist,fuzziness:'auto',minimum_should_match:1}}},{boost:100}),
-					tools.wrap.nested('tracks.artists',tools.wrap.constant_score({match:{'tracks.artists.name':{query:artist,fuzziness:'auto',minimum_should_match:1}}},{boost:100}))
-				]}])
-			)
+			structure.query2.push(tools.wrap.bool([{should:[
+					tools.wrap.constant_score({match:{'tracks.artist.name':{query:artist}}}),
+					tools.wrap.nested('tracks.artists',tools.wrap.constant_score({match:{'tracks.artists.name':{query:artist}}}))
+			]}]))
 		}
-		if(track.metadata.album && track.metadata.album !=='youtube'){
+		if(!track.musicbrainz_id && (track.metadata.album && track.metadata.album !=='youtube')){
 			var foo = tools.wrap.bool([{should:[
-				{match:{'tracks.title':{query:track.metadata.title,minimum_should_match:1}}},
-				{match:{'tracks.title2':{query:track.metadata.title,minimum_should_match:1}}}
+				tools.wrap.constant_score({match:{'tracks.title':{query:track.metadata.title,minimum_should_match:1}}}),
+				tools.wrap.constant_score({match:{'tracks.title2':{query:track.metadata.title,minimum_should_match:1}}})
 			]}]);
 			foo = tools.wrap.nested('tracks',foo)
 			postfix = tools.postfix(track.metadata.album);
 
 			if(postfix){
-				foo = tools.wrap.bool([{must:[{match:{'album':{query:postfix.prefix,type:'phrase'}}},foo]}]);
-				structure.filters.push(tools.wrap.filter({match:{'album':{query:postfix.postfix,minimum_should_match:2}}},{weight:10}));
-				var nested = tools.wrap.nested('tracks',{match:{"tracks.disambig":{query:postfix.postfix,minimum_should_match:1}}});
-				structure.filters.push(tools.wrap.filter(nested,{weight:10}));
+				foo = tools.wrap.bool([{must:[{match:{'metadata.title':{query:postfix.prefix,type:'phrase'}}},foo]}]);
+				structure.filters.push(tools.wrap.filter({match:{'metadata.title':{query:postfix.postfix,minimum_should_match:2}}},{weight:10}));
+				structure.query3.push(tools.wrap.constant_score(
+					tools.wrap.nested('tracks.disambig',{match:{"tracks.disambig.dis":{query:postfix.postfix,minimum_should_match:2}}}),{boost:200}));
 			}else{
-				foo = tools.wrap.bool([{must:[{match:{'album':{query:track.metadata.album,type:'phrase',slop:2}}},foo]}]);
+				foo = tools.wrap.bool([{must:[{match:{'metadata.title':{query:track.metadata.album,type:'phrase',slop:2}}},foo]}]);
 			}
-			foo = tools.wrap.filter(foo,{weight:100});
-			structure.filters.push(foo);
+			structure.query4.push(foo);
 		}
 		if(track.musicbrainz_id){
-			structure.query3.push(tools.wrap.constant_score({match:{'tracks.id.exact':{query:track.musicbrainz_id,type:'phrase'}}},{boost:100}))
+			structure.query2.push(tools.wrap.constant_score({match:{'tracks.id.exact':{query:track.musicbrainz_id}}}))
 		}
 		if(track.duration && !track.musicbrainz_id){
 			var range = tools.wrap.constant_score({range:{'tracks.length':{
-				gte:Math.floor(track.duration/1000)*1000,
-				lte:(Math.floor(track.duration/1000)+1)*1000
+				gte:(Math.floor(track.duration/1000)*1000)-500,
+				lte:(Math.ceil(track.duration/1000)*1000)+500
 			}}},{boost:100});
 			var zero = tools.wrap.constant_score({term:{'tracks.length':0}});
 			var duration = tools.wrap.bool([{should:[range,zero]}]);
 			structure.query3.push(duration);
 		}
 
-		if(structure.query2.length){
-			structure.query1 = [tools.wrap.bool([{should:structure.query1}]),tools.wrap.bool([{should:structure.query2}])].concat(structure.query3);
-			structure.query1 = tools.wrap.bool([{must:structure.query1}]);
-		}else{
-			if(structure.query3.length){
-				structure.query1 = [tools.wrap.bool([{should:structure.query1}])].concat(structure.query3);
-				structure.query1 = tools.wrap.bool([{must:structure.query1}]);
-			}else{
-				structure.query1 = tools.wrap.bool([{should:structure.query1}]);
-			}
-		}
+		structure.query1 = [tools.wrap.bool([{should:structure.query1}])];
+		structure.query1 = tools.wrap.bool([{must:structure.query1.concat(structure.query2)},{should:structure.query3}]);
+		structure.query1 = [tools.wrap.nested('tracks',structure.query1,{inner_hits:{}})];
+		structure.query1 = tools.wrap.bool([{must:structure.query1.concat(structure.query4)},{should:structure.query5}]);
 
-		structure.query1 = [
-			tools.wrap.nested('tracks',structure.query1,{inner_hits:{}})
-		];
-		structure.query = tools.wrap.bool([{must:structure.query1}]);
 		var fs = tools.wrap.function_score({score_mode:'sum',boost_mode:'multiply'});
 		fs = tools.wrap.function_score_add(fs,structure.filters);
-		fs = tools.wrap.function_score_add(fs,structure.query);
+		fs = tools.wrap.function_score_add(fs,structure.query1);
 		var body = {index:db_index,type:'album',size:10,body:{query:fs}};
-
-
-
 		elastic.client.search(body,function(err,data){
 			if(err){
 				console.Yolk.error(err);
-				//console.Yolk.warn(JSON.stringify(body,false,2))
 				resolve('database error while looking for track in albums');
+				busy = false;
 			}
 
-			if(data.hits.hits.length){
+			if(data.hits && data.hits.hits.length){
 				var albumtrack = data.hits.hits[0].inner_hits.tracks.hits.hits[0]._source;
+
+				//console.Yolk.warn(albumtrack);
+
 				track.filter={};
 				track.deleted = 'no';
 				if(track.type!=='youtube'){
-					track.metadata.album = tools.fix(data.hits.hits[0]._source.metadata.title);
+					var newalbum = tools.fix(data.hits.hits[0]._source.metadata.title);
+					if(newalbum !== track.metadata.album){
+						track.metadata.old_album2 = track.metadata.album;
+						track.metadata.album = newalbum;
+					}
 					track.album=data.hits.hits[0]._source.id;
 				}
-				track.metadata.title = tools.fix(albumtrack.title2 || albumtrack.title);
-				track.metadata.artist = tools.fix(albumtrack.artist.name);
+				var newtitle = albumtrack.title2 || albumtrack.title;
+				if(newtitle !== track.metadata.title){
+					track.metadata.old_title2 = track.metadata.title;
+					track.metadata.title = newtitle;
+				}
+				var newartist = tools.fix(albumtrack.artist.name);
+				if(track.metadata.artist!==newartist){
+					track.metadata.old_artist2 = track.metadata.artist
+					track.metadata.artist = newartist;
+				}
+
 				track.date = Date.now();
 				track.musicbrainzed ='yes',
 				track.musicbrainz_id = albumtrack.id.toString();
 				track.artist=albumtrack.artist.id.toString();
+				track.disambig = albumtrack.disambig
 
+				//first check for duplicate
 				elastic.client.search({
 					index:db_index,
 					type:track.type,
@@ -538,16 +655,19 @@ musicbrainz.prototype.fromAlbum = function(track){
 				},function(err,data){
 					if(err){
 						console.Yolk.error(err);
-						resolve('database error in duplicate lookup')
+						resolve('database error in duplicate lookup');
+						busy = false;
 					}else if(!data.hits.hits.length){
-
-						saveTrack(track);
-						self.add({
-							type:'artist',
-							id:track.artist,
-							title:track.metadata.artist
+						//then save the track
+						mbtools.saveTrack(track).then(function(){
+							self.add({
+								type:'artist',
+								id:track.artist,
+								title:track.metadata.artist
+							});
+							reject(track);
 						});
-						reject();
+
 					}else{
 						resolve('track with that mbid already exists')
 					}
@@ -557,101 +677,13 @@ musicbrainz.prototype.fromAlbum = function(track){
 			}
 		})
 	})
+	self.pacer();
 }
 
-var dupes = {};
-musicbrainz.prototype.dupe = function(track){
-	var self = this;
-	return new q(function(resolve,reject){
-		if(!dupes[track.type]){
-			dupes[track.type] = []
-		}
-		if(!dupes.mbid){
-			dupes.mbid = []
-		}
-
-		if(dupes[track.type].indexOf(track.id) > -1 || dupes.mbid.indexOf(track.musicbrainz_id || 'notmusicbrainzed') > -1){
-			reject();
-		}else{
-			dupes[track.type].push(track.id);
-			if(track.musicbrainz_id) dupes.mbid.push(track.musicbrainz_id);
-			var body = {query:{bool:{must:[{bool:{should:[
-				{match:{id:{query:track.id}}},
-				{match:{"musicbrainz_id.exact":{query:track.musicbrainz_id||'notmusicbrainzed',type:'phrase'}}}
-			]}}]}}}
-			if(['local','internetarchive','youtube'].indexOf(track.type) > -1){
-				body.query.bool.must.push({match:{musicbrainzed:{query:'yes',type:'phrase'}}})
-			}
-			elastic.client.search({
-				index:db_index,
-				type:track.type,
-				body:body
-			},function(err,data){
-				if(err){
-					console.Yolk.error(err);
-					resolve();
-				}
-				if(data.hits.hits.length){
-					reject();
-				}else{
-					resolve();
-				}
-
-			})
-		}
-	})
-}
-musicbrainz.prototype.add = function(track,resub){
-	var self = this;
-
-	//strip out the "’" quotations which confuse the hell out of elasticsearch
-	if(track.metadata){
-		Object.keys(track.metadata).forEach(function(key){
-			track.metadata[key] = tools.fix(track.metadata[key]);
-		});
-	}else if(track.type!=='album' && track.type!=='artist'){
-		console.Yolk.error(track);
-		return;
-	}
-
-	this.dupe(track).then(function(){
-		//construct the musicbrainz query string
-		try {
-			if(track.type === 'album'){
-				track.query = mb_url+'release/'+track.id+'?fmt=json&inc=recordings+artists+artist-rels+artist-credits+url-rels+release-groups+recording-level-rels+work-level-rels';
-				mbq.album.unshift(track);
-			}else if(track.type === 'artist'){
-				track.query = mb_url+'artist/'+track.id+'?fmt=json&inc=url-rels';
-				mbq.other.push(track);
-			}else if(track.type === 'youtube'){
-				//mbq.youtube.push(track);
-			}else{
-				track = tools.musicbrainz(track);
-				if(track && track.fix){
-					mbq.fix.push(track);
-				}else if(track){
-					mbq.other.unshift(track);
-				}
-			}
-		}
-		catch(err){
-			console.Yolk.error(err.stack);
-		}
-		if(resub){
-			mbq.other.unshift(resub);
-		}
-		self.pacer();
-	},function(){
-		if(resub){
-			mbq.other.unshift(resub);
-		}
-		self.pacer();
-	})
-}
 if(!mbz){
 	var mbz = new musicbrainz();
 }
-module.exports = mbz;
+
 
 //listen for incoming data
 ipcMain.on('musicbrainz', function(event, track) {
@@ -662,7 +694,7 @@ ipcMain.on('kill', function(event,data) {
 	if(data === 'revive'){
 		kill = false;
 		busy = false;
-		dupes = {};
+		getDupes();
 		mbz.pacer();
 		return;
 	}
@@ -676,3 +708,5 @@ ipcMain.on('kill', function(event,data) {
 	mbq.youtube = [];
 
 })
+
+module.exports = mbz;

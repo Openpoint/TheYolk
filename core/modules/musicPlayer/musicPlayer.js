@@ -79,18 +79,15 @@ function mapping(){
 				properties:{
 					title:Mapping(),
 					title2:Mapping(),
-					artist:{
-						properties:{
-							name:Mapping()
-						}
-					},
+					artist:{properties:{name:Mapping()}},
 					artists:{
 						type:'nested',
-						properties:{
-							name:Mapping()
-						}
+						properties:{name:Mapping()}
 					},
-					id:Mapping()
+					id:Mapping(),
+					id2:Mapping(),
+					disambig:{type:'nested',properties:{}},
+					position:{type:'integer'}
 				}
 			},
 			musicbrainz_id:Mapping()
@@ -127,15 +124,15 @@ function Types(){
 					title:Mapping(),
 					id:Mapping(),
 					artist:{
-						properties:{
-							name:Mapping()
-						}
+						properties:{name:Mapping()}
 					},
 					artists:{
 						type:'nested',
-						properties:{
-							name:Mapping()
-						}
+						properties:{name:Mapping()}
+					},
+					disambig:{
+						type:'nested',
+						properties:{}
 					}
 				}
 			},

@@ -333,8 +333,9 @@ search.prototype.musicbrainz = function(info){
 
 		}else if(!info.musicbrainz_id){
 			if(info.duration){
-				var bottom = Math.floor(info.duration/1000);
-				var duration='['+bottom*1000+' TO '+(bottom+1)*1000+']^50'
+				var bottom = (Math.floor(info.duration/1000)*1000)-600;
+				var top = (Math.ceil(info.duration/1000)*1000)+600;
+				var duration='['+bottom+' TO '+top+']^50'
 			}
 			//info.metadata.title = info.metadata.title.replace(/\:/g,'').replace(/\,/g,'').replace('glück','gluck')
 			var query = 'http://musicbrainz.org/ws/2/recording/?query=(';
@@ -615,7 +616,7 @@ search.prototype.duration = function(len){
 	len = len.toString();
 	if(len.indexOf(':') > -1){
 		len = len.split(':');
-		len = (len[0]*60+len[1])*10;
+		len = (len[0]*60+len[1])*1000;
 	}else{
 		len = len*1000;
 	}
@@ -623,6 +624,7 @@ search.prototype.duration = function(len){
 }
 //find bracketed postfix to string
 search.prototype.postfix = function(string){
+	if(!string){return false};
 	string = string.trim();
 	var brackets = string.match(/(\([^)]+\)|\[[^\]]+\]|\{[^}]+\})/g);
 

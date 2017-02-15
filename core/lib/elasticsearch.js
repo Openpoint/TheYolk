@@ -187,7 +187,15 @@ dbase.prototype.fetchAll = function(query){
 		self.client.search(query,function getMore(err,data){
 			if(!err){
 				data.hits.hits.forEach(function(hit){
-					all.push(hit._source);
+					if(!hit.inner_hits){
+						all.push(hit._source);
+					}else{
+						var result = {_hit:hit._source};
+						Object.keys(hit.inner_hits).forEach(function(key){
+							result[key]=hit.inner_hits[key].hits.hits;
+						})
+						all.push(result)
+					}
 					len++;
 				});
 				if(data.hits.total !== len){
@@ -199,7 +207,7 @@ dbase.prototype.fetchAll = function(query){
 					resolve(all);
 				}
 			}else{
-				console.log(err)
+				console.Yolk.error(err)
 				reject(err);
 			}
 		});

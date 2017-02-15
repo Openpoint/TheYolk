@@ -131,6 +131,7 @@
 									<span class='cancel icon-cancel'></span>
 									{{album.metadata.title}} ({{tools.date(album.release_date)}})
 								</div>
+								<div>{{album.id}}</div>
 								<div class='row artist' ng-click="pin.artist(album.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === album.metadata.artist.toLowerCase()}">
 									<span class='cancel icon-cancel'></span>
 									{{album.metadata.artist}}

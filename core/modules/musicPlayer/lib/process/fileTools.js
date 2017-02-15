@@ -5,7 +5,10 @@ const {ipcMain} = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const jsmediatags = require("jsmediatags");
+//const jsmediatags = require("jsmediatags");
+
+var mm = require('musicmetadata');
+
 const root = process.Yolk.root;
 const musicbrainz = require('./musicbrainz.js');
 const db = process.Yolk.db;
@@ -166,6 +169,54 @@ ft.getTags=function(){
 		track.deleted = 'no';
 		var src = path.join(track.path,track.file);
 
+		var readableStream = fs.createReadStream(src);
+		var parser = mm(readableStream,{duration:true},function (err,data) {
+			if(kill){
+				return;
+			}
+			track.file = track.file.replace(/\#/g,'%23');
+			if(err){
+				track.tagged = false;
+				track.type = 'local';
+				console.Yolk.warn(track);
+
+				db.client.create({
+					index:db_index,
+					type:'local',
+					id:track.id,
+					body:track
+				},function(err,data){
+					if(err){
+						console.Yolk.warn(err);
+					}
+				})
+				self.getTags();
+			}else{
+
+				track.metadata = {
+					title:data.title || self.tracks[self.q2].file,
+					artist:data.artist[0],
+					album:data.album
+				};
+				track.duration = data.duration*1000;
+				track.date = Date.now();
+				track.tagged = true;
+				track.type = 'local';
+				db.client.create({
+					index:db_index,
+					type:'local',
+					id:track.id,
+					refresh:true,
+					body:track
+				},function(err,data){
+					err ? console.Yolk.error(err):musicbrainz.add(track);
+				})
+				self.getTags();
+			}
+			readableStream.close();
+		});
+
+/*
 		jsmediatags.read(src, {
 			onSuccess: function(tag) {
 				if(kill){
@@ -210,6 +261,7 @@ ft.getTags=function(){
 			}
 
 		});
+		*/
 	}else{
 		message.send('log','finished tagging');
 	}
