@@ -90,7 +90,17 @@ function mapping(){
 					position:{type:'integer'}
 				}
 			},
-			musicbrainz_id:Mapping()
+			musicbrainz_id:Mapping(),
+			classical:{
+				properties:{
+					artist:{
+						type:'nested',
+						properties:{
+							name:Mapping()
+						}
+					}
+				}
+			}
 		}
 	}
 }

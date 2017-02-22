@@ -125,7 +125,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 				url: url
 			}).then(function(response){
 				$scope.progress.internetarchive	--;
-				var files = self.getFiles(response.data.files);
+				if(response.data.files) var files = self.getFiles(response.data.files);
 				if(files){
 					var bulk=[];
 					files.forEach(function(file){

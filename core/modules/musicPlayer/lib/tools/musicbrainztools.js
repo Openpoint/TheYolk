@@ -2,15 +2,20 @@
 
 const {ipcMain} = require('electron');
 const tools = require('./searchtools.js');
+const classictools = require('./musicbrainzclassical.js');
 const elastic = process.Yolk.db;
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
 const meta = require('../process/meta.js');
 const message = process.Yolk.message;
 const q = require('promise');
 
+const log = false;
+
 var kill = false;
 
-var mbtools = function(){};
+var mbtools = function(){
+    this.preferred_release = 'GB';
+};
 
 //process recording releases into array for bulk submission
 mbtools.prototype.doRelease = function(recording){
@@ -50,10 +55,18 @@ mbtools.prototype.doRelease = function(recording){
 mbtools.prototype.recording = function(recording){
     if(recording['artist-credit'] && recording['artist-credit'][0]){
         var artist = tools.fix(recording['artist-credit'][0].artist.name);
+        var artists = recording['artist-credit'].map(function(artist){
+            return {
+                name:artist.name||artist.artist.name,
+                id:artist.artist.id
+            }
+        })
     }else{
+        var artists = false;
         var artist=false;
     }
     return {
+        artists:artists,
         artist:artist?artist : 'unknown-artist',
         title:tools.fix(recording.title),
         disambig:recording.disambiguation?[{dis:tools.fix(recording.disambiguation)}] : [],
@@ -121,12 +134,19 @@ mbtools.prototype.release = function(recording,release){
         if(!stopd){disambig.push({dis:pf2.postfix})};
     }
 
+    if(release.media && release.media.length && release.media[0].track && release.media[0].track.length && release.media[0].track[0]['artist-credit']){
+        var artist = release.media[0].track[0]['artist-credit'][0].artist.name
+    }else{
+        var artist = recording.artist
+    }
+
     var track = {
         title:title1,
-        artist:{name:recording.artist},
+        artist:{name:artist},
+        artists:recording.artists,
         id:recording.id,
-        //id:release.media[0].track[0].id,
     }
+
     if(title1!==title2){
         track.title = title2;
         track.title2=title1;
@@ -461,10 +481,14 @@ mbtools.prototype.Albums = {
             console.Yolk.log(query)
             elastic.fetchAll({index:db_index,type:'internetarchive,local',body:{query:query}}).then(function(tracks){
                 resolve(tracks);
+            },function(err){
+                console.Yolk.error(err)
             })
         })
     },
     parse:function(albums,tracks){
+        console.Yolk.warn(albums);
+        console.Yolk.warn(tracks);
         function newtrack(track,track2,album){
             var Newtrack = {
                 id:track2.id,
@@ -484,29 +508,50 @@ mbtools.prototype.Albums = {
             return Newtrack;
         }
         albums.forEach(function(album,index){
+            console.Yolk.say(album.metadata.title.toUpperCase())
             var albumTracks = [];
             tracks.forEach(function(track2,index2){
+                if(!track2.metadata){return}
                 var fix = false;
-                if(track2.hasOwnProperty('fix'))fix =true
+                if(track2.hasOwnProperty('fix') || track2.hasOwnProperty('classical')) fix =true;
+
                 album.tracks.some(function(track,index3){
                     var condition;
                     if(fix){
                         condition = track.id === track2.musicbrainz_id;
                     }else{
+                        var disambig = true;
+                        if(track2.disambig.length){
+                            if(!track.disambig.length){disambig = false}else{
+                                disambig = track2.disambig.some(function(term){
+                                    return track.disambig.some(function(term2){
+                                        return term2.dis === term.dis;
+                                    })
+                                })
+                            };
+                        }
+                        var samealbum = true;
+                        if(!track2.metadata.old_album && !track2.metadata.old_album2) samealbum =(album.metadata.title === track2.metadata.album||album.metadata.title === track2.metadata.old_album||album.metadata.title === track2.metadata.old_album2)
                         condition = (
-                            (track.title === track2.metadata.title||track.title === track2.metadata.old_title)&&
-                            (track.artist.name === track2.metadata.artist||track.artist.name === track2.metadata.old_artist)&&
-                            (track.disambig.join() === track2.disambig.join())
+                            (track.title === track2.metadata.title||track.title === track2.metadata.old_title||track.title === track2.metadata.old_title2)&&
+                            (track.artist.name === track2.metadata.artist||track.artist.name === track2.metadata.old_artist||track.artist.name === track2.metadata.old_artist2)&&
+                            disambig && samealbum
                         )
                     }
                     if(condition){
                         var Newtrack = newtrack(track,track2,album);
                         albumTracks.push(Newtrack)
                         return true
+                    }else{
+                        return false;
                     }
+
                 })
+
             })
+            console.Yolk.log(albumTracks)
             albums[index]._tracks = albumTracks;
+
         })
         albums.sort(function(a,b){
             if(a._tracks.length > b._tracks.length){return -1};
@@ -556,6 +601,149 @@ console.Yolk.warn(lps.concat(other));
         return albums;
     },
 }
+
+//construct query strings for API lookups
+mbtools.prototype.musicbrainz = function(info){
+	if(info.type === 'youtube'){
+		return;
+	}
+	var self = this;
+
+	//strip leading track number from track title
+	if(info.metadata.title && Number(info.metadata.title.split(' ')[0].replace('.',''))>=0){
+		var title = info.metadata.title.split(' ');
+		title.shift();
+		info.metadata.title = title.join(' ');
+	}
+
+    var isclassic = classictools.get(info);
+
+	if(isclassic){
+        info = isclassic;
+        if(info.musicbrainz_id){
+            info.fix = true;
+            var query = 'http://musicbrainz.org/ws/2/recording/'+info.musicbrainz_id+'?'+'&inc=artists+artist-rels+releases+release-groups+release-rels+release-group-rels+media&fmt=json';
+            info.query = query
+            if(log) console.Yolk.say(query)
+            return info;
+        }
+        if(info.duration){
+            var bottom = (Math.floor(info.duration/1000)*1000)-600;
+            var top = (Math.ceil(info.duration/1000)*1000)+600;
+            var duration='['+bottom+' TO '+top+']'
+        }
+		var cl = info.classical;
+		var md = info.metadata;
+		var artistname = tools.queryBuilder(cl.composer);
+		if(cl.artist) var creditname = cl.artist.map(function(artist){
+            var foo = tools.queryBuilder(artist.name,{fuzzy:true})+'"~1^2'
+            return 'artistname:"'+foo+' OR creditname:"'+foo
+        }).join(' OR ')
+		var recording = tools.queryBuilder(md.title);
+		var release = tools.queryBuilder(md.album);
+        if (cl.cat) var cat = '"'+cl.cat.id+' '+cl.cat.val+'"';
+        if(cl.key) var key = 'recording:"'+cl.key.join(' ')+'"';
+        if(cl.types){
+            var types = []
+            Object.keys(cl.types).forEach(function(type){
+                var type = tools.queryBuilder(type+' '+cl.types[type],{fuzzy:true})
+                types.push('recording:"'+type+'"~2 OR release:"'+type+'"~2');
+            })
+        }
+        if(cl.op) {
+            var op ='"op~ '+cl.op[0];
+            if(cl.op[1]) {
+                var op1=op+' '+cl.op[1]+'"~2';
+                var op2 = op+' '+tools.toroman(cl.op[1])+'"~2';
+                op = op1;
+            }else{
+                op+='"';
+            }
+            op = 'recording:'+op+' OR release:'+op;
+            if(op2) op+=' OR recording:'+op2+' OR release:'+op2;
+        }
+
+		var q = 'http://musicbrainz.org/ws/2/recording/?query=recording:('+recording+')^10 AND artistname:"'+artistname+'" '
+        if(key) q+='AND '+key+' ';
+        if(creditname) q+='AND ('+creditname+') ';
+        if(types) q+='AND ('+types.join(' OR ')+') ';
+        if(op) q+='AND ('+op+') ';
+        q+='AND ('
+        if(release) q+='release:('+release+')^10 '
+        q+='status:official^2 format:(vinyl~)^2 primarytype:album^2 ';
+        if(duration) q+='dur:'+duration+'^10 ';
+        if(cat) q+=cat+'^10 ';
+        q=q.trim();
+        q+=')'
+        q+='&limit=10&fmt=json'
+		info.query = q;
+        if(log) console.Yolk.say(q)
+        if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+
+	}else{
+        delete info.classical;
+		if(info.musicbrainz_id){
+			info.fix = true;
+		}else if(!info.metadata.artist || !info.metadata.title){
+			return false;
+		}
+        info.disambig = [];
+        var postfix = tools.postfix(info.metadata.title);
+        if(postfix) info.disambig.push({dis:postfix.postfix});
+        if(info.metadata.album){
+            postfix = tools.postfix(info.metadata.album)
+            if(postfix) info.disambig.push({dis:postfix.postfix});
+        }
+		if(info.type === 'youtube'){
+
+		}else if(!info.musicbrainz_id){
+			if(info.duration){
+				var bottom = (Math.floor(info.duration/1000)*1000)-600;
+				var top = (Math.ceil(info.duration/1000)*1000)+600;
+				var duration='dur:['+bottom+' TO '+top+']^10'
+			}
+
+            if(info.metadata.album) var album = 'release:"'+tools.queryBuilder(info.metadata.album)+'"~1^50'
+            if(info.metadata.artist){
+                var artists = info.metadata.artist.split(/(?:[\/\,\&\+]| - | and | et | by | with | conductor | ft | feat )/g).map(function(artist){return artist.trim()}).filter(function(artist){
+                    if(artist.length){return true}
+                });
+                if(artists.indexOf(info.metadata.artist) === -1) artists.push(info.metadata.artist);
+                artists = '('+artists.map(function(artist){return 'artistname:"'+tools.queryBuilder(artist)+'"'}).join(' OR ')+')'
+            }
+            var title = 'recording:('+tools.queryBuilder(info.metadata.title)+')'
+
+            var q = 'http://musicbrainz.org/ws/2/recording/?query='+title+' ';
+            if(artists) q+= 'AND '+artists+' '
+            q+= 'AND (';
+            if(album) q+= album+' ';
+            if(duration) q+= duration+' ';
+            q+='format:vinyl~^2 primarytype:album^2 status:official^2)&fmt=json&limit=10'
+            /*
+			var query = 'http://musicbrainz.org/ws/2/recording/?query=(';
+			if(info.metadata.album) query = query+'release:"'+tools.queryBuilder(info.metadata.album)+'"~2^50 release:('+tools.queryBuilder(info.metadata.album)+')^20';
+			if(duration) query=query+' dur:'+duration+'^10';
+			query = query+' format:vinyl~^2 quality:high^2 (primarytype:album AND status:official)^50)'
+
+            if(info.metadata.artist){
+                query = query+' AND (artistname:"'+tools.queryBuilder(info.metadata.artist)+'"~1';
+                var artist = info.metadata.artist.split(/and|with|\&|\/|\-/g);
+                if(artist.length > 1) artist.forEach(function(part){
+                    if(part.trim().length) query = query+' OR artistname:"'+tools.queryBuilder(part.trim())+'"';
+                })
+                query = query+')'
+            }
+			query = query+' AND (recording:"'+tools.queryBuilder(info.metadata.title)+'"^10 OR recording:"'+tools.queryBuilder(info.metadata.title)+'"~2^5 OR recording:('+tools.queryBuilder(info.metadata.title)+'))&fmt=json&limit=10';
+            */
+			info.query = q;
+		}else{
+			var query = 'http://musicbrainz.org/ws/2/recording/'+info.musicbrainz_id+'?'+'&inc=artists+artist-rels+releases+release-groups+release-rels+release-group-rels+media&fmt=json';
+			info.query = query
+		}
+	}
+	return info;
+}
+
 
 module.exports = new mbtools();
 ipcMain.on('kill', function(event,data) {

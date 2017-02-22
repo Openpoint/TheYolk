@@ -1,5 +1,6 @@
 'use strict';
 
+
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',
 function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin) {
@@ -27,19 +28,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
 	$scope.countries = require(path.join(Yolk.root,'core/modules/musicPlayer/lib/tools/countries.json'));
-	$scope.tools = {
-		strim:function(phrase){
-			if(phrase){
-				return phrase.trim().toLowerCase().replace(/(\'|\?|\.|\(|\)|\:|\[|\]|\{|\})/g,'').replace(/\&/g,'and');
-			}else{
-				return false;
-			}
-		},
-		date:function(date){
-			return new Date(date).getFullYear();
-		}
-	}
-
+	$scope.tools = require('../lib/tools/searchtools.js');
 	$scope.Sort = {};
 
 	$scope.dims.update();
@@ -216,7 +205,13 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 					$scope.lib.drawers[$scope.pin.Page][row.id].discs.forEach(function(disc,key){
 						disc.forEach(function(Track,key2){
 							//console.log(Track)
-							body.body.query.bool.should.push({match:{musicbrainz_id:{query:Track.id}}})
+							body.body.query.bool.should.push(
+								$scope.tools.wrap.bool([{must:[
+									{match:{musicbrainz_id:{query:Track.id}}},
+									{match:{deleted:{query:'no'}}}
+								]}])
+
+							)
 							/*
 							$scope.search.albumTrack(Track,row.metadata).then(function(data){
 								var types = {};

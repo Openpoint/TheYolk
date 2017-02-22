@@ -351,7 +351,6 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 		goodtracks.reverse();
 		goodtracks.forEach(function(track){
-			//if(track.rating*1 > 1000000 || track.rating*1 > avRating || (track.boost && track.rating*1 > 100000)){
 			if(track.rating*1 > 1000000 || track.rating*1 > avRating){
 				ipcRenderer.send('musicbrainz',track);
 			}
