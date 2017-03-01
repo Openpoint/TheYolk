@@ -100,6 +100,19 @@ function mapping(){
 						}
 					}
 				}
+			},
+			artists:{
+				type:'nested',
+				properties:{
+					id:{type:'string'},
+					name:Mapping()
+				}
+			},
+			disambig:{
+				type:'nested',
+				properties:{
+					dis:{type:'string'}
+				}
 			}
 		}
 	}
@@ -115,6 +128,7 @@ function Types(){
 				}
 			}
 		},
+		{type:'youtubesearch',mapping:mapping()},
 		{type:'artist',
 			mapping:{
 				properties:{

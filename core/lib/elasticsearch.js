@@ -207,7 +207,6 @@ dbase.prototype.fetchAll = function(query){
 					resolve(all);
 				}
 			}else{
-				console.Yolk.error(err)
 				reject(err);
 			}
 		});

@@ -1,5 +1,7 @@
 'use strict';
 
+var test = '& the foggy dew'.replace(/^([^0-9a-z]) | ([^0-9a-z])$/g,' ')
+console.log(test)
 
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',

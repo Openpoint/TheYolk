@@ -5,6 +5,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	const {ipcRenderer} = require('electron');
 	const path = require('path');
 	const crypto = require('crypto');
+	const log = true;
 
 	var $scope;
 	var tools = require('../../lib/tools/searchtools.js');
@@ -37,6 +38,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 		this.musicbrainz(queries.qdb,0);
 		var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
 		$http({method:'GET',url:query,}).then(function(response){
+
 			var result = response.data.response.docs;
 			if(result.length){
 				q.meta.unshift({
@@ -96,6 +98,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 		var self = this;
 		if (q.meta.length){
 			var src = q.meta[0].blocks.shift();
+			var downloads = (src.downloads||0)*1
 			src = src.identifier;
 			function proceed(){
 				if(!q.meta[0].blocks.length){
@@ -125,6 +128,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 				url: url
 			}).then(function(response){
 				$scope.progress.internetarchive	--;
+
 				if(response.data.files) var files = self.getFiles(response.data.files);
 				if(files){
 					var bulk=[];
@@ -142,6 +146,8 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 						var id = crypto.createHash('sha1').update(id).digest('hex');
 						newfile.id = id;
 						newfile.internetarchive = src;
+						newfile.downloads = downloads;
+
 						bulk.push({create:{_index:$scope.db_index,_type:'internetarchivesearch',_id:id}});
 						bulk.push(newfile);
 					});
@@ -288,6 +294,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 	//format a file object into a track object for pushing to musicbrainz
 	ia.prototype.format=function(file){
+
 		var root = path.join('https://archive.org/download/',file.dir,file.name);
 		var track={
 			metadata:{
@@ -302,7 +309,8 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			path:'',
 			filter:{},
 			musicbrainz_id:file.musicbrainz_id,
-			type:'internetarchive'
+			type:'internetarchive',
+			downloads:file.downloads
 		}
 		if(file.musicbrainz_id){
 			track.musicbrainz_id = file.musicbrainz_id;

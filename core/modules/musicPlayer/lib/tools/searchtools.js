@@ -78,13 +78,18 @@ search.prototype.queryBuilder=function(term,data){
 	}
 
 	//sanitise the term
-	term = term.toLowerCase().
+	//term = term.toLowerCase().
 	//replace(/\&/g,'%5C%26').replace(/\#/g,'%5C%23').replace(/\:/g,'%5C%3A').
-	replace(/([\!\*\+\-\=\<\>\|\(\)\[\]\{\}\^\~\?\\/"\&\#\:\%])/g,function(x){
+	term = term.replace(/([\!\*\+\-\=\<\>\|\(\)\[\]\{\}\^\~\?\\/"\&\#\:\%])/g,function(x){
 		return "%5C"+encodeURIComponent(x)
 	}).
 	replace(/[^a-zA-Z0-9% ]/g,function(x){
-		return encodeURIComponent(x);
+		try{
+			return encodeURIComponent(x);
+		}
+		catch(err){
+			return ''
+		}
 	})
 	term = this.despace(term)
 
@@ -219,6 +224,7 @@ search.prototype.strip = function(string){
 
 //trim and remove double spaces
 search.prototype.despace = function(string){
+	if(!string.length){return ''}
 	return string.replace(/\s\s+/g,' ').trim();
 }
 
@@ -242,7 +248,7 @@ search.prototype.gibberish = function(term){
 //strip a term of punctuation for comparative purposes
 search.prototype.strim = function(phrase){
 	if(!phrase){return false};
-	phrase = phrase.trim().toLowerCase().replace(/[\¬\`\¦\!\"\£\$\%\^\*\_\-\+\=\~\#\@\'\:\;\,\.\?\/\\\|\’\“\”\[\]\{\}\(\)]/g,' ').replace(/\&/g,' and ');
+	phrase = phrase.trim().toLowerCase().replace(/[\¬\`\¦\!\"\£\$\%\^\*\_\-\+\=\~\#\@\'\:\;\,\.\?\/\\\|\’\“\”\[\]\{\}\(\)]/g,' ').replace(/\&/g,' and ').replace(/\n/g,' ');
 	phrase = this.despace(phrase);
 	return phrase;
 }

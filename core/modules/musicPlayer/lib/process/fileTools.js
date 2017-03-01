@@ -209,7 +209,7 @@ ft.getTags=function(){
 					refresh:true,
 					body:track
 				},function(err,data){
-					err ? console.Yolk.error(err):musicbrainz.add(track);
+					err ? console.Yolk.error(err):musicbrainz.buffer(track);
 				})
 				self.getTags();
 			}
