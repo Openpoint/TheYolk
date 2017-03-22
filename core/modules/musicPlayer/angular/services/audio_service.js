@@ -86,7 +86,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(this.playing !== source){
 
 			this.playing = source;
-
+			$scope.lazy.refresh($('#playwindow').scrollTop())
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
 				$scope.lib.playing.ani = false;
@@ -100,19 +100,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
-			if(!$scope.tracks.playlists.default){
-				$scope.tracks.isInFocus().then(function(){
-					$scope.tracks.next();
-					if($scope.pin.pinned.Page!=='title'){
-						$scope.lib.playing.pos = -1;
-					}
-				})
-			}else{
+			$scope.tracks.isInFocus().then(function(){
 				$scope.tracks.next();
-				if($scope.pin.pinned.Page!=='title'){
-					$scope.lib.playing.pos = -1;
-				}
-			}
+			})
 
 
 			if(track.type !== 'youtube'){
@@ -174,8 +164,6 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				});
 
 			}
-
-			$scope.lazy.refresh($('#playwindow').scrollTop());
 			this.progress(true,true);
 			$timeout(function(){
 				$scope.lib.playing.ani = true;

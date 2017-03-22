@@ -1,5 +1,6 @@
 'use strict'
 
+var oldterms = {};
 angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	var $scope;
 	var pin = function(scope){
@@ -40,35 +41,77 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		}else{
 			this.pinned.sources.push(name);
 		}
-		$scope.search.go(false,true);
+		$scope.search.go(true);
+
+	}
+	pin.prototype.pinner = function(name,type){
+		var terms = $scope.tools.terms($scope.searchTerm)
+		if(this.pinned[type] === name){
+			delete oldterms[type]
+			delete terms[type]
+		}else{
+			terms[type] = name
+		}
+		var newsearch = ""
+
+		Object.keys(terms).forEach(function(key){
+			if(key !== 'prefix') newsearch += key+':'+terms[key]+' '
+		})
+		newsearch = ((terms.prefix||'')+' '+newsearch).trim();
+		$scope.searchTerm = newsearch
+	}
+	pin.prototype.prefix = function(name){
+		this.pinner(name,'prefix')
 	}
 	pin.prototype.artist = function(name){
-		this.pinned.album=false;
-		this.pinned.artist ? this.pinned.artist = false:this.pinned.artist = name
-		$scope.search.go();
+		this.pinner(name,'artist')
 	}
 	pin.prototype.album = function(name){
-		this.pinned.artist=false;
-		this.pinned.album ? this.pinned.album = false:this.pinned.album = name;
-		$scope.search.go();
+		this.pinner(name,'album')
+	}
+	pin.prototype.title = function(name){
+		this.pinner(name,'title')
+	}
+	pin.prototype.clear = function(){
+		oldterms = {};
+		$timeout(function(){
+			$scope.searchTerm = '';
+			$('#search input').focus();
+		})
 	}
 	pin.prototype.page = function(page,skip){
+
+		var newterm = '';
+		var terms = $scope.tools.terms($scope.searchTerm);
+
+		if(terms.prefix) newterm = terms.prefix;
+		if(terms.artist) newterm+=' artist:'+terms.artist;
+
+		if((terms.album||oldterms.album) && page!=='artist') newterm+=' album:'+(terms.album||oldterms.album);
+		if(terms.album && page==='artist') oldterms.album = terms.album;
+
+		if((terms.title||oldterms.title) && page!=='album' && page!=='artist') newterm+=' title:'+(terms.title||oldterms.title);
+		if(terms.title && (page==='album'||page==='artist')) oldterms.title = terms.title;
+
+		$scope.searchTerm = newterm.trim()
+
 		if(this.Page === page && !skip){
 			this.direction[page] === 'asc' ? this.direction[page] = 'desc':this.direction[page] = 'asc';
+			$scope.lazy.refresh()
 		}
 		this.Page = page;
 		switch (page){
 			case 'title':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
-				$scope.search.go(false,true);
+				$scope.search.go();
 			break;
 			case 'artist':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['name.raw:'+this.direction[page]];
-				$scope.search.artist(false,true);
+				$scope.search.go();
 			break;
 			case 'album':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
-				$scope.search.album(false,true);
+				$scope.search.go();
 			break;
 		}
 	}
@@ -77,10 +120,8 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		this.page(this.Page,true);
 	}
 	pin.prototype.tracks = function(artist,album,destination){
+		delete oldterms.title
 		$scope.searchTerm = "artist:"+artist+" album:"+album;
-		this.scroll.title = 0;
-		this.pinned.artist = false;
-		this.pinned.album = false;
 		this.page(destination)
 	}
 	return pin;

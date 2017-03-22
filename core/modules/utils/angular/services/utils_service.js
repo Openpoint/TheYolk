@@ -106,6 +106,13 @@ angular.module('yolk').factory('utils',['$q', function($q) {
 			})
 		})
 	}
+
+	//convert date stamp to format
+	utils.prototype.date = function(date){
+		if(!date) return "";
+		date = new Date(date);
+		return '('+date.getFullYear(date)+')';
+	}
 	//get the difference between two dates
 	utils.prototype.dateDiff = function (now,b,period) {
 		if(now){

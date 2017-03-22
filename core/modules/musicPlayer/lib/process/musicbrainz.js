@@ -5,7 +5,7 @@
  * rules at http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
  *
  * */
-
+require('../tools/musicbrainzclassical.js');
 const {ipcMain} = require('electron');
 const request = require('request');
 const path = require('path');
@@ -25,7 +25,7 @@ const mbq={
 	artist:[],
 	ytartist:[]
 };
-const log = true; //turn on detailed logging for music lookups
+const log = false; //turn on detailed logging for music lookups
 var noAlbum=[];
 var kill = false;
 var busy = false;
@@ -111,12 +111,13 @@ musicbrainz.prototype.pacer=function(bounce){
 function remove(dupe){
 	elastic.client.update({index:db_index,type:dupe.type,id:dupe.id,body:{doc:{deleted:'yes',deleted_reason:'Found duplicate mbid'},doc_as_upsert:true},refresh:true})
 }
+
 //check for duplicates
-musicbrainz.prototype.dupe = function(track){
+musicbrainz.prototype.dupe = function(track,skip){
 
 	var self = this;
-	if(dupes[track.type].indexOf(track.id) > -1){return true;}
-	else
+	if(dupes[track.type].indexOf(track.id) > -1 && !skip){return true;}
+	if(!skip) dupes[track.type].push(track.id);
 	if(dupes.mbid.some(function(dupe){
 
 			if(dupe.mbid === track.musicbrainz_id){
@@ -144,13 +145,7 @@ musicbrainz.prototype.dupe = function(track){
 				}else{return true}
 			}else{return false}
 		})
-	){return true}
-	else
-	{
-		if(track.type === 'artist'||track.type==='album'){dupes[track.type].push(track.id)}
-		return false;
-	}
-
+	){return true}else{return false}
 }
 
 //add a track to the processing queue
@@ -236,7 +231,7 @@ musicbrainz.prototype.getYtartist = function(artist){
 				console.Yolk.error(err);
 				return;
 			}
-
+			if(log) console.Yolk.say(tt)
 			if(tt.artists && tt.artists[0] && tt.artists[0].name){
 				var newart = tools.fix(tt.artists[0].name);
 			}else{
@@ -244,7 +239,7 @@ musicbrainz.prototype.getYtartist = function(artist){
 				return;
 			}
 
-			if(newart.split(' ').length === artist.split(' ').length) {
+			if(newart.split(' ').length === artist.split(' ').length || tools.strim(newart).indexOf(tools.strim(artist)) > -1) {
 				message.send('mb_'+artist,{key:artist,canon:newart})
 			}else{
 				message.send('mb_'+artist,false)
@@ -264,6 +259,10 @@ musicbrainz.prototype.submit = function(track){
 	busy = true;
 
 	if(track.type!=='album' && track.type!=='artist'){
+		if(track.fix && !track.metadata.title){
+			go(track,self);
+			return;
+		}
 		this.fromAlbum(track).then(function(message){ //first try to match the track to an existing album
 			if(!track.toalbum && message!=='track with that mbid already exists'){ //this is the tracks first pass, so try to find an album for it
 				track.toalbum=1;
@@ -313,12 +312,6 @@ musicbrainz.prototype.submit = function(track){
 					track.metadata.title = tools.fix(tt.title);
 					if(track.musicbrainz_id !== tt.id){
 						track.musicbrainz_id = tt.id;
-						if(!self.dupe(track)){
-							//dupes.mbid.push({mbid:tt.id,auth:true,type:track.type,id:track.id})
-						}else{
-							busy = false;
-							return;
-						}
 					}
 					if(tt.length){
 						track.duration = Number(tt.length)
@@ -329,8 +322,7 @@ musicbrainz.prototype.submit = function(track){
 
 				//save and return if album or artist lookup
 				if(track.type === 'artist'||track.type === 'album'){
-
-					mbtools.saveMeta(track.type,tt).then(function(message){
+					mbtools.saveMeta(track,tt,track.type==='album' ? dupes.newalbums:false).then(function(message){
 						busy = false;
 						if(log) console.Yolk.say(message);
 					});
@@ -865,6 +857,7 @@ musicbrainz.prototype.fromAlbum = function(track){
 		elastic.client.search(body,function(err,data){
 			if(err){
 				console.Yolk.error(err);
+				console.Yolk.say(track);
 				resolve('database error while looking for track in albums');
 				busy = false;
 			}
@@ -880,6 +873,14 @@ musicbrainz.prototype.fromAlbum = function(track){
 						track.metadata.album = newalbum;
 					}
 					track.album=data.hits.hits[0]._source.id;
+
+					// NEEDS TO BE TESTED
+					if(data.hits.hits[0]._source.youtube === 'yes'){
+						elastic.client.update({index:db_index,type:'album',id:track.album,refresh:true,body:{doc:{youtube:'no'}}},function(err,data){
+							if(err) conole.Yolk.err(err)
+						})
+					}
+					//END NEEEDS TO BE TESTED
 				}
 				var newtitle = albumtrack.title2 || albumtrack.title;
 				if(newtitle !== track.metadata.title){
@@ -900,8 +901,8 @@ musicbrainz.prototype.fromAlbum = function(track){
 
 
 				//first check for duplicate
-				if(!self.dupe(track)){
-					dupes[track.type].push(track.id);
+				if(!self.dupe(track,true)){
+
 					dupes.mbid.push({mbid:track.musicbrainz_id,auth:track.auth,type:track.type,id:track.id,rating:track.rating,downloads:track.downloads});
 					mbtools.saveTrack(track).then(function(){
 						self.add({
@@ -944,7 +945,7 @@ musicbrainz.prototype.buffer = function(track){
 			self.add(Track);
 			setTimeout(function(){
 				commit()
-			},100)
+			},10)
 		}else{
 			if(log) console.Yolk.error('BUFFER EMPTY')
 			bufferBusy = false

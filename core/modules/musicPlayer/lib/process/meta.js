@@ -22,6 +22,8 @@ const headers = process.Yolk.modules["musicPlayer"].config.headers;
 const artwork = {};
 var kill = false;
 
+const log = false;
+
 //Keep track of submissions to avoid duplication and limit lookup rates
 const queue = {
 	artist:{
@@ -58,6 +60,7 @@ var googleItem = function(foo){
 google.webContents.on('dom-ready',function(){
 	var item = google_item;
 	google.webContents.executeJavaScript('firstClick('+item.google.index+')',true).then(function(data){
+		if(log) console.Yolk.log(data);
 		new downart(data,item,true);
 		googleBusy = false;
 	},function(err){

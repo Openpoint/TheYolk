@@ -5,10 +5,10 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	const {ipcRenderer} = require('electron');
 	const path = require('path');
 	const crypto = require('crypto');
-	const log = true;
+	const log = false;
 
 	var $scope;
-	var tools = require('../../lib/tools/searchtools.js');
+	const tools = require('../../lib/tools/searchtools.js');
 
 	var q = {
 		queries:[],
@@ -26,7 +26,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 		this.max_duration = 30*60*1000 //maximum track length in milliseconds
 		$scope.db.client.get({index:$scope.db_index,type:"internetarchivesearch",id:"queries"},function(err,data){
 			if(!err){
-				self.queries = data._source.queries
+				self.queries = data._source.queries;
 			}
 		})
 	}
@@ -35,7 +35,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	ia.prototype.search = function(term){
 		var self = this;
 		var queries = self.searchString(term);
-		this.musicbrainz(queries.qdb,0);
+		this.musicbrainz(queries.qdb);
 		var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
 		$http({method:'GET',url:query,}).then(function(response){
 
@@ -55,10 +55,9 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 	//process the query to a database search string
 	ia.prototype.searchString = function(term){
 		var hash = tools.terms(term);
-		var qdb = {index:$scope.db_index,type:"internetarchivesearch",body:{query:{bool:{must:[
-			{bool:{should:[]}},
-			{match:{'musicbrainzed':{query:'no'}}}
-		]}}}}
+		var qdb = tools.extquery(term,'ia');
+		qdb = {index:$scope.db_index,type:"internetarchivesearch",body:{query:qdb}};
+		/*
 		if (hash.prefix){
 			qdb.body.query.bool.must[0].bool.should.push({multi_match:{query:hash.prefix,operator : "and",fuzziness:'auto',fields:['title','artist','album'],}})
 		}
@@ -69,7 +68,28 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 				qdb.body.query.bool.must.push({match:match})
 			}
 		})
-		var qia='(title:('+tools.queryBuilder(term,{boost:10})+') OR title:"'+tools.queryBuilder(term,{fuzzy:true})+'" OR subject:('+tools.queryBuilder(term,{boost:10})+') OR subject:"'+tools.queryBuilder(term,{fuzzy:true})+'") AND (description:('+tools.queryBuilder(term,{boost:10})+') OR description:"'+tools.queryBuilder(term,{fuzzy:true})+'")'
+*/
+		var iaterm = hash.prefix||'';
+		if(hash.artist) iaterm += ' '+hash.artist
+		if(hash.album) iaterm += ' '+hash.album
+		if(hash.title) iaterm += ' '+hash.title
+		iaterm = iaterm.trim();
+
+		var qia = []
+		Object.keys(hash).forEach(function(key){
+			var boost = 2;
+			if(key === 'artist') boost = 10;
+			if(key === 'album') boost = 3;
+			if(key === 'title') boost = 5;
+			qia.push('title:('+tools.queryBuilder(hash[key],{boost:boost})+') OR title:"'+tools.queryBuilder(hash[key],{fuzzy:true})+'" OR subject:('+tools.queryBuilder(hash[key],{boost:boost})+') OR subject:"'+tools.queryBuilder(hash[key],{fuzzy:true})+'" OR description:('+tools.queryBuilder(hash[key],{boost:boost})+') OR description:"'+tools.queryBuilder(hash[key],{fuzzy:true})+'"')
+		})
+		qia = '('+qia.join(' OR ')+')';
+
+		/*
+
+		var qia='(title:('+tools.queryBuilder(iaterm,{boost:10})+') OR title:"'+tools.queryBuilder(iaterm,{fuzzy:true})+'" OR subject:('+tools.queryBuilder(iaterm,{boost:10})+') OR subject:"'+tools.queryBuilder(iaterm,{fuzzy:true})+'") AND (description:('+tools.queryBuilder(iaterm,{boost:10})+') OR description:"'+tools.queryBuilder(iaterm,{fuzzy:true})+'")'
+		*/
+
 		var excludes = {
 			podcast:'-podcast -podcasts',
 			cover:'-cover -covers',
@@ -80,7 +100,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			radio:'-radio',
 			mix:'-mix -remix'
 		}
-		var compare = tools.strim(term);
+		var compare = tools.strim(iaterm);
 		var exclude = [];
 		Object.keys(excludes).forEach(function(key){
 			if(compare.indexOf(key)===-1){
@@ -88,7 +108,9 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			}
 		})
 		exclude = exclude.join(' ');
-		qia = qia+' AND title:('+exclude+') AND description:('+exclude+') AND subject:('+exclude+') AND mediatype:audio &fl[]=downloads&fl[]=title,subject,collection,identifier,description,creator AND collection:opensource_audio&sort[]=downloads desc&rows=1000&page=1&output=json';
+		//qia = qia+' AND title:('+exclude+') AND description:('+exclude+') AND subject:('+exclude+') AND mediatype:audio &fl[]=downloads&fl[]=title,subject,collection,identifier,description,creator AND collection:opensource_audio&sort[]=downloads desc&rows=1000&page=1&output=json';
+		qia = qia+' AND title:('+exclude+') AND description:('+exclude+') AND subject:('+exclude+') AND mediatype:audio &fl[]=downloads&fl[]=title,subject,collection,identifier,description,creator AND collection:opensource_audio&rows=500&page=1&output=json';
+
 		var searchstrings = {qia:qia,qdb:qdb}
 		return searchstrings;
 	};
@@ -132,11 +154,14 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 				if(response.data.files) var files = self.getFiles(response.data.files);
 				if(files){
 					var bulk=[];
+					var count = 0;
 					files.forEach(function(file){
-						var newfile = {};
-						newfile.title = file.title;
-						newfile.artist = file.artist;
-						newfile.album = file.album;
+						var newfile = {
+							metadata:{}
+						};
+						newfile.metadata.title = file.title;
+						newfile.metadata.artist = file.artist;
+						newfile.metadata.album = file.album;
 						newfile.musicbrainz_id = file.musicbrainz_id;
 						newfile.musicbrainzed ='no';
 						newfile.name = encodeURIComponent(file.name);
@@ -147,39 +172,45 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 						newfile.id = id;
 						newfile.internetarchive = src;
 						newfile.downloads = downloads;
-
-						bulk.push({create:{_index:$scope.db_index,_type:'internetarchivesearch',_id:id}});
-						bulk.push(newfile);
-					});
-					//put the found files to database
-					if(bulk.length){
-						$scope.db.client.bulk({body:bulk,refresh:true},function(err,response){
-							if(err){
-								console.error(err);
-							}else{
-
-								$scope.db.client.update({index:$scope.db_index,type:"internetarchivesearch",id:"queries",refresh:true,body:{
-									doc: {
-										queries: self.queries
-									},
-									doc_as_upsert:true
-								}},function(err,data){
-									if(err) console.error(err);
-								})
-								self.musicbrainz(query,1000);
+						ipcRenderer.send('musicbrainz_classical',newfile);
+						ipcRenderer.once('classical_'+newfile.id,function(event,data){
+							count++;
+							if(data) newfile = data;
+							bulk.push({create:{_index:$scope.db_index,_type:'internetarchivesearch',_id:id}});
+							bulk.push(newfile);
+							//put the found files to database
+							if(bulk.length && count === files.length){
+								$scope.db.client.bulk({body:bulk,refresh:true},function(err,response){
+									if(err){
+										console.error(err);
+									}else{
+										self.musicbrainz(query);
+									}
+								});
 							}
-						});
-					}
+						})
+
+					});
+
 				}
-				proceed()
+				//proceed()
 			},function(err){
 				$scope.progress.internetarchive	--;
-				proceed()
+				//proceed()
 			});
+			proceed()
 		}else{
-			console.log('Finished Meta');
+			if(log) console.log('Finished Meta');
 			q.meta = [];
 			q.running = false;
+			$scope.db.client.update({index:$scope.db_index,type:"internetarchivesearch",id:"queries",refresh:true,body:{
+				doc: {
+					queries: self.queries
+				},
+				doc_as_upsert:true
+			}},function(err,data){
+				if(err) console.error(err);
+			})
 		}
 	}
 	//check if file has musicbrainz id
@@ -297,11 +328,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 
 		var root = path.join('https://archive.org/download/',file.dir,file.name);
 		var track={
-			metadata:{
-				artist:file.artist,
-				album:file.album,
-				title:file.title
-			},
+			metadata:file.metadata,
 			id:file.id,
 			file:root,
 			duration:file.duration,
@@ -312,19 +339,17 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			type:'internetarchive',
 			downloads:file.downloads
 		}
-		if(file.musicbrainz_id){
-			track.musicbrainz_id = file.musicbrainz_id;
-		}
+		if(file.musicbrainz_id) track.musicbrainz_id = file.musicbrainz_id;
+		if(file.classical) track.classical = file.classical
 		return track;
 	}
 
 	//fetch the query from the local database and submit to musicbrainz for querying
-	ia.prototype.musicbrainz = function(query,timeout){
+	ia.prototype.musicbrainz = function(query){
 		var self = this;
-		$timeout(function(){
+		//$timeout(function(){
 			$scope.db.fetchAll(query).then(function(data){
 				data.forEach(function(track){
-
 					if(self.searches.indexOf(track.id) === -1){
 						self.searches.push(track.id);
 						var file = self.format(track);
@@ -334,7 +359,7 @@ angular.module('yolk').factory('internetarchive',['$http','$timeout',function($h
 			},function(err){
 				console.error(err);
 			});
-		},timeout);
+		//},timeout);
 
 	}
 	return ia;

@@ -1,7 +1,32 @@
 "use strict";
 
+const {ipcMain} = require('electron');
+const message = process.Yolk.message;
 const tools = require('./searchtools.js');
-var composers = require('./composers.json');
+const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
+const elastic = process.Yolk.db;
+
+
+
+const getClassical = function(){
+    elastic.exists(db_index+'.classical').then(function(exists){
+        if(exists) return;
+        var composers = require('./composers.json');
+        var body = [];
+        Object.keys(composers).forEach(function(composer){
+            body.push({index:{ _index:db_index, _type:'classical'}})
+            if(typeof composers[composer] === 'string'){
+                body.push({name:composer,alt:composers[composer]})
+            }else{
+                body.push({name:composer,codes:composers[composer]})
+            }
+        })
+        elastic.client.bulk({body:body,refresh:true},function(err,data){
+            if(err) console.Yolk.err(err);
+        })
+    });
+}
+
 const log = false //turn on detailed logging
 
 var classical = function(info){
@@ -25,6 +50,7 @@ classical.prototype.get = function(info){
 	var whole = '';
     var whole_album = '';
     var whole_title = '';
+    var composers = {};
     info.classical={};
 
 	['artist','album','title'].forEach(function(key){
@@ -146,73 +172,87 @@ classical.prototype.get = function(info){
 			}
 		}
 	}
-	getnames(whole);
-	delete info.retry;
-
-    //check if there are work identifiers for the composer
-	if(all_composers || all_composers2 || all_composers3){
-		if(all_composers2) all_composers = all_composers2;
-		if(all_composers3) all_composers = all_composers3;
-		Object.keys(all_composers).some(function(composer){
-			return all_composers[composer].some(function(cat){
-                var ident = self.divider(whole,cat);
-                if(ident=== 'too long'){
-                    [whole_album+' '+whole_title,whole_title].some(function(string){
-                        ident = self.divider(string,cat);
-                        if(!ident || ident=== 'too long'){return false}
-                        return true;
-                    })
-                }
-				if(ident){
-					info.classical.composer = composer;
-                    putartist(info.classical.composer);
-					info.classical.cat={
-						id:cat,
-						val:ident[0]
-					};
-                    if(log) console.Yolk.say(cat+' : '+composer+' : '+ident[0])
-					postfix = true;
-					return true;
-				}
-			});
-		})
-	}
-    if(!info.classical.composer){
-        if(log) console.Yolk.say('REJECTED ----------------- No composer found');
-        if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-        return false;
-    }
-    if(log) console.Yolk.say(info.classical.composer)
-
-	divider.forEach(function(div){
-		var ident = self.divider(whole,div);
-        if(ident=== 'too long'){
-            ident = self.divider(whole_title,div);
-            if(!ident || ident=== 'too long'){return false}
+    elastic.fetchAll({index:db_index,type:'classical',body:{query:{match:{name:{query:whole,operator:'or'}}}}}).then(function(data){
+        if(!data.length){
+            if(log) console.Yolk.say('REJECTED ----------------- No composer found');
+            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+            message.send('classical_'+info.id,false);
+            return;
         }
-		if(ident){
-			if(div === 'op') {
-				info.classical[div] = ident;
-                if(log) console.Yolk.say('op : '+ident[0]+' - '+ident[1])
-			}else if(div === 'in'){
-                info.classical.key = ident;
-                if(log) console.Yolk.say('key : '+ident[0]+' - '+ident[1]+' - '+ident[2])
-            }else{
-				if(!info.classical.types) info.classical.types = {};
-				info.classical.types[div]=ident[0];
-                if(div === 'mvt') info.classical.types.movement=ident[0];
-                if(log) console.Yolk.say(div+' : '+ident[0])
-			}
-		}
-	})
-    if(!info.classical.types && !info.classical.op && !info.classical.cat && !info.classical.key){
-        if(log) console.Yolk.say('REJECTED ----------------- Not enough information found');
+        data.forEach(function(composer){
+            if(composer.alt) composers[composer.name] = composer.alt;
+            if(composer.codes) composers[composer.name] = composer.codes;
+        })
+        getnames(whole);
+        delete info.retry;
+        //check if there are work identifiers for the composer
+    	if(all_composers || all_composers2 || all_composers3){
+    		if(all_composers2) all_composers = all_composers2;
+    		if(all_composers3) all_composers = all_composers3;
+    		Object.keys(all_composers).some(function(composer){
+    			return all_composers[composer].some(function(cat){
+                    var ident = self.divider(whole,cat);
+                    if(ident=== 'too long'){
+                        [whole_album+' '+whole_title,whole_title].some(function(string){
+                            ident = self.divider(string,cat);
+                            if(!ident || ident=== 'too long'){return false}
+                            return true;
+                        })
+                    }
+    				if(ident){
+    					info.classical.composer = composer;
+                        putartist(info.classical.composer);
+    					info.classical.cat={
+    						id:cat,
+    						val:ident[0]
+    					};
+                        if(log) console.Yolk.say(cat+' : '+composer+' : '+ident[0])
+    					postfix = true;
+    					return true;
+    				}
+    			});
+    		})
+    	}
+        if(!info.classical.composer){
+            if(log) console.Yolk.say('REJECTED ----------------- No composer found');
+            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+            message.send('classical_'+info.id,false);
+            return;
+        }
+        if(log) console.Yolk.say(info.classical.composer)
+
+    	divider.forEach(function(div){
+    		var ident = self.divider(whole,div);
+            if(ident=== 'too long'){
+                ident = self.divider(whole_title,div);
+                if(!ident || ident=== 'too long'){return false}
+            }
+    		if(ident){
+    			if(div === 'op') {
+    				info.classical[div] = ident;
+                    if(log) console.Yolk.say('op : '+ident[0]+' - '+ident[1])
+    			}else if(div === 'in'){
+                    info.classical.key = ident;
+                    if(log) console.Yolk.say('key : '+ident[0]+' - '+ident[1]+' - '+ident[2])
+                }else{
+    				if(!info.classical.types) info.classical.types = {};
+    				info.classical.types[div]=ident[0];
+                    if(div === 'mvt') info.classical.types.movement=ident[0];
+                    if(log) console.Yolk.say(div+' : '+ident[0])
+    			}
+    		}
+    	})
+        if(!info.classical.types && !info.classical.op && !info.classical.cat && !info.classical.key){
+            if(log) console.Yolk.say('REJECTED ----------------- Not enough information found');
+            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+            message.send('classical_'+info.id,false);
+            return;
+        }
+        if(log) console.Yolk.say(info.classical);
         if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-        return false;
-    }
-    if(log) console.Yolk.say(info.classical);
-    if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-    return info;
+        message.send('classical_'+info.id,info)
+        return;
+    })
 }
 
 //find classical work number references from recording title
@@ -268,4 +308,15 @@ classical.prototype.divider = function(title,op){
 }
 
 var divider = ['act','symphony','sinfonía','symphonie','sinfonie','variation','variatio','sonata','sonate','triosonata','suite','concerto','ballade','balada','walzer','waltz','scherzo','poloneise','impromptu','mvt','op','in'];
-module.exports = new classical();
+
+ipcMain.on('musicbrainz_classical', function(event, track) {
+	Classical.get(track);
+})
+ipcMain.on('kill', function(event,data) {
+	if(data === 'revive'){
+		getClassical()
+	}
+})
+var Classical = new classical();
+
+module.exports = Classical;

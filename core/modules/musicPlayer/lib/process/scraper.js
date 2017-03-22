@@ -29,19 +29,21 @@ window.firstClick=function(i){
         setTimeout(function(){
             watcher();
         },500)
-        
+
         var retry = 0
         function watcher(){
             console.log('watcher')
             var batch = [];
             if($('img').length > 1){
                 $.each($('img').not(first),function(){
-                    if($(this).attr('src') && $(this).attr('src').indexOf('http') === 0 && $(this).attr('src').indexOf('maxresdefault') === -1){
+
+                    if($(this).attr('src') && $(this).attr('src').indexOf('http') === 0 && $(this).attr('src').indexOf('maxresdefault') === -1 && $(this).attr('src').indexOf('/social/') === -1){
                         batch.push($(this).attr('src'))
                     }
                 })
 
             }
+            console.log(batch)
             if(batch[0]){
                 console.log(batch[0])
                 resolve(batch[0]);

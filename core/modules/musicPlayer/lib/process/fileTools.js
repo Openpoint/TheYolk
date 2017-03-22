@@ -263,7 +263,7 @@ ft.getTags=function(){
 		});
 		*/
 	}else{
-		message.send('log','finished tagging');
+		//message.send('log','finished tagging');
 	}
 
 }

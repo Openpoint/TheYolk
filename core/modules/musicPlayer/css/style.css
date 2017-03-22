@@ -267,6 +267,10 @@ body,html{
 .nothing .title{
 	margin-left:85px;
 }
+.nothing .pinned{
+	margin-left:10px;
+	cursor:pointer;
+}
 .row .info .artist,
 .row .info .album{
 	cursor:pointer;
@@ -374,6 +378,9 @@ body,html{
 	flex-direction:row-reverse;
 	padding-bottom:5px;
 }
+.artist #widgets, .album #widgets{
+	padding-top:70px;
+}
 #widgets .widget{
 	cursor:pointer;
 	margin:0 5px;
@@ -393,7 +400,7 @@ body,html{
 	color:Tomato;
 
 }
-.track .pad{
+.track .pad, .artist .pad, .album .pad{
 	width:40px;
 	height:100%;
 }
@@ -719,4 +726,8 @@ body,html{
 	justify-content:center;
 	align-items:center;
 	font-size:40px;
+}
+#bottomspacer{
+	width:100%;
+	visibility:hidden;
 }

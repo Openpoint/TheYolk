@@ -25,8 +25,13 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 	//Initiate the youtube search
 	youtube.prototype.search = function(term){
+		var terms = $scope.tools.terms(term);
+		var Term = terms.prefix||'';
+		if(terms.artist) Term +=' '+terms.artist;
+		if(terms.album) Term +=' '+terms.album;
+		if(terms.title) Term +=' '+terms.title;
 		var self = this;
-		var query = 'https://www.googleapis.com/youtube/v3/search?part=snippet&key=AIzaSyBGwfPX9w5DLGlchh93z-K35PAnJCXEgeg&q='+tools.queryBuilder(term)+'&videoEmbeddable=true&type=video&videoCategoryId=10&maxResults=50'
+		var query = 'https://www.googleapis.com/youtube/v3/search?part=snippet&key=AIzaSyBGwfPX9w5DLGlchh93z-K35PAnJCXEgeg&q='+tools.queryBuilder(Term)+'&videoEmbeddable=true&type=video&videoCategoryId=10&maxResults=50'
 		new getSearch(query,false,term);
 	}
 
@@ -115,7 +120,7 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 			console.log(err);
 		}).always(function(){
 			if(ids.length){
-				self.getVideos(ids);
+				//self.getVideos(ids);
 			}else{
 				var bulk = []
 
@@ -136,6 +141,7 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 				})
 			}
 		});
+		if(ids.length) self.getVideos(ids);
 	};
 	var wikidata = function(string){
 		var artists = []
@@ -300,54 +306,61 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 		var artists = [];
 
-
-		video.snippet.title = video.snippet.title.replace(/[a-z]-([A-Z]|[^a-zA-Z])/g,function(char){
-			return char.split().join(' ')
-		})
-
-		var split = video.snippet.title.split(/ -|- | - |  |\~|\/|\:| \:| \: |\: /);
-
-		if(split.length > 1){
-			if(youtubeArtists[tools.fix(split[1])]) split.reverse();
-
-			split[0].replace(/\&/g,' and ').toLowerCase().split(/\,| and | ft(?: |[^0-9a-z])| feat(?: |[^0-9a-z])| vs(?: |[^0-9a-z])| with |\//g).forEach(function(art){
-				art = tools.fix(art);
-				if(art){artists.push(art)}
+		if(!video.retry){
+			video.snippet.title = video.snippet.title.replace(/[a-z]-([A-Z]|[^a-zA-Z])/g,function(char){
+				return char.split().join(' ')
 			})
+
+			var split = video.snippet.title.split(/ -|- | - |  |\~|\/|\:| \:| \: |\: /);
+			if(split.length > 1){
+				if(youtubeArtists[tools.fix(split[1])]) split.reverse();
+
+				split[0].replace(/\&/g,' and ').toLowerCase().split(/\,| and | ft(?: |[^0-9a-z])| feat(?: |[^0-9a-z])| vs(?: |[^0-9a-z])| with |\//g).forEach(function(art){
+					art = tools.fix(art);
+					if(art){artists.push(art)}
+				})
+			}else{
+				var retry = false;
+				var postfix = tools.postfix(video.snippet.title)
+				Object.keys(youtubeArtists).forEach(function(artist){
+					if(tools.fix(video.snippet.title).indexOf(artist) === 0){
+						artists.push(artist)
+						retry = true;
+					}
+					if(tools.fix(postfix.prefix||video.snippet.title).endsWith(artist)){
+						artists.push(artist)
+						retry = true;
+					}
+				})
+				if(!retry){
+					if(video.statistics.viewCount*1 > 1000000){
+						if(video.snippet.tags){
+							video.snippet.tags = video.snippet.tags.reverse()
+							var tags = video.snippet.tags.map(function(tag){
+								tag = tag.replace(/[\(\{\[](.*?)[\)\}\]]/g,' ')
+								tag = $scope.tools.fix(tag)
+								return tag;
+							})
+						}
+						if(video.snippet.description) var description = $scope.tools.fix(video.snippet.description);
+						if(tags && description){
+							tags.forEach(function(tag){
+								if(description.indexOf(tag) > -1){artists.push(tag)}
+							})
+						}
+					}
+				}
+			};
 		}else{
-			var retry = false;
-			var postfix = tools.postfix(video.snippet.title)
 			Object.keys(youtubeArtists).forEach(function(artist){
-				if(tools.fix(video.snippet.title).indexOf(artist) === 0){
+				if(tools.fix(video.snippet.title).indexOf(artist) > -1){
 					artists.push(artist)
-					retry = true;
-				}
-				if(tools.fix(postfix.prefix||video.snippet.title).endsWith(artist)){
-					artists.push(artist)
-					retry = true;
 				}
 			})
-			if(!retry){
-				if(video.statistics.viewCount*1 > 1000000){
-					if(video.snippet.tags){
-						video.snippet.tags = video.snippet.tags.reverse()
-						var tags = video.snippet.tags.map(function(tag){
-							tag = tag.replace(/[\(\{\[](.*?)[\)\}\]]/g,' ')
-							tag = $scope.tools.fix(tag)
-							return tag;
-						})
-					}
-					if(video.snippet.description) var description = $scope.tools.fix(video.snippet.description);
-					if(tags && description){
-						tags.forEach(function(tag){
-							if(description.indexOf(tag) > -1){artists.push(tag)}
-						})
-					}
-				}
-			}
-		};
+		}
 
 		if(artists.length){
+
 			checkArtists(artists).then(function(gartists){
 				if(gartists && gartists.length){
 					if(log) console.log(gartists);
@@ -372,6 +385,7 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 				}else{
 
 					if(video.statistics.viewCount*1 > 10000){
+
 						mbArtists(artists).then(function(nartists){
 							if(nartists.length){
 								self.makeTrack(video,nartists)
@@ -391,12 +405,16 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 				}
 			})
-		}else{
+		}else if(video.retry){
 			if(log) console.error('NO ARTISTS FOUND: '+video.snippet.title)
 			//$scope.db.client.update({index:$scope.db_index,type:'youtubesearch',id:video.id,refresh:"true",body:{doc:{searched:'yes'}}})
 			this.bulk.push({update:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
 			this.bulk.push({doc:{searched:'yes'}})
 			if(this.videos.length){self.getArtists()}else{self.commit()};
+		}else{
+			video.retry = true;
+			self.videos.push(video);
+			self.getArtists()
 		}
 	};
 
@@ -453,18 +471,10 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 			return;
 		}
 
-		console.error('commit')
+		var Query = tools.extquery(this.term,'yt')
 
-		var query=[
-			{match:{'metadata.title':{query:this.term,type:'phrase'}}},
-			{match:{'metadata.artist':{query:this.term,fuzziness:'auto'}}},
-			tools.wrap.nested('artists',{match:{'artists.name':{query:this.term,fuzziness:'auto'}}})
-		];
-		query = tools.wrap.bool([{must:[
-			tools.wrap.bool([{should:query}]),
-			{match:{musicbrainzed:{query:'no',type:'phrase'}}}
-		]}])
-		$scope.db.fetchAll({index:$scope.db_index,type:'youtubesearch',body:{query:query}}).then(function(data){
+		$scope.db.fetchAll({index:$scope.db_index,type:'youtubesearch',body:{query:Query}}).then(function(data){
+
 			data = data.sort(function(a,b){
 				return (b.rating*1)-(a.rating*1)
 			});

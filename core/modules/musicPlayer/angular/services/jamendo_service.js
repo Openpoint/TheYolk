@@ -3,33 +3,34 @@
 angular.module('yolk').factory('jamendo',['$http','$q','utils',function($http,$q,utils) {
 
 	
+
 	/*
 	filters.add('jamendo',function(){
 		console.log('jamendo');
 	});
 	* */
-	const path = require('path');	
+	const path = require('path');
 	const {ipcRenderer} = require('electron');
 	var popTracks=[];
 	var $scope;
-	
+
 	var jamendo = function(scope){
 		$scope = scope;
 	}
-	
+
 	//get the popular Jamendo tracks
 	jamendo.prototype.pop = function(){
 		var pop = $q.defer();
 		var artists=[];
-		
+
 		//return Jamendo recommended from memory;
 		if(popTracks.length){
 			setTimeout(function(){
 				pop.resolve(popTracks);
 			});
-			
+
 		}else{
-			
+
 			//wait 1hr before hitting Jamendo for recommended tracks again
 			setTimeout(function(){
 				popTracks = [];
@@ -48,16 +49,16 @@ angular.module('yolk').factory('jamendo',['$http','$q','utils',function($http,$q
 					trackq[count] = track
 					count++;
 					$scope.db.fetch($scope.db_index+'.jamendo.'+'jamendo'+track.id).then(function(data){
-						
+
 						//get track from db or add if new
 						if(data[0]){
 							var gtrack = data[0];
 							count2++;
 						}else{
-							
+
 							var thisTrack = trackq[count2];
 							count2++;
-							
+
 							var gtrack = {
 								id:'jamendo'+thisTrack.id,
 								file:thisTrack.audio,
@@ -76,27 +77,27 @@ angular.module('yolk').factory('jamendo',['$http','$q','utils',function($http,$q
 								total:count,
 								data:gtrack
 							};
-							$scope.tracks.add(gtrack2);							
+							$scope.tracks.add(gtrack2);
 						}
 
 						popTracks.push(gtrack);
 						if(count === count2){
 							pop.resolve(popTracks);
-						}						
-					});										
+						}
+					});
 				});
 			}, function errorCallback(response) {
 				// called asynchronously if an error occurs
 				// or server returns response with an error status.
-			});	
+			});
 
 		}
-		return pop.promise;		
+		return pop.promise;
 	}
 
 	return jamendo;
-	
-	
+
+
 }])
 
 

@@ -2,7 +2,7 @@
 
 const {ipcMain} = require('electron');
 const tools = require('./searchtools.js');
-const classictools = require('./musicbrainzclassical.js');
+//const classictools = require('./musicbrainzclassical.js');
 const elastic = process.Yolk.db;
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
 const meta = require('../process/meta.js');
@@ -212,18 +212,26 @@ mbtools.prototype.saveTrack = function(track){
                 })
             }
     	}
+        if(track.artist && track.deleted === 'no'){
+            elastic.update({index:db_index,type:'artist',id:track.artist,body:{doc:{deleted:'no',bulk:'no'}}})
+        }
+        if(track.album && track.deleted === 'no'){
+            elastic.update({index:db_index,type:'album',id:track.album,body:{doc:{deleted:'no',bulk:'no'}}})
+        }
     })
 }
 //format and save album or artist to the database
-mbtools.prototype.saveMeta = function(type,body){
+mbtools.prototype.saveMeta = function(track,body,albums){
 	if(kill){
         console.Yolk.error('KILL');
 		return;
 	}
+    var self = this;
+
     return new q(function(resolve,reject){
     	var tosave = {}
     	var artwork = {
-    		type:type,
+    		type:track.type,
     		id:body.id.toString()
     	};
     	if(body.relations.length){
@@ -232,7 +240,7 @@ mbtools.prototype.saveMeta = function(type,body){
     			if (link.type === 'discogs'){
     				artwork.discogs = link.url.resource+'/images';
     			}
-    			if(type === 'artist'){
+    			if(track.type === 'artist'){
     				artwork.images = [];
     				if(link.type === 'image'){
     					artwork.images.push(link.url.resource);
@@ -247,7 +255,7 @@ mbtools.prototype.saveMeta = function(type,body){
     		})
     	}
 
-    	switch (type){
+    	switch (track.type){
     		case 'artist':
     			tosave.country = body.country;
     			tosave.id = body.id.toString();
@@ -256,9 +264,11 @@ mbtools.prototype.saveMeta = function(type,body){
     			save();
     		break;
     		case 'album':
+
     			if(body['cover-art-archive'] && body['cover-art-archive'].front){
     				artwork.coverart = body['cover-art-archive'].front;
     			};
+                tosave.youtube = track.youtube ? 'yes':'no';
     			tosave.metadata={
     				title:tools.fix(body.title),
     				artist:tools.fix(body['artist-credit'][0].name)
@@ -402,7 +412,7 @@ mbtools.prototype.saveMeta = function(type,body){
     		tosave.deleted = 'no';
     		var create = {
     			index:db_index,
-    			type:type,
+    			type:track.type,
     			id:body.id,
     			refresh:true,
     			body:tosave
@@ -412,8 +422,11 @@ mbtools.prototype.saveMeta = function(type,body){
                     console.Yolk.error(err);
                     resolve('ERROR SAVING ------------- '+tosave.id);
                 }else{
-                    message.send('refresh',type);
-                    meta.add(artwork)
+                    if(!track.youtube){
+                        message.send('refresh',track.type);
+                        meta.add(artwork)
+                        if(albums) self.fixAlbums(albums)
+                    }
                     resolve('SAVED ------------- '+tosave.id);
                 }
             })
@@ -422,7 +435,6 @@ mbtools.prototype.saveMeta = function(type,body){
     })
 }
 mbtools.prototype.fixAlbums = function(albums){
-
     var self = this.Albums;
     var allAlbums;
     var allTracks;
@@ -615,10 +627,10 @@ mbtools.prototype.musicbrainz = function(info){
 		info.metadata.title = title.join(' ');
 	}
 
-    var isclassic = classictools.get(info);
+    //var isclassic = classictools.get(info);
 
-	if(isclassic){
-        info = isclassic;
+	if(info.classical){
+        //info = isclassic;
         if(info.musicbrainz_id){
             info.fix = true;
             var query = 'http://musicbrainz.org/ws/2/recording/'+info.musicbrainz_id+'?'+'&inc=artists+artist-rels+releases+release-groups+release-rels+release-group-rels+media&fmt=json';
@@ -680,7 +692,7 @@ mbtools.prototype.musicbrainz = function(info){
         if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
 
 	}else{
-        delete info.classical;
+        //delete info.classical;
 		if(info.musicbrainz_id){
 			info.fix = true;
 		}else if(!info.metadata.artist || !info.metadata.title){

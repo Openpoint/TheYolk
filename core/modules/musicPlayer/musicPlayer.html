@@ -37,7 +37,7 @@
 			<div class='searchfocus'></div>
 		</div>
 		<div class="cancel">
-			<div class="icon-cancel" ng-if="searchTerm" ng-click="search.clear()"></div>
+			<div class="icon-cancel" ng-if="searchTerm" ng-click="pin.clear()"></div>
 		</div>
 		<div class='input'>
 			<input ng-model="searchTerm" type='text' placeholder="Search" ng-keypress="search.remoteSearch(searchTerm,$event)" />
@@ -73,16 +73,23 @@
 			<div ng-click='fileSelect()'>Select your music folder</div>
 		</div>
 
-		<div id='tracks' ng-style="{paddingTop:lazy.paddingTop,paddingBottom:lazy.paddingBottom}" ng-show="settings.paths.musicDir">
+		<div id='tracks' ng-show="settings.paths.musicDir">
 
 
 			<div id="artists" ng-if="pin.Page === 'artist'">
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib.artists.length">
+					<div class='title'>
+						No artists found
+						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).prefix}}</span>
+						<span ng-if="tools.terms(searchTerm).artist" class='pinned' ng-click="pin.artist(tools.terms(searchTerm).artist)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).artist}}</span>
+					</div>
+				</div>
 				<div ng-repeat="artist in lib.artists" class='row'>
 					<div class='artist'
 						ng-class="artist.filter.zebra"
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
-							<div class='image' ng-click = 'drawer(artist)' ng-style="{height:lazy.trackHeight}">
+							<div class='image' ng-click = 'tracks.drawer(artist)' ng-style="{height:lazy.trackHeight}">
 								<img cat="artist" ng-src="{{artist.image}}" yolk-thumb />
 							</div>
 							<div class='info'>
@@ -92,12 +99,20 @@
 								</div>
 								<div class='country' yolk-country>{{countries[artist.country]}}</div>
 								<div class='bio' ng-class="{open:lib.drawers[pin.Page][artist.id].state}">{{lib.bios[artist.id].bio}}</div>
+
 							</div>
-							<div class = "widget" ng-if="artist.deleted === 'yes' || pin.Filter==='recent'" ng-click="">
-								<div>{{utils.dateDiff(false,artist.date,'ago')}}&nbsp;&nbsp;</div>
-								<div ng-if="artist.deleted === 'yes'" class='icon-tick'></div>
+							<div id='widgets'>
+								<div class = "widget"  ng-if="artist.deleted === 'no'" ng-click="tracks.delete(artist,false,true)">
+									<div class='icon-cancel'></div>
+								</div>
+								<div class = "widget" ng-if="artist.deleted === 'yes' || pin.Filter==='recent'"  ng-click="tracks.undelete(artist,false,true)">
+									<div>{{utils.dateDiff(false,artist.date,'ago')}}&nbsp;&nbsp;</div>
+									<div ng-if="artist.deleted === 'yes'" class='icon-tick'></div>
+								</div>
 							</div>
+							<div class='pad'></div>
 						</div>
+
 						<div class='drawer'  id="drawer{{artist.id}}">
 							<div class='drawerInner ani-fOut' ng-if="lib.drawers[pin.Page][artist.id].state">
 								<div ng-repeat="album in lib.drawers[pin.Page][artist.id].albums" class="album_image" >
@@ -111,10 +126,12 @@
 			</div>
 
 			<div id="albums" ng-if="pin.Page === 'album'">
-				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib.albums.length && pin.pinned.artist" ng-click="pin.artist(pin.pinned.artist)">
-					<div class='title pinned'>
-						<span class='cancel icon-cancel'></span>
-						No albums found for {{pin.pinned.artist}}
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib.albums.length">
+					<div class='title'>
+						No albums found
+						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).prefix}}</span>
+						<span ng-if="tools.terms(searchTerm).artist" class='pinned' ng-click="pin.artist(tools.terms(searchTerm).artist)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).artist}}</span>
+						<span  ng-if="tools.terms(searchTerm).album" class='pinned' ng-click="pin.album(tools.terms(searchTerm).album)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).album}}</span>
 					</div>
 				</div>
 				<div ng-repeat="album in lib.albums" class= 'row'>
@@ -123,25 +140,31 @@
 						ng-class="album.filter.zebra"
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
-							<div class='image'  ng-click = 'drawer(album)' ng-style="{height:lazy.trackHeight}">
+							<div class='image'  ng-click = 'tracks.drawer(album)' ng-style="{height:lazy.trackHeight}">
 								<img cat="album" ng-src="{{album.image}}" yolk-thumb onerror=""/>
 							</div>
 							<div class='info'>
 								<div class='title' ng-click="pin.album(album.metadata.title)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === album.metadata.title.toLowerCase()}">
 									<span class='cancel icon-cancel'></span>
-									{{album.metadata.title}} ({{tools.date(album.release_date)}})
+									{{album.metadata.title}} {{utils.date(album.release_date)}}
 								</div>
-								<div>{{album.id}}</div>
 								<div class='row artist' ng-click="pin.artist(album.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === album.metadata.artist.toLowerCase()}">
 									<span class='cancel icon-cancel'></span>
 									{{album.metadata.artist}}
 								</div>
 							</div>
 
-							<div class = "widget" ng-if="album.deleted === 'yes' || pin.Filter==='recent'" ng-click="">
-								<div>{{utils.dateDiff(false,album.date,'ago')}}&nbsp;&nbsp;</div>
-								<div ng-if="album.deleted === 'yes'" class='icon-tick'></div>
+
+							<div id='widgets'>
+								<div class = "widget"  ng-if="album.deleted === 'no'" ng-click="tracks.delete(album,false,true)">
+									<div class='icon-cancel'></div>
+								</div>
+								<div class = "widget" ng-if="album.deleted === 'yes' || pin.Filter==='recent'" ng-click="tracks.undelete(album,false,true)">
+									<div>{{utils.dateDiff(false,album.date,'ago')}}&nbsp;&nbsp;</div>
+									<div ng-if="album.deleted === 'yes'" class='icon-tick'></div>
+								</div>
 							</div>
+							<div class='pad'></div>
 						</div>
 						<div class='drawer' id="drawer{{album.id}}">
 							<div class='drawerInner ani-fOut'  ng-if="lib.drawers[pin.Page][album.id].state">
@@ -166,59 +189,70 @@
 					</div>
 				</div>
 			</div>
-
-			<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn row' ng-if="pin.Page==='title'">
-				<div class='track'
-					ng-class="track.filter.zebra"
-					ng-style="{
-						height: track.state ? lazy.playingHeight : lazy.trackHeight
-					} "
-					>
-					<div class='inner' ng-if="!track.state">
-						<div class='above'>
-							<div class='icons' ng-click="audio.play(track)">
-								<div class='play icon icon-play'></div>
-							</div>
-							<div class='title'>{{::track.metadata.title || track.file}}</div>
-						</div>
-						<div class='below'>
-							<div class='icons'>
-
-							</div>
-							<div class='info'>
-								<div class='artist row' ng-if="track.metadata.artist" ng-click="pin.artist(track.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === track.metadata.artist.toLowerCase()}">
-									<span class='cancel icon-cancel'></span>
-									{{track.metadata.artist}}
-								</div>
-								<div class='row' ng-if='!track.metadata.artist'>
-									[Artist unknown]
-								</div>
-								<div class='album row' ng-if="track.metadata.album"  ng-click="pin.album(track.metadata.album)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === track.metadata.album.toLowerCase()}">
-									<span class='cancel icon-cancel'></span>
-									{{track.metadata.album}}
-								</div>
-								<div class='row' ng-if='!track.metadata.album'>
-									[Album unknown]
-								</div>
-							</div>
-							<div id='widgets'>
-								<div class = "widget"  ng-if="track.deleted === 'no'" ng-click="tracks.delete(track.type,track.id)">
-									<div class='icon-cancel'></div>
-								</div>
-								<div class = "widget" ng-if="track.deleted === 'yes' || pin.Filter==='recent'" ng-click="tracks.undelete(track.type,track.id)">
-									<div>{{utils.dateDiff(false,track.date,'ago')}}&nbsp;&nbsp;</div>
-									<div ng-if="track.deleted === 'yes'" class='icon-tick'></div>
-
-								</div>
-							</div>
-							<div class='pad'></div>
-						</div>
-
+			<div id='titles' ng-if="pin.Page==='title'">
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib.tracks.length">
+					<div class='title'>
+						No tracks found
+						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).prefix}}</span>
+						<span ng-if="tools.terms(searchTerm).artist" class='pinned' ng-click="pin.artist(tools.terms(searchTerm).artist)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).artist}}</span>
+						<span  ng-if="tools.terms(searchTerm).album" class='pinned' ng-click="pin.album(tools.terms(searchTerm).album)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).album}}</span>
+						<span  ng-if="tools.terms(searchTerm).title" class='pinned' ng-click="pin.album(tools.terms(searchTerm).title)"><span class='icon-cancel'></span> {{tools.terms(searchTerm).title}}</span>
 					</div>
-					<div class='bottom'></div>
 				</div>
+				<div ng-repeat="track in lib.tracks track by track.id" class='ani-fIn row'>
+					<div class='track'
+						ng-class="track.filter.zebra"
+						ng-style="{
+							height: track.state ? lazy.playingHeight : lazy.trackHeight
+						} "
+						>
+						<div class='inner' ng-if="!track.state">
+							<div class='above'>
+								<div class='icons' ng-click="audio.play(track)">
+									<div class='play icon icon-play'></div>
+								</div>
+								<div class='title'>{{::track.metadata.title || track.file}}</div>
+							</div>
+							<div class='below'>
+								<div class='icons'>
 
+								</div>
+								<div class='info'>
+									<div class='artist row' ng-if="track.metadata.artist" ng-click="pin.artist(track.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === track.metadata.artist.toLowerCase()}">
+										<span class='cancel icon-cancel'></span>
+										{{track.metadata.artist}}
+									</div>
+									<div class='row' ng-if='!track.metadata.artist'>
+										[Artist unknown]
+									</div>
+									<div class='album row' ng-if="track.metadata.album"  ng-click="pin.album(track.metadata.album)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === track.metadata.album.toLowerCase()}">
+										<span class='cancel icon-cancel'></span>
+										{{track.metadata.album}}
+									</div>
+									<div class='row' ng-if='!track.metadata.album'>
+										[Album unknown]
+									</div>
+								</div>
+								<div id='widgets'>
+									<div class = "widget"  ng-if="track.deleted === 'no'" ng-click="tracks.delete(track)">
+										<div class='icon-cancel'></div>
+									</div>
+									<div class = "widget" ng-if="track.deleted === 'yes' || pin.Filter==='recent'" ng-click="tracks.undelete(track)">
+										<div>{{utils.dateDiff(false,track.date,'ago')}}&nbsp;&nbsp;</div>
+										<div ng-if="track.deleted === 'yes'" class='icon-tick'></div>
+
+									</div>
+								</div>
+								<div class='pad'></div>
+							</div>
+
+						</div>
+						<div class='bottom'></div>
+					</div>
+
+				</div>
 			</div>
+			<div id='bottomspacer' ng-style="{height:lazy.trackHeight+lazy.progressHeight}" ng-if="lib.playing.Bottom"></div>
 			<div id='playing' class='track ani-fIn row'
 
 				ng-if = "lib.playing"
@@ -232,7 +266,7 @@
 					paused:lib.playing.state === 'paused',
 				}"
 			>
-				<!--div class='spacer ani-height' ng-class="{topped:lib.playing.top === 0}" ng-if="!lazy.spacer" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div-->
+
 				<div class='inner'
 					ng-style="{
 						width:dims.playwindowWidth - dims.scroller
@@ -279,10 +313,10 @@
 							<div class='widget' ng-click="dev()">
 								<div class='icon-settings'></div>
 							</div>
-							<div class='widget'  ng-if="lib.playing.deleted === 'no'" ng-click="tracks.delete(lib.playing.type,lib.playing.id,true)">
+							<div class='widget'  ng-if="lib.playing.deleted === 'no'" ng-click="tracks.delete(lib.playing,true)">
 								<div class='icon-cancel'></div>
 							</div>
-							<div class='widget'  ng-if="lib.playing.deleted === 'yes'" ng-click="tracks.undelete(lib.playing.type,lib.playing.id,true)">
+							<div class='widget'  ng-if="lib.playing.deleted === 'yes'" ng-click="tracks.undelete(lib.playing,true)">
 								<div>{{utils.dateDiff(false,lib.playing.date,'ago')}}&nbsp;&nbsp;</div>
 								<div class='icon-tick'></div>
 							</div>
@@ -296,7 +330,6 @@
 				</div>
 
 			</div>
-			<div ng-if="lib.playing && lib.playing.filter.pos === -1" ng-style="{height:lazy.trackHeight+lazy.progressHeight,width:'100%'}"></div>
 		</div>
 	</div>
 	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">

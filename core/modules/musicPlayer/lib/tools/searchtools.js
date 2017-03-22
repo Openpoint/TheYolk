@@ -127,14 +127,16 @@ search.prototype.clean = function(term,dirty){
 };
 //split search term into identifiers and return Object
 search.prototype.terms = function(term){
+	if(!term) return {}
 	var self = this;
 	var terms = {};
 	this.fields.forEach(function(field){
 		if(term.split(field+':')[1]){
-			terms[field] = self.clean(term.split(field+':')[1]);
+			terms[field] = self.clean(term.split(field+':')[1]).trim();
 		};
 	});
 	terms.prefix = this.clean(term,true).trim();
+	if(!terms.prefix.length) delete terms.prefix
 	return terms;
 }
 
@@ -259,6 +261,42 @@ search.prototype.fix = function(string){
 	return string.replace(/\’/g,"'").replace(/\s\s+/g, ' ').replace(/‐/g,'-').trim().toLowerCase();
 }
 
+//built query for elastic lookup on external results
+search.prototype.extquery = function(term,type){
+	var terms = this.terms(term);
+	var query = {should:[],must:[
+		{match:{musicbrainzed:{query:'no',type:'phrase'}}}
+	]};
+	if(terms.prefix){
+		query.should.push({match:{'metadata.title':{query:terms.prefix,fuzziness:'auto',operator:'and'}}})
+		query.should.push({match:{'metadata.artist':{query:terms.prefix,fuzziness:'auto',operator:'and'}}})
+		query.should.push({match:{'classical.composer':{query:terms.prefix,fuzziness:'auto',operator:'and'}}})
+		if(type==='yt') query.should.push({match:{'description':{query:terms.prefix,type:'phrase',slop:2}}})
+		if(type==='ia') query.should.push({match:{'metadata.album':{query:terms.prefix,fuzziness:'auto',operator:'and'}}})
+	}
+	if(terms.artist){
+		query.must.push(
+			this.wrap.bool([{should:[
+				{match:{'metadata.artist':{query:terms.artist,fuzziness:'auto',operator:'and'}}},
+				{match:{'classical.composer':{query:terms.artist,fuzziness:'auto',operator:'and'}}}
+			]}])
+		)
+	}
+	if(terms.album){
 
+		if(type==='yt') query.should.push({match:{'description':{query:terms.album,fuzziness:'auto',operator:'and'}}})
+		if(type==='ia') query.must.push({match:{'album':{query:terms.album,fuzziness:'auto',operator:'and'}}})
+	}
+	if(terms.title){
+		query.must.push({match:{'metadata.title':{query:terms.title,fuzziness:'auto',operator:'and'}}})
+	}
+	var Query = this.wrap.bool([
+		{must:[
+			this.wrap.bool([{must:query.must}]),
+			this.wrap.bool([{should:query.should}])
+		]}
+	]);
+	return Query;
+}
 var tools = new search()
 module.exports = tools;

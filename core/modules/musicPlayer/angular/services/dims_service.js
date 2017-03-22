@@ -7,7 +7,8 @@ angular.module('yolk').factory('dims',['$timeout',function($timeout) {
 		this.menHeight = 35;
 		this.searchHeight = 35;
 		this.sidebarWidth = 250;
-		this.scroller = 15;			
+		this.scroller = 15;
+		this.drawerHeight = 0;
 	}
 	dims.prototype.update = function(){
 		this.playwindowWidth = $(window).width() - this.sidebarWidth;
@@ -17,12 +18,7 @@ angular.module('yolk').factory('dims',['$timeout',function($timeout) {
 
 	$(window).resize(function(){
 		$scope.dims.update();
-		$timeout(function(){
-			$scope.lazy.refresh();
-			$('#playwindow').scrollTop($scope.dims.scrollTop);
-		});
-		
 	});
-		
-	return dims;	
+
+	return dims;
 }])
