@@ -166,6 +166,20 @@ body,html{
 	margin-bottom:3px;
 	cursor:pointer;
 }
+#titles .title{
+	cursor:-webkit-grab;
+}
+#playlist{
+	position:relative;
+}
+#drop{
+	border:dashed 3px #E7E7E7;
+	border-radius:12px;
+	width:95%;
+	height:120px;
+	margin:2.5%;
+	box-sizing:border-box;
+}
 #artists .bio{
 	font-size:.7em;
 	line-height:1.5em;

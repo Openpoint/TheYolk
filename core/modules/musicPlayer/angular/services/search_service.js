@@ -245,7 +245,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				data.items.forEach(function(row){
 
 					if(!$scope.lib.bios[row.id]){
-						console.log(row.name)
 						if(row.links && row.links.wikipedia){
 							$scope.lib.bios[row.id]={}
 							var wid = path.basename(row.links.wikipedia);

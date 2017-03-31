@@ -6,8 +6,9 @@
 const path = require('path');
 
 angular.module('yolk', [
+	require('angular-drag-drop'),
 	'ngRoute',
-	'ngAnimate'
+	'ngAnimate',
 ])
 .config(['$routeProvider','$animateProvider', function ($routeProvider,$animateProvider) {
 
