@@ -211,7 +211,7 @@
 								<div class='icons' ng-click="audio.play(track)">
 									<div class='play icon icon-play'></div>
 								</div>
-								<div class='title' drag-container="true" drag-data="model" on-drag-start="ctl.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
+								<div class='title' drag-container="true" drag-data="track" on-drag-start="ctl.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
 							</div>
 							<div class='below'>
 								<div class='icons'>
@@ -389,7 +389,12 @@
 				<div>Youtube</div>
 			</div>
 			<div id = playlist ng-style="{width:dims.sidebarWidth}">
-				<div id='drop' drop-container></div>
+				<div class='input'>
+					<input ng-model="tracks.playlist.new" type='text' placeholder="Create a playlist" ng-keypress="tracks.addPlaylist(tracks.playlist.new,$event)" />
+				</div>
+				<select name='playlist' id='playlist' ng-model="tracks.playlist.selected" ng-options="option.name for option in tracks.playlist.options track by option.id"></select>
+				<div>{{tracks.playlist.selected.name}}</div>
+				<div id='drop' drop-container on-drop="ctl.onDrop($event, $dragData)"></div>
 			</div>
 			<!--
 			<div class='anchor'

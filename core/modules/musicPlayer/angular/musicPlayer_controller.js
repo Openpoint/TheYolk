@@ -210,7 +210,10 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 
 	$scope.ctl = {
 		handleDragStart:function(event,data){
-			console.log(event)
+
+		},
+		onDrop:function(event,data){
+			console.log(data)
 		}
 	}
 

@@ -13,9 +13,30 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	var tracks = function(scope){
 		$scope = scope;
 		var self = this;
-		this.playlists = {};
+		this.playlist = {
+			options:[
+				{name:'default',id:1},
+				{name:'test',id:2}
+			],
+			selected:{name:'default',id:1}
+		};
+		this.playlists={};
 	}
+	tracks.prototype.addPlaylist = function(playlist,e){
+		var self = this;
+		if(e && e.which !== 13){
+			return;
+		}
+		console.log(playlist)
+		this.playlist.options.push({name:playlist,id:this.playlist.options.length});
+		self.playlist.selected={name:playlist,id:self.playlist.options.length};
+		$timeout(function(){
+			console.log(self.playlist.selected)
 
+		})
+
+		this.playlists[playlist]={}
+	}
 	//find the next playing track
 	tracks.prototype.next = function(){
 		var playing = this.playlists.default.indexOf($scope.lib.playing.id);
