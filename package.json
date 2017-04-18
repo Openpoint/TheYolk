@@ -22,6 +22,7 @@
     "jsmediatags": "^3.2.1",
     "musicmetadata": "^2.0.5",
     "request": "^2.75.0",
+    "sharp": "^0.17.3",
     "smartcrop-sharp": "^1.0.5",
     "tar.gz": "^1.0.5",
     "yauzl": "^2.7.0"

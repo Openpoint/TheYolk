@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>The Yolk</title>
 	<script>
+		console.log(window.location)
         window.$ = window.jQuery = require('jquery');
         const Yolk = {};
 
@@ -23,6 +24,7 @@
 				if(module.controller){
 					require(module.controller)
 				}
+
                 //load the support files
                 ['services','filters','directives'].forEach(function(type){
                     if(module[type] && module[type].length){
@@ -59,26 +61,28 @@
 		Yolk.getModule=function(){
 			var head  = document.getElementsByTagName('head')[0];
 			$('head [id^=inject]').remove();
-			var modname = window.location.hash.split('/')[1];
+
+			var modname = window.location.pathname.split('/')[1];
 			if(!modname){
 				modname = 'boot'
 			}
-            var module = Yolk.modules[modname];
+			console.log(modname)
+	      	var module = Yolk.modules[modname];
 
-            if(module.css && module.css.length){
-                var count = 0;
-                module.css.forEach(function(css){
-                    var link  = document.createElement('link');
-                    link.rel  = 'stylesheet';
-                    link.type = 'text/css';
-                    link.media = 'all';
-                    link.href = css;
-                    link.id='inject'+count;
-                    count++;
-                    head.appendChild(link);
-                })
-            }
-            Yolk.remote('coreprocess')(modname);
+	      if(module.css && module.css.length){
+	          var count = 0;
+	          module.css.forEach(function(css){
+	              var link  = document.createElement('link');
+	              link.rel  = 'stylesheet';
+	              link.type = 'text/css';
+	              link.media = 'all';
+	              link.href = css;
+	              link.id='inject'+count;
+	              count++;
+	              head.appendChild(link);
+	          })
+	      }
+	      Yolk.remote('coreprocess')(modname);
 		}
 
 	</script>
@@ -98,14 +102,14 @@
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);
 		})
-        ipcRenderer.on('json',function(event,data){
+    ipcRenderer.on('json',function(event,data){
             data = JSON.parse(data);
 			console.log(data);
 		})
 		ipcRenderer.on('error',function(event,data){
 			console.error(data);
 		})
-        ipcRenderer.on('warn',function(event,data){
+    ipcRenderer.on('warn',function(event,data){
 			console.warn(data);
 		})
 	</script>

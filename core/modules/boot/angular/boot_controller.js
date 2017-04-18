@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('yolk').controller('boot', [
-'$scope','$timeout','utils',
-function($scope,$timeout,utils) {
+'$scope','$location','$timeout','utils',
+function($scope,$location,$timeout,utils) {
 
 	const mod_name = 'boot';
 
@@ -13,6 +13,7 @@ function($scope,$timeout,utils) {
 	Yolk.remote('dbReady').then(function(){
 		var length = 0;
 		for (var property in Yolk.modules) {
+
 			if (Yolk.modules.hasOwnProperty(property)) {
 				if(Yolk.modules[property].config.db_index){
 					length ++;
@@ -35,7 +36,6 @@ function($scope,$timeout,utils) {
 
 
 	function getSettings(){
-
 		$timeout(function(){
 			$scope.installed.message = 'Loading settings';
 		})
@@ -45,27 +45,26 @@ function($scope,$timeout,utils) {
 		$scope.utils.boot('global').then(function(db){
 
 			var length = 0;
+			var types = [];
 			for (var property in Yolk.modules) {
-
 				if (Yolk.modules.hasOwnProperty(property) && audit(Yolk.modules[property])) {
 					length ++
-					var type = Yolk.modules[property].config.module_name;
-					$scope.utils.settings(type).then(function(data){
-						length --;
-
-						if(data){
-							Yolk.modules[type].config.settings = data;
-
-						}
-						if(length === 0){
-							window.location.assign('#home');
-						}
-					},function(err){
-						console.log(err);
-					});
-
+					types.push(Yolk.modules[property].config.module_name);
 				}
 			}
+			types.forEach(function(type){
+				$scope.utils.settings(type).then(function(data){
+					length --;
+					if(data){
+						Yolk.modules[type].config.settings = data;
+					}
+					if(length === 0){
+						$location.path('/home');
+					}
+				},function(err){
+					console.log(err);
+				});
+			})
 		},function(err){
 			console.log(err);
 		});

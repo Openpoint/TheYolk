@@ -10,7 +10,7 @@ angular.module('yolk', [
 	'ngRoute',
 	'ngAnimate',
 ])
-.config(['$routeProvider','$animateProvider', function ($routeProvider,$animateProvider) {
+.config(['$routeProvider','$locationProvider','$animateProvider', function ($routeProvider,$locationProvider,$animateProvider) {
 
 	$routeProvider.when('/', {
 		templateUrl:path.join(Yolk.root,'core/modules/boot/boot.html')
@@ -20,7 +20,7 @@ angular.module('yolk', [
 	for(var key in Yolk.modules){
 		var module = Yolk.modules[key]
 		if(module.controller && module.html && !module.config.extends){
-
+			console.log(module.name)
 			$routeProvider.when('/'+module.name, {
 				templateUrl:module.html
 			});
@@ -29,4 +29,8 @@ angular.module('yolk', [
 
 	$routeProvider.otherwise({ redirectTo: '/' });
 	$animateProvider.classNameFilter(/ani-/);
+	$locationProvider.html5Mode({
+		enabled: true,
+		requireBase: false
+	});
 }]);
