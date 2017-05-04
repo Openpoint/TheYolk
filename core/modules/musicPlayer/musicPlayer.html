@@ -5,7 +5,7 @@
 
 <div ng-controller="musicPlayer" id='playframe'>
 	<div id='topmen' ng-style="{height:dims.menHeight}">
-			<div class='icon'><span class='yolk'></span><a class='icon-yolk' href='#/home'></a></div>
+			<div class='icon'><span class='yolk'></span><a class='icon-yolk' href='#!/home'></a></div>
 			<div class='item' ng-class="{active:pin.Page==='title'}" ng-click="pin.page('title')">
 				<span>Track</span>
 				<span class='dir'>
@@ -117,7 +117,7 @@
 							<div class='drawerInner ani-fOut' ng-if="lib.drawers[pin.Page][artist.id].state">
 								<div ng-repeat="album in lib.drawers[pin.Page][artist.id].albums" class="album_image" >
 										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
-										<span class='youtube' ng-include ="'core/lib/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
+										<span class='youtube' ng-include="settings.paths.root+'/core/lib/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
 								</div>
 							</div>
 						</div>
@@ -211,7 +211,7 @@
 								<div class='icons' ng-click="audio.play(track)">
 									<div class='play icon icon-play'></div>
 								</div>
-								<div class='title' drag-container="true" drag-data="track" on-drag-start="ctl.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
+								<div class='title' drag-container="true" drag-data="track" on-drag-start="playlist.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
 							</div>
 							<div class='below'>
 								<div class='icons'>
@@ -249,8 +249,8 @@
 						</div>
 						<div class='bottom'></div>
 					</div>
-
 				</div>
+
 			</div>
 			<div id='bottomspacer' ng-style="{height:lazy.trackHeight+lazy.progressHeight}" ng-if="lib.playing.Bottom"></div>
 			<div id='playing' class='track ani-fIn row'
@@ -350,52 +350,65 @@
 					<div class='shadow'></div>
 					<div class='shadow right'></div>
 				</div>
-				<div id='youtube2' class='small'>
-					<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="./core/modules/musicPlayer/lib/tools/youtube.js"></webview>
+				<div id='youtube2' class='small' ng-if="lib.playing.youtube">
+					<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="{{settings.paths.root}}/core/modules/musicPlayer/lib/tools/youtube.js"></webview>
 					<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
 						<div class='icon-fullscreen_out'></div>
 					</div>
 					<div id='shadow'></div>
 				</div>
 			</div>
-			<div class='anchor'
-				ng-click="pin.source('local')"
-				ng-class = "{
-					active:pin.pinned.sources.indexOf('local') > -1,
-					dead:pin.pinned.sources.length === 1
-				}"
-			>
-				<span class='cancel icon-cancel'></span>
-				<div>Local</div>
+			<div class='control'>
+				<div class='title'>Playlists</div>
+				<div class='switch' ng-click="playlist.toggle()"><div class='button' ng-class = "{on:playlist.active,off:!playlist.active}"></div></div>
 			</div>
-			<div class='anchor'
-				ng-click="pin.source('internetarchive')"
-				ng-class = "{
-					active:pin.pinned.sources.indexOf('internetarchive') > -1,
-					dead:pin.pinned.sources.length === 1
-				}"
-			>
-				<span class='cancel icon-cancel'></span>
-				<div>Online</div>
-			</div>
-			<div class='anchor'
-				ng-click="pin.source('youtube')"
-				ng-class = "{
-					active:pin.pinned.sources.indexOf('youtube') > -1,
-					dead:pin.pinned.sources.length === 1
-				}"
-			>
-				<span class='cancel icon-cancel'></span>
-				<div>Youtube</div>
-			</div>
-			<div id = playlist ng-style="{width:dims.sidebarWidth}">
-				<div class='input'>
-					<input ng-model="tracks.playlist.new" type='text' placeholder="Create a playlist" ng-keypress="tracks.addPlaylist(tracks.playlist.new,$event)" />
+			<div id = playlist ng-style="{width:dims.sidebarWidth}" ng-if="playlist.active">
+				<div class='form'>
+					<select name='playlist' id='playlists' ng-model="playlist.selected"  ng-if="playlist.active" ng-change="playlist.change()">
+						<option ng-repeat="option in playlist.options track by option.id"  ng-value="option.id">{{option.name}}</option>
+					</select>
+					<button class='delete' ng-show = "playlist.selected > 1 && playlist.active" ng-click="playlist.deletePlaylist()">Delete active playlist</button>
+					<div class='input' ng-if="playlist.active">
+						<input ng-model="playlist.new" type='text' placeholder="Create or rename a playlist" ng-keypress="playlist.addPlaylist(playlist.new,$event)" />
+					</div>
+					<div class='modify' ng-show='playlist.new'>
+						<button ng-click="playlist.addPlaylist(playlist.new,'add')">Create</button>
+						<div class='spacer' ng-if="playlist.selected > 1"></div>
+						<button ng-show="playlist.selected > 1" ng-click="playlist.renamePlaylist()">Rename</button>
+					</div>
 				</div>
-				<select name='playlist' id='playlist' ng-model="tracks.playlist.selected" ng-options="option.name for option in tracks.playlist.options track by option.id"></select>
-				<div>{{tracks.playlist.selected.name}}</div>
-				<div id='drop' drop-container on-drop="ctl.onDrop($event, $dragData)"></div>
+
 			</div>
+			<div id='sources' ng-if="!playlist.active">
+				<div class='control'>
+					<div class='title'>Local</div>
+					<div class='switch' ng-click="pin.source('local')">
+						<div class='button'	ng-class = "{on:pin.pinned.sources.indexOf('local') > -1,off:pin.pinned.sources.length === 1}"></div>
+					</div>
+				</div>
+				<div class='control'>
+					<div class='title'>Internet Archive</div>
+					<div class='switch' ng-click="pin.source('internetarchive')">
+						<div class='button'	ng-class = "{on:pin.pinned.sources.indexOf('internetarchive') > -1,off:pin.pinned.sources.length === 1}"></div>
+					</div>
+				</div>
+				<div class='control'>
+					<div class='title'>Youtube</div>
+					<div class='switch' ng-click="pin.source('youtube')">
+						<div class='button'	ng-class = "{on:pin.pinned.sources.indexOf('youtube') > -1,off:pin.pinned.sources.length === 1}"></div>
+					</div>
+				</div>
+				<div id='drop' drop-container on-drop="playlist.onDrop($event, $dragData)" ng-if="playlist.selected > 1">
+					<div class='inner'>
+						<div>
+							<div class='text'>Drag and Drop to playlist:</div>
+							<div class='text'>{{playlist.options[playlist.selected].name}}</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
 			<!--
 			<div class='anchor'
 				ng-click="pin.pin('source','torrents')"

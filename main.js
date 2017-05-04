@@ -63,9 +63,10 @@ console.Yolk = {
 
 //if(require('electron-squirrel-startup')) return;
 process.Yolk = {};
-
 const {app, BrowserWindow, webContents, ipcMain} = require('electron');
 const fs=require('fs');
+const http = require('http');
+const Static = require( 'node-static' )
 const path=require('path');
 const Elastic = require('elasticsearch');
 const child = require('child_process');
@@ -76,8 +77,9 @@ const bootloader = require('./core/lib/bootloader.js');
 const ft = require('./core/lib/filetools.js');
 const boot = new bootloader();
 
-const elasticversion = '5.1.1';
-const elasticchecksum = '7351cd29ac9c20592d94bde950f513b5c5bb44d3';
+
+const elasticversion = '5.3.0';
+const elasticchecksum = '9273fdecb2251755887f1234d6cfcc91e44a384d';
 const javaversion = 'jre1.8.0_111';
 var installer;
 var domReady;
@@ -152,17 +154,19 @@ process.Yolk.chrome = function(action){
 }
 process.Yolk.db = require(path.join(boot.root,'core/lib/elasticsearch.js'));
 
+
 //Create the main browser window
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
-
 function createWindow () {
-	win = new BrowserWindow({width: 1200, height: 900, frame: false});
-	win.loadURL(`file://${__dirname}/index.html`);
+	win = new BrowserWindow({width: 1200, height: 900, frame:false, center:true, title:'Yolk',show:false});
+	win.loadURL(`file://${__dirname}/index.html#!/boot`);
 	process.Yolk.win = win;
 	process.Yolk.message = win.webContents;
-
+	win.once('ready-to-show', () => {
+	  win.show()
+	})
 	win.webContents.openDevTools();
 
 	// Emitted when the window is closed.
@@ -170,13 +174,13 @@ function createWindow () {
 		// Dereference the window object, usually you would store windows
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
-
 		win = null;
 		if(os.platform()!=='win32'){
 			if(process.Yolk.elasticsearch){
 				process.Yolk.elasticsearch.stdin.pause();
 				process.Yolk.elasticsearch.kill();
 			}
+			app.quit();
 
 		}else{
 			//console.log('Shutting Down');
@@ -222,11 +226,31 @@ function createWindow () {
 	})
 }
 
-
+/*
+app.on('will-quit',()=>{
+	console.log('will-quit')
+})
+app.on('gpu-process-crashed',()=>{
+	console.log('gpu-process-crashed')
+})
+app.on('window-all-closed',()=>{
+	console.log('window-all-closed')
+})
+app.on('before-quit',()=>{
+	console.log('before-quit')
+})
+app.on('quit',()=>{
+	console.log('quit')
+})
+app.on('gpu-process-crashed',()=>{
+	console.log('gpu-process-crashed')
+})
+*/
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+
 app.on('ready', function(){
 	createWindow();
 	process.Yolk.javahome = path.join(boot.home,'.bin',javaversion);
@@ -251,7 +275,6 @@ app.on('activate', function() {
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
 	createWindow()
-
   }
 })
 
@@ -309,7 +332,6 @@ function install(){
 //Start the elasticsearch server
 
 function elastic(home){
-
 	process.Yolk.storedMesssage = {
 		message:'Loading the database'
 	};

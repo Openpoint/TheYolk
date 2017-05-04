@@ -3,89 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <title>The Yolk</title>
-	<script>
-		console.log(window.location)
-        window.$ = window.jQuery = require('jquery');
-        const Yolk = {};
-
-        $(window).ready(function(){
-
-            Yolk.modules = Yolk.remote('clientReady')();
-            require('angular');
-			require('angular-route');
-			require('angular-animate');
-			require('./core/routing.js');
-            require('angular-drag-drop');
-
-            for(var key in Yolk.modules){
-				var module = Yolk.modules[key];
-
-				//load the controllers
-				if(module.controller){
-					require(module.controller)
-				}
-
-                //load the support files
-                ['services','filters','directives'].forEach(function(type){
-                    if(module[type] && module[type].length){
-    					module[type].forEach(function(service){
-    						try{
-    							require(service)
-    						}
-    						catch(error){
-    							console.error(service+'\n', error)
-    						}
-
-    					})
-    				}
-                })
-			}
-            setTimeout(function(){
-                ipcRenderer.send('domReady');
-            })
-        })
-        const {ipcRenderer} = require('electron');
-        const path = require('path');
-
-
-        Yolk.remote = require('electron').remote.process.Yolk.remote;
-        Yolk.home = Yolk.remote('home');
-        Yolk.root = Yolk.remote('root');
-
-        Yolk.remote('dbReady').then(function(data){
-            Yolk.db = require(path.join(Yolk.root,'core/lib/elasticsearch.js'));
-        })
-		Yolk.fixChrome = function(){
-			$('#chrome').clone().appendTo('#topmen').attr('height','100%');
-		}
-		Yolk.getModule=function(){
-			var head  = document.getElementsByTagName('head')[0];
-			$('head [id^=inject]').remove();
-
-			var modname = window.location.pathname.split('/')[1];
-			if(!modname){
-				modname = 'boot'
-			}
-			console.log(modname)
-	      	var module = Yolk.modules[modname];
-
-	      if(module.css && module.css.length){
-	          var count = 0;
-	          module.css.forEach(function(css){
-	              var link  = document.createElement('link');
-	              link.rel  = 'stylesheet';
-	              link.type = 'text/css';
-	              link.media = 'all';
-	              link.href = css;
-	              link.id='inject'+count;
-	              count++;
-	              head.appendChild(link);
-	          })
-	      }
-	      Yolk.remote('coreprocess')(modname);
-		}
-
-	</script>
+	<script src="index.js"></script>
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/reset.css">
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/style.css">
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/animations.css">
@@ -99,17 +17,18 @@
 	</div>
 	<ng-view></ng-view>
 	<script>
+
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);
 		})
-    ipcRenderer.on('json',function(event,data){
+    	ipcRenderer.on('json',function(event,data){
             data = JSON.parse(data);
 			console.log(data);
 		})
 		ipcRenderer.on('error',function(event,data){
 			console.error(data);
 		})
-    ipcRenderer.on('warn',function(event,data){
+    	ipcRenderer.on('warn',function(event,data){
 			console.warn(data);
 		})
 	</script>

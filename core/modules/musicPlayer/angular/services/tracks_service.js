@@ -13,35 +13,14 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	var tracks = function(scope){
 		$scope = scope;
 		var self = this;
-		this.playlist = {
-			options:[
-				{name:'default',id:1},
-				{name:'test',id:2}
-			],
-			selected:{name:'default',id:1}
-		};
-		this.playlists={};
 	}
-	tracks.prototype.addPlaylist = function(playlist,e){
-		var self = this;
-		if(e && e.which !== 13){
-			return;
-		}
-		console.log(playlist)
-		this.playlist.options.push({name:playlist,id:this.playlist.options.length});
-		self.playlist.selected={name:playlist,id:self.playlist.options.length};
-		$timeout(function(){
-			console.log(self.playlist.selected)
 
-		})
-
-		this.playlists[playlist]={}
-	}
 	//find the next playing track
 	tracks.prototype.next = function(){
-		var playing = this.playlists.default.indexOf($scope.lib.playing.id);
-		var next = this.playlists.default[playing+1] ? playing+1:0;
-		var id = this.playlists.default[next];
+
+		var playing = self.playlist.indexOf($scope.lib.playing.id);
+		var next = self.playlist[playing+1] ? playing+1:0;
+		var id = self.playlist[next];
 		var search = {
 			index:$scope.db_index,
 			type:$scope.pin.pinned.sources.toString(),
@@ -62,8 +41,8 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 	//check if the playing track is contained in the visible list and update the default playlist
 	tracks.prototype.isInFocus = function(){
-		var self = this;
 
+		var self = this;
 		delete $scope.search.activesearch.from;
 		delete $scope.search.activesearch.size;
 		$scope.search.activesearch.body._source = "id";
@@ -72,8 +51,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 				data = data.map(function(id){
 					return id.id;
 				})
-
-				self.playlists.default = data;
+				self.playlist = data;
 				if(data.indexOf($scope.lib.playing.id) > -1){
 					$scope.lib.playing.filter.pos = data.indexOf($scope.lib.playing.id);
 				}else{

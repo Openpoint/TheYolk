@@ -171,14 +171,46 @@ body,html{
 }
 #playlist{
 	position:relative;
+	padding:10px;
+	box-sizing: border-box;
+}
+#playlist .form{
+	margin-bottom:20px;
+	box-sizing: border-box;
+	position:relative;
+	width:100%;
+}
+#playlist .form input, #playlist .form select, #playlist .form button{
+	width:100%;
+	box-sizing: border-box;
+	margin:2px 0;
+	padding:5px;
+}
+#playlist .form button{
+	cursor:pointer;
+}
+#playlist .form .modify{
+	display:flex;
+}
+#playlist .form .spacer{
+	width:10px;
 }
 #drop{
-	border:dashed 3px #E7E7E7;
-	border-radius:12px;
-	width:95%;
+	padding:10px;
+}
+#drop .inner{
+	border:dashed 2px #B3B3B3;
+	color:#B3B3B3;
+	display:flex;
+	justify-content:center;
+	align-items:center;
+	width:100%;
 	height:120px;
-	margin:2.5%;
 	box-sizing:border-box;
+}
+#drop .text{
+	text-align:center;
+	padding:5px;
 }
 #artists .bio{
 	font-size:.7em;
@@ -724,6 +756,7 @@ body,html{
 }
 #youtube-wrap{
 	width:100%;
+	margin-bottom:10px;
 }
 #fullscreen_out{
 	cursor:pointer;
@@ -744,4 +777,42 @@ body,html{
 #bottomspacer{
 	width:100%;
 	visibility:hidden;
+}
+.control{
+	position:relative;
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	height:30px;
+	padding:0 10px;
+	box-sizing: border-box;
+	cursor:default;
+}
+.control  .title{
+	font-weight:600;
+}
+.switch{
+	width:40px;
+	height:16px;
+	border:1px solid black;
+	border-radius:8px;
+	position:relative;
+	z-index:2;
+	background:#E7E7E7;
+	cursor:pointer;
+}
+.switch .button{
+	position:absolute;
+	width:16px;
+	height:16px;
+	left:0;
+	right:auto;
+	background:#B3B3B3;
+	border-radius:50%;
+	z-index:1;
+}
+.switch .button.on{
+	left:auto;
+	right:0;
+	background:lime;
 }

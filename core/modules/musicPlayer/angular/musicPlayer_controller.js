@@ -1,9 +1,8 @@
 'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin',
-function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin) {
-
+'$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin','playlist',
+function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin,playlist) {
 	const mod_name = 'musicPlayer';
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
@@ -19,6 +18,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.db = $scope.utils.db;
 	$scope.audio = new audio($scope);
 	$scope.search = new search($scope);
+	$scope.playlist = new playlist($scope);
 	$scope.pin = new pin($scope);
 	$scope.lazy = new lazy($scope);
 	$scope.tracks = new tracks($scope);
@@ -208,13 +208,6 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		})
 	}
 
-	$scope.ctl = {
-		handleDragStart:function(event,data){
 
-		},
-		onDrop:function(event,data){
-			console.log(data)
-		}
-	}
 
 }])

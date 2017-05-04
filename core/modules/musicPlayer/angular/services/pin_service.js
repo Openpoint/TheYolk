@@ -41,8 +41,9 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		}else{
 			this.pinned.sources.push(name);
 		}
-		$scope.search.go(true);
-
+		$timeout(function(){
+			$scope.search.go(true);
+		})
 	}
 	pin.prototype.pinner = function(name,type){
 		var terms = $scope.tools.terms($scope.searchTerm)
@@ -59,6 +60,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		})
 		newsearch = ((terms.prefix||'')+' '+newsearch).trim();
 		$scope.searchTerm = newsearch
+		
 	}
 	pin.prototype.prefix = function(name){
 		this.pinner(name,'prefix')

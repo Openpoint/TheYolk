@@ -113,6 +113,9 @@ function mapping(){
 				properties:{
 					dis:{type:'string'}
 				}
+			},
+			played:{
+				type:'date'
 			}
 		}
 	}
@@ -139,8 +142,8 @@ function Types(){
 			},
 		},
 		{type:'album',mapping:mapping()},
-		{type:'searches',mapping:{properties:{}}
-		},
+		{type:'playlists',mapping:{properties:{}}},
+		{type:'searches',mapping:{properties:{}}},
 		{type:'release',mapping:{properties:{
 			tracks:{
 				type:'nested',

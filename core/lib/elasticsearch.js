@@ -112,15 +112,18 @@ dbase.prototype.get = function(path){
 dbase.prototype.fetch = function(query){
 	var self = this;
 	return new q(function(resolve,reject){
+
 		self.client.search(query,function(err,data){
 
 			if(!err){
-				var hits = data.hits.hits.map(function(hit){
+				var result = data.hits.hits
+				var libsize = data.hits.total
+				var hits = result.map(function(hit){
 					return hit['_source'];
 				})
 				resolve({
 					items:hits,
-					libsize:data.hits.total
+					libsize:libsize
 					});
 			}else{
 				console.error(err);

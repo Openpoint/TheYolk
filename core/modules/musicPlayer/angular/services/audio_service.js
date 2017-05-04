@@ -77,7 +77,6 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}
 		if(track.type === 'youtube'){
 			var source = track.path+track.file;
-			$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
 		}
 		if(track.type !== 'youtube'){
 			$scope.dims.vidheight = false;
@@ -96,8 +95,14 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			clearTimeout(Progress);
 			$scope.lib.playing = track;
-
-
+			console.log($scope.playlist)
+			if(track.id && $scope.playlist.activelist[1].indexOf(track.id) === -1){
+				$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:{played:Date.now()}}}, function (error, response){
+					if(error) console.error(error)
+				})
+				$scope.playlist.activelist[1].push(track.id);
+				$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
+			}
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
 			$scope.tracks.isInFocus().then(function(){
@@ -107,7 +112,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
-				$scope.lib.playing.embed = false;
+				delete $scope.lib.playing.embed;
 				webView = false;
 
 				self.player.pause();
@@ -120,10 +125,11 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 
 			}else{
+				$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
 				$scope.lib.playing.youtube = true;
-				$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
 				this.player.pause();
 				$scope.lib.playing.state = 'playing';
+
 				$timeout(function(){
 					webView = document.getElementById('youtube');
 					webView.addEventListener('dom-ready', function(e) {
@@ -161,6 +167,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 							}
 						};
 					});
+					$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
 				});
 
 			}
@@ -169,6 +176,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				$scope.lib.playing.ani = true;
 			},2000);
 		}else if(track.type !== 'youtube' || $scope.lib.playing.youtube){
+
 			if($scope.lib.playing.state === 'paused'){
 				$scope.lib.playing.state = 'playing';
 
@@ -181,6 +189,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				$scope.lib.playing.ani = true;
 				this.progress(true);
 			}else{
+
 				$scope.lib.playing.state = 'paused';
 				$scope.lib.playing.ani = false;
 				clearTimeout(Progress);

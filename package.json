@@ -21,6 +21,7 @@
     "jquery.facedetection": "^2.0.2",
     "jsmediatags": "^3.2.1",
     "musicmetadata": "^2.0.5",
+    "node-static": "^0.7.9",
     "request": "^2.75.0",
     "sharp": "^0.17.3",
     "smartcrop-sharp": "^1.0.5",
@@ -28,7 +29,7 @@
     "yauzl": "^2.7.0"
   },
   "devDependencies": {
-    "electron": "^1.4.6",
+    "electron": "^1.6.5",
     "electron-builder": "^8.6.0",
     "electron-rebuild": "^1.4.0",
     "electron-winstaller": "^2.4.1"
