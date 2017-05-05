@@ -207,11 +207,20 @@
 						} "
 						>
 						<div class='inner' ng-if="!track.state">
+							<div ng-if='playlist.active && playlist.selected!==1' class='reorder'>
+								<div ng-show='playlist.reorder && playlist.reorder!==track.id' drop-container on-drop="playlist.onReorder($event, $dragData, track.id)" class='pad'></div>
+							</div>
 							<div class='above'>
 								<div class='icons' ng-click="audio.play(track)">
 									<div class='play icon icon-play'></div>
 								</div>
-								<div class='title' drag-container="true" drag-data="track" on-drag-start="playlist.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
+								<div ng-if="playlist.selected && playlist.selected!==1">
+									<div class='title grab' drag-container="true" drag-data="track" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
+								</div>
+								
+								<div ng-if="playlist.selected==1">
+									<div class='title'>{{::track.metadata.title || track.file}}</div>
+								</div>
 							</div>
 							<div class='below'>
 								<div class='icons'>
@@ -220,25 +229,25 @@
 								<div class='info'>
 									<div class='artist row' ng-if="track.metadata.artist" ng-click="pin.artist(track.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === track.metadata.artist.toLowerCase()}">
 										<span class='cancel icon-cancel'></span>
-										{{track.metadata.artist}}
+										{{::track.metadata.artist}}
 									</div>
 									<div class='row' ng-if='!track.metadata.artist'>
 										[Artist unknown]
 									</div>
 									<div class='album row' ng-if="track.metadata.album"  ng-click="pin.album(track.metadata.album)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === track.metadata.album.toLowerCase()}">
 										<span class='cancel icon-cancel'></span>
-										{{track.metadata.album}}
+										{{::track.metadata.album}}
 									</div>
 									<div class='row' ng-if='!track.metadata.album'>
 										[Album unknown]
 									</div>
 								</div>
 								<div id='widgets'>
-									<div class = "widget"  ng-if="track.deleted === 'no'" ng-click="tracks.delete(track)">
+									<div class = "widget"  ng-if="track.deleted === 'no' && (!playlist.active||(playlist.active && playlist.selected!==1))" ng-click="tracks.delete(track)">
 										<div class='icon-cancel'></div>
 									</div>
 									<div class = "widget" ng-if="track.deleted === 'yes' || pin.Filter==='recent'" ng-click="tracks.undelete(track)">
-										<div>{{utils.dateDiff(false,track.date,'ago')}}&nbsp;&nbsp;</div>
+										<div>{{::utils.dateDiff(false,track.date,'ago')}}&nbsp;&nbsp;</div>
 										<div ng-if="track.deleted === 'yes'" class='icon-tick'></div>
 
 									</div>
@@ -272,13 +281,15 @@
 						width:dims.playwindowWidth - dims.scroller
 					}"
 				>
-
+				<div ng-if='playlist.active && playlist.selected!==1' class='reorder'>
+					<div ng-show='playlist.reorder && playlist.reorder!==lib.playing.id' drop-container on-drop="playlist.onReorder($event, $dragData, lib.playing.id)" class='pad'></div>
+				</div>
 					<div class='above'>
 						<div class='icons' ng-click="audio.play(lib.playing)">
 							<div ng-show="lib.playing.state==='paused'" class='play icon icon-play'></div>
 							<div ng-show="lib.playing.state==='playing'" class='pause icon icon-pause'></div>
 						</div>
-						<div class='title'>{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
+						<div class='title grab' drag-container="true" drag-data="lib.playing" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
 						<div id='seek' ng-if="lib.next">
 							<div class="icon icon-next" ng-click="audio.play(lib.next)" ng-mouseover="lib.nextshow=true" ng-mouseleave="lib.nextshow=false"></div>
 							<div class="icon icon-previous" ng-click="audio.play(lib.previous)" ng-mouseover="lib.prevshow=true" ng-mouseleave="lib.prevshow=false"></div>

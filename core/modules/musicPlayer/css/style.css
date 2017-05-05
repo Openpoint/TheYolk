@@ -166,8 +166,11 @@ body,html{
 	margin-bottom:3px;
 	cursor:pointer;
 }
-#titles .title{
+.grab{
 	cursor:-webkit-grab;
+}
+.grab:hover{
+	color:red;
 }
 #playlist{
 	position:relative;
@@ -815,4 +818,22 @@ body,html{
 	left:auto;
 	right:0;
 	background:lime;
+}
+.track{
+	position:relative;
+}
+.reorder{
+	position:absolute;
+	left:0;
+	bottom:0;
+}
+.reorder .pad{
+	height:40px;
+	width:40px;
+	margin:15px 8px;
+	border:1px dashed #302B22;
+	border-radius:10px;
+}
+#playing .reorder .pad{
+	border-color:white;
 }

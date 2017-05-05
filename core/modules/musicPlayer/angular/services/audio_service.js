@@ -51,6 +51,10 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		this.player.addEventListener('ended', function(){
 			self.next();
 		});
+		this.player.addEventListener('canplay', function(){
+			self.player.play();
+			vidlength = self.player.duration
+		});
 		this.playing = null;
 	}
 	//Play next track
@@ -85,7 +89,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(this.playing !== source){
 
 			this.playing = source;
-			$scope.lazy.refresh($('#playwindow').scrollTop())
+
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
 				$scope.lib.playing.ani = false;
@@ -95,34 +99,32 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			clearTimeout(Progress);
 			$scope.lib.playing = track;
-			console.log($scope.playlist)
+
+
 			if(track.id && $scope.playlist.activelist[1].indexOf(track.id) === -1){
 				$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:{played:Date.now()}}}, function (error, response){
 					if(error) console.error(error)
 				})
-				$scope.playlist.activelist[1].push(track.id);
+				$scope.playlist.activelist[1].push({id:track.id,type:track.type});
 				$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
 			}
+			
+
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
+			/*
 			$scope.tracks.isInFocus().then(function(){
 				$scope.tracks.next();
 			})
-
+			*/
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
 				delete $scope.lib.playing.embed;
 				webView = false;
 
-				self.player.pause();
+				this.player.pause();
 				this.player.src = source;
-				this.player.addEventListener('canplay', function(){
-					self.player.play();
-					vidlength = self.player.duration
-				});
-
-
 
 			}else{
 				$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
@@ -172,6 +174,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			}
 			this.progress(true,true);
+
 			$timeout(function(){
 				$scope.lib.playing.ani = true;
 			},2000);
@@ -200,6 +203,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				}
 			}
 		}
+		$scope.lazy.refresh($('#playwindow').scrollTop())
 	}
 
 	//seek in the track

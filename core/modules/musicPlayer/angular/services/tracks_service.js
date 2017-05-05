@@ -17,7 +17,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 	//find the next playing track
 	tracks.prototype.next = function(){
-
+return;
 		var playing = self.playlist.indexOf($scope.lib.playing.id);
 		var next = self.playlist[playing+1] ? playing+1:0;
 		var id = self.playlist[next];
@@ -51,7 +51,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 				data = data.map(function(id){
 					return id.id;
 				})
-				self.playlist = data;
+
 				if(data.indexOf($scope.lib.playing.id) > -1){
 					$scope.lib.playing.filter.pos = data.indexOf($scope.lib.playing.id);
 				}else{
@@ -100,7 +100,10 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	}
 	//delete a track
 	tracks.prototype.delete = function(track,playing,bulk){
-		console.log(track)
+		if($scope.playlist.active){
+			$scope.playlist.remove(track.id)
+			return;
+		}
 		var id = track.id;
 		if(track.name) var type = 'artist';
 

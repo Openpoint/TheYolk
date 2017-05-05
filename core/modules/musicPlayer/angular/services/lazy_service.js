@@ -33,6 +33,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		}
 		this.step(top);
 		this.getPos();
+
 	}
 
 	lazy.prototype.scroll = function(){
