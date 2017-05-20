@@ -172,10 +172,12 @@ classical.prototype.get = function(info){
 			}
 		}
 	}
+
     elastic.fetchAll({index:db_index,type:'classical',body:{query:{match:{name:{query:whole,operator:'or'}}}}}).then(function(data){
         if(!data.length){
             if(log) console.Yolk.say('REJECTED ----------------- No composer found');
             if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+			//console.Yolk.warn(info.id)
             message.send('classical_'+info.id,false);
             return;
         }
@@ -216,6 +218,7 @@ classical.prototype.get = function(info){
         if(!info.classical.composer){
             if(log) console.Yolk.say('REJECTED ----------------- No composer found');
             if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+			//console.Yolk.warn(info.id)
             message.send('classical_'+info.id,false);
             return;
         }
@@ -245,11 +248,13 @@ classical.prototype.get = function(info){
         if(!info.classical.types && !info.classical.op && !info.classical.cat && !info.classical.key){
             if(log) console.Yolk.say('REJECTED ----------------- Not enough information found');
             if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+			//console.Yolk.warn(info.id)
             message.send('classical_'+info.id,false);
             return;
         }
         if(log) console.Yolk.say(info.classical);
         if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
+		//console.Yolk.warn(info.id)
         message.send('classical_'+info.id,info)
         return;
     })
@@ -310,6 +315,7 @@ classical.prototype.divider = function(title,op){
 var divider = ['act','symphony','sinfonía','symphonie','sinfonie','variation','variatio','sonata','sonate','triosonata','suite','concerto','ballade','balada','walzer','waltz','scherzo','poloneise','impromptu','mvt','op','in'];
 
 ipcMain.on('musicbrainz_classical', function(event, track) {
+	//console.Yolk.warn(track.id)
 	Classical.get(track);
 })
 ipcMain.on('kill', function(event,data) {

@@ -1,12 +1,51 @@
 angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce) {
 	const path = require('path');
 	const {ipcRenderer} = require('electron');
-	var webView;
 	var vidlength;
 	var vidprogress;
 	var vidratio;
-
 	var fadetimer;
+	var $scope;
+
+	var webView = document.getElementById('youtube');
+
+	webView.addEventListener('dom-ready', function(e) {
+		//webView.openDevTools();
+	})
+	webView.addEventListener('ipc-message',function(event){
+		if(event.channel === 'media'){
+			switch (event.args[0]) {
+				case 'ratio':
+					vidratio = event.args[1];
+					$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
+					$scope.$apply();
+				break;
+				case 'vidready':
+					$scope.lib.playing.youtube=true;
+					vidlength = event.args[1];
+
+				break;
+				case 'next':
+					self.next();
+				break;
+				case 'time':
+					if($scope.audio.buffering) $scope.audio.buffering = false;
+					vidprogress = event.args[1];
+				break;
+				case 'play':
+					$scope.lib.playing.state = 'playing';
+					$scope.$apply();
+				break;
+				case 'pause':
+					$scope.lib.playing.state = 'paused';
+					$scope.lib.playing.ani = false;
+					$scope.$apply();
+					clearTimeout(Progress);
+				break;
+			}
+		};
+	});
+
 	function fadein(){
 		clearTimeout(fadetimer);
 		$('#fullscreen_out').show();
@@ -17,9 +56,6 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	function fadeout(){
 		$('#fullscreen_out').hide();
 	};
-
-
-	var $scope;
 
 	//create the audio player object
 	var audio = function(scope){
@@ -48,12 +84,23 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}
 		var self = this;
 		this.player = new Audio();
+		this.player.preload = 'auto';
 		this.player.addEventListener('ended', function(){
 			self.next();
 		});
 		this.player.addEventListener('canplay', function(){
-			self.player.play();
-			vidlength = self.player.duration
+			$timeout(function(){
+				self.buffering=false;
+				if($scope.lib.playing.state !== 'paused'){
+					self.player.play();
+					vidlength = self.player.duration
+				}
+			})
+		});
+		this.player.addEventListener('error', function(){
+			$timeout(function(){
+				self.error = true;
+			})
 		});
 		this.playing = null;
 	}
@@ -64,15 +111,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 
 	//Play a track
-
 	audio.prototype.play = function(track){
 		var self = this;
-		$scope.lib.next = false;
-		$scope.lib.nextshow =false;
-		$scope.lib.prevshow =false;
-
-
-
+		
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
@@ -88,97 +129,63 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 		if(this.playing !== source){
 
-			this.playing = source;
+			webView.send('media','pause');
+			webView.send('media','hide');
+			this.player.pause();
+			this.buffering=true;
+			this.error = false;
 
+			this.playing = source;
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
 				$scope.lib.playing.ani = false;
+				$scope.lib.previous = $scope.lib.playing;
 			}
-
 			vidprogress = 0;
-
 			clearTimeout(Progress);
 			$scope.lib.playing = track;
 
+			//Add playing track to the recently played playlist
+			if(!$scope.playlist.active || $scope.playlist.selected !== 1){
 
-			if(track.id && $scope.playlist.activelist[1].indexOf(track.id) === -1){
 				$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:{played:Date.now()}}}, function (error, response){
-					if(error) console.error(error)
+					if(error) console.error(error);
+					var pos = -1;
+					$scope.playlist.activelist[1].some(function(t,index){
+						if (t.id === track.id){
+							pos = index;
+							return true;
+						}
+					})
+					if(pos === -1){
+						$scope.playlist.activelist[1].unshift({id:track.id,type:track.type});
+					}else{
+						$scope.playlist.activelist[1].splice(pos, 1);
+						$scope.playlist.activelist[1].unshift({id:track.id,type:track.type});
+					}
+					$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
 				})
-				$scope.playlist.activelist[1].push({id:track.id,type:track.type});
-				$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
 			}
-			
-
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
-			/*
-			$scope.tracks.isInFocus().then(function(){
-				$scope.tracks.next();
-			})
-			*/
+			$scope.tracks.isInFocus();
+			$scope.tracks.next();
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
-				delete $scope.lib.playing.embed;
-				webView = false;
-
-				this.player.pause();
 				this.player.src = source;
-
 			}else{
 				$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
 				$scope.lib.playing.youtube = true;
-				this.player.pause();
 				$scope.lib.playing.state = 'playing';
-
-				$timeout(function(){
-					webView = document.getElementById('youtube');
-					webView.addEventListener('dom-ready', function(e) {
-						//webView.openDevTools();
-					})
-					webView.addEventListener('ipc-message',function(event){
-						if(event.channel === 'media'){
-							switch (event.args[0]) {
-								case 'ratio':
-									vidratio = event.args[1];
-									$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
-									$scope.$apply();
-								break;
-								case 'vidready':
-									$scope.lib.playing.youtube=true;
-									vidlength = event.args[1];
-
-								break;
-								case 'next':
-									self.next();
-								break;
-								case 'time':
-									vidprogress = event.args[1];
-								break;
-								case 'play':
-									$scope.lib.playing.state = 'playing';
-									$scope.$apply();
-								break;
-								case 'pause':
-									$scope.lib.playing.state = 'paused';
-									$scope.lib.playing.ani = false;
-									$scope.$apply();
-									clearTimeout(Progress);
-								break;
-							}
-						};
-					});
-					$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
-				});
-
+				$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
 			}
 			this.progress(true,true);
 
 			$timeout(function(){
 				$scope.lib.playing.ani = true;
 			},2000);
-		}else if(track.type !== 'youtube' || $scope.lib.playing.youtube){
+		}else{
 
 			if($scope.lib.playing.state === 'paused'){
 				$scope.lib.playing.state = 'playing';
@@ -210,7 +217,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	audio.prototype.seek=function(event){
 		clearTimeout(Progress);
 		$scope.lib.playing.ani = false;
-		vidprogress= vidlength*(event.offsetX/$(event.target).width());
+		vidprogress= vidlength*(event.offsetX/$scope.dims.playwindowWidth);
 		if($scope.lib.playing.youtube){
 			webView.send('media','seek',vidprogress);
 		}else{
@@ -234,7 +241,12 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}
 		if(!$scope.lib.playing.youtube){
 			vidprogress = this.player.currentTime
-			vidlength = this.player.duration
+			vidlength = this.player.duration;
+			if (this.player.readyState === 4){
+				//console.log(vidlength)
+				//console.log(this.player.buffered.start(this.player.buffered.length-1))
+				//console.log(this.player.seekable.end(this.player.seekable.length-1))
+			}
 		}
 
 		$('#playing .progress').css({

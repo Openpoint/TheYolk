@@ -26,8 +26,9 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
-	$scope.countries = require(path.join(Yolk.root,'core/modules/musicPlayer/lib/tools/countries.json'));
+	$scope.countries = require('../lib/tools/countries.json');
 	$scope.tools = require('../lib/tools/searchtools.js');
+	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.Sort = {};
 
 	$scope.dims.update();
@@ -52,7 +53,6 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			$scope.settings_loaded = true;
 		})
 	});
-
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
 		//console.log('close');
@@ -62,9 +62,13 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.imagePath=function(type,id){
 		if(type && id){
 			var Path = path.join($scope.settings.paths[type],id,'thumb.jpg');
-			return Path;
+			if($scope.ft.isThere('file',Path)){
+				return Path;
+			}else{
+				return 'core/modules/musicPlayer/images/noImage.svg';
+			}
 		}else{
-			return false;
+			return 'core/modules/musicPlayer/images/noImage.svg';
 		}
 
 	}
@@ -88,14 +92,14 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	}
 
 
-	var refresh_time = false;
+	$scope.refresh_time = false;
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			clearTimeout(refresh_time);
-			refresh_time = setTimeout(function(){
+			clearTimeout($scope.refresh_time);
+			$scope.refresh_time = setTimeout(function(){
 				$scope.tracks.refreshDrawers();
 				$scope.search.go(true);
-			},999)
+			},3000)
 		});
 	}
 	if(!ipcRenderer._events.progress){

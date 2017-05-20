@@ -1,7 +1,6 @@
 body,html{
 	position:relative;
 	height:100%;
-	font-family:sans-serif;
 	background:#302B22;
 }
 #playframe{
@@ -20,7 +19,17 @@ body,html{
 	-webkit-app-region: drag;
 	-webkit-user-select: none;
 }
-#topmen *{
+#topmen .inner, #topmen .right, #topmen .left{
+	display:flex;
+	flex-direction:row;
+	align-items:center;
+	justify-content:space-between;
+}
+
+#topmen .right{
+	padding-right:8px;
+}
+#topmen .inner *{
 	-webkit-app-region: no-drag;
 }
 #topmen a{
@@ -28,15 +37,15 @@ body,html{
 	position:relative;
 	text-decoration:none;
 }
-#topmen .yolk{
-	display:block;
-	position:absolute;
-	height:18px;
-	width:22px;
-	left:18px;
-	top:3px;
-	border-radius:50%;
-	background:darkorange;
+#yolk_icon{
+	width:58%;
+	height:auto;
+}
+#yolk_icon .white{
+	fill:white!important;
+}
+#yolk_icon .yellow{
+	fill:DarkOrange!important;
 }
 #topmen .icon, #search .cancel{
 	width:50px;
@@ -50,11 +59,10 @@ body,html{
 	padding:0;
 	text-align:right;
 	width:38px;
-}
-#search .icon-cancel{
 	color:tomato;
 	font-size:18px;
 }
+
 #topmen .item{
 	font-size:14px;
 	cursor:pointer;
@@ -65,7 +73,7 @@ body,html{
 #topmen .item.sort{
 	margin-right:10px;
 	opacity:.75;
-	font-weight:normal;
+
 }
 #topmen .item.active.sort{
 	opacity:1;
@@ -74,8 +82,9 @@ body,html{
 	color:darkorange;
 }
 #topmen .dir{
-	width:25px;
-	text-align:left;
+	width:15px;
+	margin-right:10px;
+	text-align:center;
 }
 
 #playwindow{
@@ -172,10 +181,33 @@ body,html{
 .grab:hover{
 	color:red;
 }
-#playlist{
+#filters .inner{
+	display:flex;
+	flex-direction:row;
+}
+#filters .item{
+	width:50%;
+	border:1px solid tomato;
+	text-align:center;
+	color:tomato;
+	margin:2px;
+	cursor:pointer;
+	padding:10px 0;
+	box-shadow: 1px 1px 3px 0px rgba(0,0,0,0.42);
+}
+#filters .item.active{
+	background:tomato;
+	color:white;
+	font-weight:bold;
+	box-shadow: inset 2px 2px 5px 0px rgba(0,0,0,0.42);
+}
+#playlist,#filters{
 	position:relative;
 	padding:10px;
 	box-sizing: border-box;
+}
+#filters{
+	padding:8px;
 }
 #playlist .form{
 	margin-bottom:20px;
@@ -246,14 +278,15 @@ body,html{
 	line-height:1.5em;
 }
 #albums .heading{
-	border-bottom:1px solid white;
+	border-bottom:1px solid black;
 	margin-bottom:15px;
-	font-size:.75em;
-	font-weight:bold;
+	font-size:.85em;
+	font-family:'Roboto';
+	font-weight:700;
 	line-height:2em;
 }
 #albums .track{
-	opacity:.25;
+	opacity:.5;
 	padding-bottom:5px;
 }
 #albums .number{
@@ -300,6 +333,10 @@ body,html{
 .track .play{
 	opacity:.25;
 	transition:opacity .5s;
+
+}
+.play .in{
+	margin-left:.08em;
 }
 .track .play:hover{
 	opacity: .8;
@@ -309,8 +346,12 @@ body,html{
 	opacity:1;
 
 }
+.row{
+	text-transform: capitalize;
+}
 .row .title{
-	font-weight:600;
+	font-family:'Roboto';
+	font-weight:700;
 	position:relative;
 }
 .nothing .title{
@@ -320,8 +361,7 @@ body,html{
 	margin-left:10px;
 	cursor:pointer;
 }
-.row .info .artist,
-.row .info .album{
+.row .hover{
 	cursor:pointer;
 }
 .info .row{
@@ -357,16 +397,15 @@ body,html{
 	overflow:hidden;
 	width:100%;
 	transition:.5s linear height;
-	background:#302B22;
-	color:white;
-
+	background:tomato;
+	color:black;
 }
 .nothing{
 	display:flex;
 	flex-direction:row;
 	align-items:center;
 }
-#playing .play.icon{
+#playing .play{
 	color:Tomato;
 }
 
@@ -411,6 +450,7 @@ body,html{
 	padding:0 30px 0 5px;
 	cursor:pointer;
 	text-align:center;
+	font-size:40px;
 }
 .track .below .icons{
 	font-size:40px;
@@ -438,6 +478,11 @@ body,html{
 	flex-direction:row;
 	align-items:center;
 }
+#widgets .widget.error{
+	opacity:1;
+	color:red;
+}
+
 #widgets div:hover{
 	opacity:1;
 }
@@ -468,23 +513,22 @@ body,html{
 }
 */
 #seek{
-
 	color:tomato;
-	font-size:.95em;
 	opacity:.85;
+	display:flex;
+	flex-grow:1;
+}
+#seek .inside{
 	display:flex;
 	flex-direction:row-reverse;
 	align-items:center;
 	flex-grow:1;
 }
 #seek .icon{
-	font-size:1.5em;
 	cursor:pointer;
+	padding:0 5px;
 }
 
-.track .above .icon{
-	font-size:45px;
-}
 .track.playing .Top,
 .track.paused .Top{
 	position:fixed;
@@ -509,14 +553,28 @@ body,html{
 	position:relative;
 	width:100%;
 	background:rgba(0,0,0,.3);
-	cursor:wait;
+	cursor:e-resize;
+}
+.track .progressBar.error{
+	background:red;
+}
+.track .buffer{
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+	background-image:url('buffer.gif');
+	opacity:.3;
 }
 .track .progress{
 	height:100%;
-	pointer-events: none;
 	background:lime;
 	width:0;
 	transition:width 2s linear;
+	cursor:w-resize;
+	position:relative;
+	z-index:2;
 }
 .track .progress.noAni{
 	transition:none!important;
@@ -528,15 +586,16 @@ body,html{
 #search{
 	position:relative;
 	display:flex;
-	flex-direction:row;
-	align-items:center;
 	background:white;
 	border-bottom:1px solid #302B22;
 
 }
+
 #search .left{
-	width:80px;
-	height:100%;
+	display:flex;
+	flex-direction:row;
+	align-items:center;
+	flex-grow:1;
 }
 #search .right{
 	display:flex;
@@ -591,7 +650,7 @@ body,html{
 #search .icon .front{
 	color:#302B22;
 	opacity:.4;
-	font-size:25px;
+	font-size:20px;
 	position:relative;
 	z-index:2;
 }
@@ -599,17 +658,17 @@ body,html{
 	width:25px;
 	height:25px;
 	background:lime;
-	box-shadow: 0px 0px 35px 5px rgba(0,255,0,0.85);
+	box-shadow: 0px 0px 25px 2px rgba(0,255,0,0.85);
 	border-radius:50%;
 	position:absolute;
 	top:0;
-	left:0;
+	left:-3px;
 }
 #search .icon.search{
 	position:relative;
 	width:25px;
 	height:25px;
-	margin-left:17px;
+	margin-left:20px;
 }
 
 #search .icon.active .front{
@@ -626,14 +685,13 @@ body,html{
 }
 #search input{
 	height:100%;
+	width:100%;
 	display:block;
 	margin:0;
 	margin-left:5px;
 	border:none;
 	box-sizing:border-box;
 	font-size:15px;
-	min-width:50px;
-	width:100px;
 }
 #search .hide{
 	position:absolute;
@@ -641,6 +699,11 @@ body,html{
 }
 #search input:focus {
     outline-width: 0;
+}
+#search .leftspace{
+	display:flex;
+	width:80px;
+	align-items:center;
 }
 .anchor{
 	cursor:pointer;
@@ -682,6 +745,7 @@ body,html{
 #devinfo{
 	background:rgba(0,0,0,.75);
 	color:white;
+	text-transform:none;
 	font-family:monospace;
 	position:absolute;
 	top:100%;
@@ -744,7 +808,7 @@ body,html{
 	height:100%;
 	display:block;
 	float:left;
-
+	background:#302B22;
 }
 .novid .meta .shadow{
 	position:absolute;
@@ -810,14 +874,19 @@ body,html{
 	height:16px;
 	left:0;
 	right:auto;
-	background:#B3B3B3;
+	background:grey;
 	border-radius:50%;
 	z-index:1;
+	box-shadow: 2px 0 5px 0px rgba(0,0,0,0.42);
 }
 .switch .button.on{
+	width:16px;
+	height:16px;
+	border:none;
 	left:auto;
 	right:0;
 	background:lime;
+	box-shadow: -2px 0 5px 0px rgba(0,0,0,0.42);
 }
 .track{
 	position:relative;

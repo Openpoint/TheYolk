@@ -25,6 +25,7 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 	//Initiate the youtube search
 	youtube.prototype.search = function(term){
+		return;
 		var terms = $scope.tools.terms(term);
 		var Term = terms.prefix||'';
 		if(terms.artist) Term +=' '+terms.artist;
@@ -472,7 +473,6 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 		}
 
 		var Query = tools.extquery(this.term,'yt')
-
 		$scope.db.fetchAll({index:$scope.db_index,type:'youtubesearch',body:{query:Query}}).then(function(data){
 
 			data = data.sort(function(a,b){

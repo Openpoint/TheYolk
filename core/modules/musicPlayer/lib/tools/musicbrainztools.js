@@ -435,6 +435,7 @@ mbtools.prototype.saveMeta = function(track,body,albums){
     })
 }
 mbtools.prototype.fixAlbums = function(albums){
+	return;
     var self = this.Albums;
     var allAlbums;
     var allTracks;
@@ -478,6 +479,7 @@ mbtools.prototype.Albums = {
         })
         var query = tools.wrap.bool([{should:query}]);
         return new q(function(resolve,reject){
+			console.Yolk.log('get albums')
             elastic.fetchAll({index:db_index,type:'album',body:{query:query}}).then(function(data){
                 resolve(data);
             })
@@ -493,6 +495,7 @@ mbtools.prototype.Albums = {
                 {should:query},{must:[{match:{deleted:{query:'no',type:'phrase'}}}]}
             ]);
             if(log) console.Yolk.log(query)
+			console.Yolk.log('get tracks')
             elastic.fetchAll({index:db_index,type:'internetarchive,local',body:{query:query}}).then(function(tracks){
                 resolve(tracks);
             },function(err){

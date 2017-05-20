@@ -181,10 +181,10 @@ dbase.prototype.findPos = function(index,types,query,flags,id){
 
 dbase.prototype.fetchAll = function(query){
 	var self = this;
-	query.scroll = '1m';
-	query.size = 1000;
 
 	return new q(function(resolve,reject){
+		query.scroll = '30s';
+		query.size = 1000;
 		var all = [];
 		var len = 0;
 		self.client.search(query,function getMore(err,data){
@@ -201,15 +201,18 @@ dbase.prototype.fetchAll = function(query){
 					}
 					len++;
 				});
-				if(data.hits.total !== len){
+				if(data.hits.total!==len){
 					self.client.scroll({
-						scrollId: data._scroll_id,
-						scroll: '1m'
+						scrollId:data._scroll_id,
+						scroll:'30s',
+						body:{}
 					},getMore);
 				}else{
+					self.client.clearScroll(data._scroll_id)
 					resolve(all);
 				}
 			}else{
+				self.client.clearScroll(data._scroll_id)
 				reject(err);
 			}
 		});

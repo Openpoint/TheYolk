@@ -17,10 +17,17 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 
 	//find the next playing track
 	tracks.prototype.next = function(){
-return;
-		var playing = self.playlist.indexOf($scope.lib.playing.id);
-		var next = self.playlist[playing+1] ? playing+1:0;
-		var id = self.playlist[next];
+		if(!$scope.lib.playing) return;
+		if($scope.playlist.active){
+			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item){
+				return item.id;
+			})
+		}else{
+			all = this.all;
+		}
+		var playing = all.indexOf($scope.lib.playing.id);
+		var next = all[playing+1] ? playing+1:0;
+		var id = all[next];
 		var search = {
 			index:$scope.db_index,
 			type:$scope.pin.pinned.sources.toString(),
@@ -33,7 +40,10 @@ return;
 		}
 		if(id) $scope.db.fetch(search).then(function(data){
 			data.items[0].filter.pos = next;
-			$scope.lib.next = data.items[0]
+			$timeout(function(){
+				$scope.lib.next = data.items[0]
+			})
+
 		},function(err){
 			console.error(err);
 		})
@@ -41,28 +51,26 @@ return;
 
 	//check if the playing track is contained in the visible list and update the default playlist
 	tracks.prototype.isInFocus = function(){
-
+		if(!$scope.lib.playing) return;
 		var self = this;
-		delete $scope.search.activesearch.from;
-		delete $scope.search.activesearch.size;
-		$scope.search.activesearch.body._source = "id";
-		return new Q(function(resolve,reject){
-			$scope.db.fetchAll($scope.search.activesearch).then(function(data){
-				data = data.map(function(id){
-					return id.id;
-				})
-
-				if(data.indexOf($scope.lib.playing.id) > -1){
-					$scope.lib.playing.filter.pos = data.indexOf($scope.lib.playing.id);
-				}else{
-					$scope.lib.playing.filter.pos = -1;
-					self.next();
-				}
-				resolve(true);
-			},function(err){
-				reject(err);
+		if($scope.playlist.active){
+			console.log($scope.playlist.activelist[$scope.playlist.selected])
+			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item){
+				return item.id;
 			})
+		}else{
+			all = this.all;
+		}
+		//console.log('In Focus : '+all.length)
+		$timeout(function(){
+			if(all.indexOf($scope.lib.playing.id) > -1){
+				$scope.lib.playing.filter.pos = all.indexOf($scope.lib.playing.id);
+			}else{
+				$scope.lib.playing.filter.pos = -1;
+				self.next();
+			}
 		})
+
 	}
 
 	//set the padding in the playwindow
@@ -134,6 +142,7 @@ return;
 				]}])
 				var types='local,youtube,internetarchive,album'
 			}
+			console.log('delete a track')
 			$scope.db.fetchAll({index:$scope.db_index,type:types,body:{query:query}}).then(function(data){
 				if(!data.length) return;
 				var bulk=[];
@@ -146,7 +155,6 @@ return;
 				})
 				$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
 					if(err) console.error(err)
-
 					if(type === 'album' && artists.length){
 						artists.forEach(function(artist){
 							self.deleteArtist(artist);
@@ -218,6 +226,7 @@ return;
 				{match:{artist:{query:track.id,type:'phrase'}}},
 				{match:{bulk:{query:'yes',type:'phrase'}}}
 			]}])
+			console.log('delete a track')
 			$scope.db.fetchAll({index:$scope.db_index,type:'local,youtube,internetarchive',body:{query:query}}).then(function(data){
 				if(!data.length) return;
 				var bulk=[]
@@ -268,6 +277,7 @@ return;
 				index:$scope.db_index,
 				type:[index],
 			}
+			console.log('checklocal')
 			$scope.db.fetchAll(query).then(function(data){
 				console.log(data)
 				ipcRenderer.send('verify', {
@@ -455,7 +465,7 @@ return;
 						})
 
 					})
-
+					console.log('drawer')
 					$scope.db.fetchAll(body).then(function(data){
 						data.forEach(function(track){
 							if(!$scope.lib.drawers[$scope.pin.Page][row.id].tracks[track.musicbrainz_id]){
@@ -477,6 +487,5 @@ return;
 			$scope.lib.drawers.album[key].refresh = true;
 		})
 	}
-
 	return tracks;
 }])

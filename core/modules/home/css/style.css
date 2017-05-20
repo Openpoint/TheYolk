@@ -4,7 +4,6 @@ body,html{
 	height:100%;
 	background:#302B22;
 	color:white;
-	font-family:sans-serif;
 	-webkit-app-region: drag;
 	-webkit-user-select: none;
 }
@@ -16,7 +15,7 @@ body,html{
 	flex-direction:column;
 	justify-content:center;
 	align-items:center;
-	align-content:stretch;	
+	align-content:stretch;
 }
 #full *{
 	-webkit-app-region: no-drag;

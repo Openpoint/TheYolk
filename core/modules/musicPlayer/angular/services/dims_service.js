@@ -17,7 +17,9 @@ angular.module('yolk').factory('dims',['$timeout',function($timeout) {
 	}
 
 	$(window).resize(function(){
-		$scope.dims.update();
+		$timeout(function(){
+			$scope.dims.update();
+		})		
 	});
 
 	return dims;

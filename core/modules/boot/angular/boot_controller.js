@@ -3,10 +3,7 @@
 angular.module('yolk').controller('boot', [
 '$scope','$location','$timeout','utils',
 function($scope,$location,$timeout,utils) {
-	console.log(window.location.href+' : '+window.location.pathname)
-
 	const mod_name = 'boot';
-
 	$scope.installed = {};
 	$scope.installed.message = "";
 	$scope.installed.progress = "";

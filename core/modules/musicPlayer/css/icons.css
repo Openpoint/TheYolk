@@ -1,9 +1,9 @@
 @font-face {
   font-family: 'yolk';
   src:
-    url('fonts/yolk.ttf?3n6lum') format('truetype'),
-    url('fonts/yolk.woff?3n6lum') format('woff'),
-    url('fonts/yolk.svg?3n6lum#yolk') format('svg');
+    url('icons/fonts/yolk.ttf?3n6lum') format('truetype'),
+    url('icons/fonts/yolk.woff?3n6lum') format('woff'),
+    url('icons/fonts/yolk.svg?3n6lum#yolk') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -98,4 +98,3 @@
 .icon-youtube:before {
   content: "\e915";
 }
-

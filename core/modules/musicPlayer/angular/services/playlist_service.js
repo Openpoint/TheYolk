@@ -12,20 +12,17 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			type:'playlists',
 			id:0
 		},function(error,response){
-
+			self.active = false;
+			self.selected = 1;
+			self.new = null;
 			if(response._source){
-				self.active = false;
 				self.options = response._source.options;
 				self.unique = response._source.unique;
-				self.selected = 1;
-				self.new = null;
 				self.activelist = {1:[]};
 			}else{
 				self.active = false;
 				self.options = [{id:1,name:'Recently Played'}];
 				self.unique = 2;
-				self.selected = 1;
-				self.new = null;
 				self.activelist = {1:[]};
 				self.updatePlaylist(0);
 				self.updatePlaylist(1,[]);
@@ -39,6 +36,9 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			$scope.search.go(true)
 			return;
 		}
+		if($scope.pin.Page!=='title'){
+			$scope.pin.Page ='title'
+		}
 		if(!this.activelist[this.selected]||!this.activelist[this.selected].length) {
 			this.change()
 		}else{
@@ -47,6 +47,12 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 	}
 	playlist.prototype.change = function(){
 		var self = this;
+		this.options.some(function(opt){
+			if (opt.id === self.selected){
+				self.name = opt.name;
+				return true;
+			}
+		})
 		$scope.db.client.get({index:$scope.db_index,type:'playlists',id:this.selected},function(error,data){
 			if(error){
 				console.error(error);
@@ -172,14 +178,19 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 	playlist.prototype.positions=function(update){
 		var self = this;
 		var count = 0;
+		var bulk = [];
 		this.activelist[this.selected].forEach(function(track,index){
 			var doc = {};
 			doc["playlist"+self.selected] = index;
-			$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:doc}},function(err,data){
-				if(err) console.error(err)
-				count++
-				if(update && count===self.activelist[self.selected].length) $scope.search.go(true)
-			})
+			bulk.push({update:{_index:$scope.db_index,_type:track.type,_id:track.id}})
+			bulk.push({doc:doc});
+		});
+		$scope.db.client.bulk({body:bulk,refresh:true},function(err){
+			if(err){
+				console.error(err);
+				return;
+			}
+			$scope.search.go(true);
 		})
 	}
 	return playlist;

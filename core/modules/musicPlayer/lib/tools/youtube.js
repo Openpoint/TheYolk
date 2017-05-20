@@ -1,5 +1,6 @@
 var sender;
 const {ipcRenderer} = require('electron');
+const shell = require('electron').shell;
 var video;
 var remote=true;
 
@@ -9,9 +10,14 @@ function timer(){
 		timer();
 	},1000);
 }
-
-window.addEventListener("load",function(){
+document.addEventListener("DOMContentLoaded",function(){
 	window.$ = window.jQuery = require('jquery');
+	$('body').hide()
+})
+window.addEventListener("load",function(){
+
+	$($('video').parent().parent()).children().not($('video').parent()).hide()
+	$('body').show()
 	video = $('video')[0];
 	video.addEventListener('loadedmetadata', function(){
 		var ratio = video.videoHeight/video.videoWidth;
@@ -57,6 +63,8 @@ ipcRenderer.on('media',function(send,mess,time){
 		case 'seek':
 			video.currentTime = time;
 		break;
-
+		case 'hide':
+			$('body').hide()
+		break;
 	}
 });
