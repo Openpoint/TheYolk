@@ -29,9 +29,9 @@
     "yauzl": "^2.7.0"
   },
   "devDependencies": {
-    "electron": "^1.6.5",
+    "electron": "^1.6.8",
     "electron-builder": "^8.6.0",
-    "electron-rebuild": "^1.4.0",
+    "electron-rebuild": "^1.5.11",
     "electron-winstaller": "^2.4.1"
   },
   "build": {

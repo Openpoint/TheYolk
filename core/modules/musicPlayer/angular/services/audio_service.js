@@ -10,14 +10,13 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	var webView = document.getElementById('youtube');
 
 	webView.addEventListener('dom-ready', function(e) {
-		//webView.openDevTools();
+		webView.openDevTools();
 	})
 	webView.addEventListener('ipc-message',function(event){
 		if(event.channel === 'media'){
 			switch (event.args[0]) {
 				case 'ratio':
 					vidratio = event.args[1];
-					console.log(vidratio)
 					$timeout(function(){
 						$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
 					})
@@ -180,10 +179,11 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			}else{
 				$timeout(function(){
 					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
+					$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
 				})
 				$scope.lib.playing.youtube = true;
 				$scope.lib.playing.state = 'playing';
-				$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
+
 			}
 			this.progress(true,true);
 
