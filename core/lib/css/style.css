@@ -31,3 +31,16 @@ html {
 #chrome div.close:hover{
 	background:tomato;
 }
+#yolk_header{
+	padding-bottom:40px;
+	text-align:center;
+}
+#yolk_header #yolk_icon{
+	width:50px;
+	height:auto;
+	padding-bottom:2px;
+}
+#yolk_header h1{
+	font-family:'Roboto';
+	text-transform:uppercase;
+}

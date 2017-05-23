@@ -70,7 +70,10 @@ Yolk.getModule=function(){
 		  link.href = css;
 		  link.id='inject'+count;
 		  count++;
-		  head.appendChild(link);
+		  setTimeout(function(){
+			 head.appendChild(link); 
+		  })
+
 	  })
   }
   Yolk.remote('coreprocess')(modname);

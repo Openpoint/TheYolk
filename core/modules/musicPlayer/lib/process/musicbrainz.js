@@ -38,7 +38,6 @@ var musicbrainz = function(){
 function getDupes(){
 
 	dupes = {mbid:[],album:[],artist:[],local:[],internetarchive:[],youtube:[],newalbums:[]};
-	console.Yolk.log('musicbrainz get dupes')
 	elastic.fetchAll({index:db_index,type:'local,internetarchive,youtube',body:{query:{match:{musicbrainzed:{query:'yes',type:'phrase'}}},_source:['musicbrainz_id','id','type','fix']}}).then(function(data){
 		data.forEach(function(track){
 			if(!dupes[track.type]){dupes[track.type]=[]}
@@ -48,7 +47,6 @@ function getDupes(){
 			}
 		})
 	})
-	console.Yolk.log('musicbrainz get dupes')
 	elastic.fetchAll({index:db_index,type:'album,artist',body:{query:{},_source:['id','name']}}).then(function(data){
 		data.forEach(function(track){
 			track.name?dupes.artist.push(track.id) : dupes.album.push(track.id)

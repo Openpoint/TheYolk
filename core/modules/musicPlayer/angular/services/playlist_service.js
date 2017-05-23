@@ -6,7 +6,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 	var playlist = function(scope){
 		$scope = scope;
 		var self = this;
-
+		this.renew = {1:false};
 		$scope.db.client.get({
 			index:$scope.db_index,
 			type:'playlists',
@@ -18,7 +18,9 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			if(response._source){
 				self.options = response._source.options;
 				self.unique = response._source.unique;
-				self.activelist = {1:[]};
+				self.activelist = {}
+				self.change();
+
 			}else{
 				self.active = false;
 				self.options = [{id:1,name:'Recently Played'}];
@@ -26,24 +28,16 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 				self.activelist = {1:[]};
 				self.updatePlaylist(0);
 				self.updatePlaylist(1,[]);
-
 			}
 		})
 	}
 	playlist.prototype.toggle=function(){
 		this.active ? this.active=false:this.active=true;
-		if(!this.active){
-			$scope.search.go(true)
-			return;
-		}
 		if($scope.pin.Page!=='title'){
 			$scope.pin.Page ='title'
 		}
-		if(!this.activelist[this.selected]||!this.activelist[this.selected].length) {
-			this.change()
-		}else{
-			$scope.search.go(true)
-		}
+		if(!self.selected && this.active) self.selected = 1;
+		$scope.search.go(false,'playlist togggle');
 	}
 	playlist.prototype.change = function(){
 		var self = this;
@@ -59,7 +53,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 				return;
 			}
 			self.activelist[self.selected] = data._source.ids
-			$scope.search.go(true)
+			if($scope.playlist.active) $scope.search.go(false,'playlist change')
 		})
 
 	}
@@ -70,6 +64,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 		}else{
 			self.options.push({id:self.unique,name:playlist});
 			self.selected=$scope.playlist.options[$scope.playlist.options.length-1].id;
+			if(!self.renew[self.selected]) self.renew[self.selected]=false;
 			self.new = null;
 			var body = {properties:{}}
 			body.properties['playlist'+self.selected]={type:'integer'};
@@ -81,7 +76,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 					self.updatePlaylist(self.unique,[]);
 					self.unique++;
 					self.updatePlaylist(0);
-					$scope.search.go(true);
+					$scope.search.go(false,'playlist added');
 				})
 			})
 		}
@@ -98,7 +93,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 		this.options.splice(indx, 1);
 		this.selected = 1;
 		this.updatePlaylist(0);
-		$scope.search.go(true);
+		$scope.search.go(false,'playlist deleted');
 	}
 	playlist.prototype.renamePlaylist = function(){
 		var self = this;
@@ -140,7 +135,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			return track.id!==id
 		})
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
-		$scope.search.go(true);
+		$scope.search.go(false,'playlist track removed');
 	}
 	playlist.prototype.handleDragStart=function(event,data){
 		if(this.active && this.selected!==1){
@@ -155,6 +150,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 		}
 		this.activelist[this.selected].push({id:data.id,type:data.type});
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
+		$scope.playlist.renew[this.selected]=true;
 		this.positions();
 	}
 	playlist.prototype.onReorder = function(event,data,target){
@@ -172,6 +168,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			this.activelist[this.selected].splice(pos.new,0,{id:data.id,type:data.type})
 		}
 		this.updatePlaylist(this.selected,this.activelist[this.selected])
+		$scope.playlist.renew[this.selected]=true;
 		this.positions(true);
 
 	}
@@ -190,7 +187,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 				console.error(err);
 				return;
 			}
-			$scope.search.go(true);
+			if($scope.playlist.active) $scope.search.go(true,'playlist positions');
 		})
 	}
 	return playlist;

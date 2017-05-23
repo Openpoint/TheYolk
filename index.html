@@ -12,13 +12,12 @@
   </head>
   <body>
 	<div id='chrome'>
-		<div onclick="Yolk.remote('chrome')('min')" class='icon-minimise'></div>
-		<div onclick="Yolk.remote('chrome')('max')" class='icon-maximise'></div>
-		<div onclick="Yolk.remote('chrome')('close')" class='icon-close close'></div>
+		<div onclick="Yolk.remote('chrome')('min')" class='fa fa-window-minimize'></div>
+		<div onclick="Yolk.remote('chrome')('max')" class='fa fa-window-maximize'></div>
+		<div onclick="Yolk.remote('chrome')('close')" class='fa fa-times close'></div>
 	</div>
 	<ng-view></ng-view>
 	<script>
-
 		ipcRenderer.on('log',function(event,data){
 			console.log(data);
 		})

@@ -3,10 +3,12 @@
 angular.module('yolk').controller('boot', [
 '$scope','$location','$timeout','utils',
 function($scope,$location,$timeout,utils) {
+	$('#logo .yellow').addClass('throbber');
 	const mod_name = 'boot';
 	$scope.installed = {};
 	$scope.installed.message = "";
 	$scope.installed.progress = "";
+	$scope.root = Yolk.root;
 
 	Yolk.remote('dbReady').then(function(){
 		var length = 0;

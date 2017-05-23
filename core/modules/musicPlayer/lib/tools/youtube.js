@@ -12,12 +12,12 @@ function timer(){
 }
 document.addEventListener("DOMContentLoaded",function(){
 	window.$ = window.jQuery = require('jquery');
-	$('body').hide()
+	//$('body').hide()
 })
 window.addEventListener("load",function(){
 
-	$($('video').parent().parent()).children().not($('video').parent()).hide()
-	$('body').show()
+	//$($('video').parent().parent()).children().not($('video').parent()).hide()
+	//$('body').show()
 	video = $('video')[0];
 	video.addEventListener('loadedmetadata', function(){
 		var ratio = video.videoHeight/video.videoWidth;

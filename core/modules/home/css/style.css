@@ -7,6 +7,10 @@ body,html{
 	-webkit-app-region: drag;
 	-webkit-user-select: none;
 }
+a{
+	color:white;
+	text-decoration:none;
+}
 #full{
 	position:relative;
 	width:100%;
@@ -15,8 +19,32 @@ body,html{
 	flex-direction:column;
 	justify-content:center;
 	align-items:center;
-	align-content:stretch;
+
 }
+
 #full *{
 	-webkit-app-region: no-drag;
+}
+#logo{
+	position:relative;
+	text-align:center;
+}
+
+a.icon {
+	padding:10px;
+	background:lightgrey;
+	color:#302B22;
+	border-radius:5px;
+	box-shadow:5px 5px 15px 0px rgba(0,0,0,0.42);
+}
+a.icon:hover{
+	background:white
+}
+.icon span,a.icon {
+	display:block!important;
+	text-align:center;
+}
+.icon .label{
+	font-size:.85em;
+	margin-top:5px;
 }

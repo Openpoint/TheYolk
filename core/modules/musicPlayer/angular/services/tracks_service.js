@@ -16,7 +16,8 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 	}
 
 	//find the next playing track
-	tracks.prototype.next = function(){
+	tracks.prototype.next = function(index){
+
 		if(!$scope.lib.playing) return;
 		if($scope.playlist.active){
 			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item){
@@ -25,8 +26,11 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		}else{
 			all = this.all;
 		}
-		var playing = all.indexOf($scope.lib.playing.id);
-		var next = all[playing+1] ? playing+1:0;
+		if(!all.length){
+			$scope.lib.next = false;
+			return;
+		}
+		var next = all[index+1] ? index+1:0;
 		var id = all[next];
 		var search = {
 			index:$scope.db_index,
@@ -49,33 +53,24 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		})
 	}
 
-	//check if the playing track is contained in the visible list and update the default playlist
+	//check if the playing track is contained in the visible list
 	tracks.prototype.isInFocus = function(){
 		if(!$scope.lib.playing) return;
 		var self = this;
 		if($scope.playlist.active){
-			console.log($scope.playlist.activelist[$scope.playlist.selected])
-			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item){
+			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item,index){
 				return item.id;
 			})
 		}else{
 			all = this.all;
 		}
-		//console.log('In Focus : '+all.length)
-		$timeout(function(){
-			if(all.indexOf($scope.lib.playing.id) > -1){
-				$scope.lib.playing.filter.pos = all.indexOf($scope.lib.playing.id);
-			}else{
-				$scope.lib.playing.filter.pos = -1;
-				self.next();
-			}
-		})
-
+		var index = all.indexOf($scope.lib.playing.id);
+		$scope.lazy.getPos(index);
+		self.next(index);
 	}
 
 	//set the padding in the playwindow
 	tracks.prototype.fixChrome = function(){
-
 		if($scope.lazy.chunk > 1){
 			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
 		}else{
@@ -120,7 +115,6 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		}else if(!type){
 			var type = track.type;
 		}
-		console.log(type+' : '+id)
 		var self = this;
 		this.refreshDrawers();
 		if(playing){
@@ -142,7 +136,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 				]}])
 				var types='local,youtube,internetarchive,album'
 			}
-			console.log('delete a track')
+
 			$scope.db.fetchAll({index:$scope.db_index,type:types,body:{query:query}}).then(function(data){
 				if(!data.length) return;
 				var bulk=[];
@@ -175,7 +169,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			}}
 		}).then(function(data){
 			if(type!=='artist'&&type!=='album') self.deleteArtist(track.artist);
-			$scope.search.go(true);
+			$scope.search.go(true,'track deleted');
 		},function(err){
 			console.error(err);
 		})
@@ -258,7 +252,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 				date:Date.now()
 			}}
 		}).then(function(data){
-			$scope.search.go(true);
+			$scope.search.go(true,'track undeleted');
 		},function(err){
 			console.error(err);
 		})
@@ -465,7 +459,6 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 						})
 
 					})
-					console.log('drawer')
 					$scope.db.fetchAll(body).then(function(data){
 						data.forEach(function(track){
 							if(!$scope.lib.drawers[$scope.pin.Page][row.id].tracks[track.musicbrainz_id]){

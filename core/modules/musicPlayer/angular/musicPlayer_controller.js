@@ -16,16 +16,19 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.Sortby={};
 	$scope.utils = new utils();
 	$scope.db = $scope.utils.db;
+	$scope.searchTerm = '';
+
 	$scope.audio = new audio($scope);
-	$scope.search = new search($scope);
-	$scope.playlist = new playlist($scope);
 	$scope.pin = new pin($scope);
+	$scope.playlist = new playlist($scope);
 	$scope.lazy = new lazy($scope);
 	$scope.tracks = new tracks($scope);
 	$scope.jamendo = new jamendo($scope);
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
+	$scope.search = new search($scope);
+
 	$scope.countries = require('../lib/tools/countries.json');
 	$scope.tools = require('../lib/tools/searchtools.js');
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
@@ -48,7 +51,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		$scope.settings.paths.artist = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 		$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
 		$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
-		$scope.search.go();
+		$scope.search.go(true,'init');
 		$timeout(function(){
 			$scope.settings_loaded = true;
 		})
@@ -92,13 +95,14 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	}
 
 
-	$scope.refresh_time = false;
+	var refresh_time = false;
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			clearTimeout($scope.refresh_time);
-			$scope.refresh_time = setTimeout(function(){
+			if(refresh_time) return;
+			refresh_time = setTimeout(function(){
 				$scope.tracks.refreshDrawers();
-				$scope.search.go(true);
+				$scope.search.go(true,'refresh');
+				refresh_time = false;
 			},3000)
 		});
 	}
@@ -166,7 +170,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			}
 			$timeout.cancel(searchTime);
 			searchTime = $timeout(function(){
-				$scope.search.go();
+				$scope.search.go(false,'searchterm');
 			},500);
 		}
 	});
@@ -211,7 +215,4 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 			})
 		})
 	}
-
-
-
 }])

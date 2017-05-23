@@ -38,7 +38,7 @@ body,html{
 	text-decoration:none;
 }
 #yolk_icon{
-	width:58%;
+	width:58%!important;
 	height:auto;
 }
 #yolk_icon .white{

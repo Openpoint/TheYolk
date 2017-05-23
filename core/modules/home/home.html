@@ -2,6 +2,12 @@
 	Yolk.getModule();
 </script>
 <div ng-controller="home" id='full'>
-	<h1>The Yolk</h1>
-	<div><a href='#!/musicPlayer'>Music Player</a></div>
+	<div id='yolk_header'>
+		<div id='logo' ng-include="root+'/core/lib/css/icons/yolk.svg'"></div>
+		<h1>The Yolk</h1>
+	</div>
+	<a href='#!/musicPlayer' class='icon'>
+		<span class='fa fa-music fa-2x'></span>
+		<span class='label'>Player</span>
+	</a>
 </div>

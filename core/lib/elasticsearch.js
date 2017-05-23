@@ -112,7 +112,6 @@ dbase.prototype.get = function(path){
 dbase.prototype.fetch = function(query){
 	var self = this;
 	return new q(function(resolve,reject){
-
 		self.client.search(query,function(err,data){
 
 			if(!err){
@@ -121,14 +120,11 @@ dbase.prototype.fetch = function(query){
 				var hits = result.map(function(hit){
 					return hit['_source'];
 				})
-				resolve({
-					items:hits,
-					libsize:libsize
-					});
-			}else{
-				console.error(err);
-				console.error(query)
 			}
+			resolve({
+				items:hits,
+				libsize:libsize,
+			});
 		})
 
 	});

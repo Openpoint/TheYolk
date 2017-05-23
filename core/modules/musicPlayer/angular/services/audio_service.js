@@ -17,8 +17,10 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			switch (event.args[0]) {
 				case 'ratio':
 					vidratio = event.args[1];
-					$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
-					$scope.$apply();
+					console.log(vidratio)
+					$timeout(function(){
+						$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
+					})
 				break;
 				case 'vidready':
 					$scope.lib.playing.youtube=true;
@@ -113,7 +115,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	//Play a track
 	audio.prototype.play = function(track){
 		var self = this;
-		
+
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
@@ -124,7 +126,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			var source = track.path+track.file;
 		}
 		if(track.type !== 'youtube'){
-			$scope.dims.vidheight = false;
+			$timeout(function(){
+				$scope.dims.vidheight = false;
+			})
 		}
 
 		if(this.playing !== source){
@@ -147,7 +151,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			//Add playing track to the recently played playlist
 			if(!$scope.playlist.active || $scope.playlist.selected !== 1){
-
+				$scope.playlist.renew[1]=true;
 				$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:{played:Date.now()}}}, function (error, response){
 					if(error) console.error(error);
 					var pos = -1;
@@ -169,13 +173,14 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';
 			$scope.tracks.isInFocus();
-			$scope.tracks.next();
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
 				this.player.src = source;
 			}else{
-				$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
+				$timeout(function(){
+					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
+				})
 				$scope.lib.playing.youtube = true;
 				$scope.lib.playing.state = 'playing';
 				$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
@@ -210,7 +215,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				}
 			}
 		}
-		$scope.lazy.refresh($('#playwindow').scrollTop())
+		//$scope.lazy.refresh($('#playwindow').scrollTop())
 	}
 
 	//seek in the track

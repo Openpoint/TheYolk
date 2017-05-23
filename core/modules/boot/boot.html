@@ -3,7 +3,10 @@
 </script>
 
 <div ng-controller="boot" id='full'>
-		<div class='throbber'></div>
+		<div id='yolk_header'>
+			<div id='logo' class='throb' ng-include="root+'/core/lib/css/icons/yolk.svg'"></div>
+			<h1>The Yolk</h1>
+		</div>
 		<div class='message'>
 			<div>{{installed.message}}</div>
 			<div class="float" ng-if="installed.progress">{{installed.progress}}</div>

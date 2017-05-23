@@ -15,11 +15,6 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.progressHeight = 10;
 		this.playingHeight = this.trackHeight+this.progressHeight;
 		this.chunk = 0;
-		this.memory = {
-			title:{},
-			album:{},
-			artist:{}
-		};
 		watchScroll();
 	}
 
@@ -32,19 +27,17 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			$('#playwindow').scrollTop(top);
 		}
 		this.step(top);
-		this.getPos();
-
+		//this.getPos();
 	}
 
-	lazy.prototype.scroll = function(){
+	lazy.prototype.scroll = function(scrolltop){
 		/*
 		if($scope.lazy.drawer && $scope.lazy.drawer.active){
 			$scope.lazy.drawer.offset = $('#drawer'+$scope.lazy.drawer.id).offset().top+$scope.lazy.drawer.height-$scope.dims.menHeight-$scope.dims.searchHeight;
 			console.log($scope.lazy.drawer.offset);
 		}
 		*/
-		var scrolltop = $('#playwindow').scrollTop()
-		//console.log(scrolltop)
+
 		this.chunk = Math.floor(scrolltop/this.chunkHeight);
 		if($scope.lazy.drawer && $scope.lazy.drawer.active === $scope.pin.Page && !$scope.lazy.drawer.chunk) $scope.lazy.drawer.chunk = this.chunk
 		this.Top = this.Step*this.chunk;
@@ -56,30 +49,31 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.Step = Math.ceil(this.winHeight/this.trackHeight);
 		if($scope.lazy.drawer && $scope.lazy.drawer.active === $scope.pin.Page) this.Step = this.Step + Math.ceil($scope.lazy.drawer.height/this.trackHeight);
 		this.chunkHeight = this.Step*this.trackHeight;
-		this.scroll();
+		this.scroll($('#playwindow').scrollTop());
 	}
 
 	// get the relative position of the currently playing track in the track window
-	lazy.prototype.getPos = function(){
+	lazy.prototype.getPos = function(i){
 		var self = this;
 		$timeout(function(){
-			if($scope.lib.playing && $scope.lib.playing.state){
-				self.spacer=true;
-				var i = $scope.lib.playing.filter.pos;
-				if(i > -1){
-					$scope.lib.playing.top = i*$scope.lazy.trackHeight;
-					$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
-					self.playPos($('#playwindow').scrollTop(),true);
-				}else{
-					playPos.bottom();
-				}
+			$scope.lib.playing.filter.pos = i;
+			//if($scope.lib.playing && $scope.lib.playing.state){
+			self.spacer=true;
+			if(i > -1){
+				$scope.lib.playing.top = i*$scope.lazy.trackHeight;
+				$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
+				self.playPos($('#playwindow').scrollTop(),true);
+			}else{
+				playPos.bottom();
 			}
+			//}
 		});
 	}
 
 	// decide if the currently playing track should stick to top or bottom of screen
 	var playPos = {
 		clear:function(){
+			//console.log('clear')
 			$scope.lib.playing.Top = false;
 			$scope.lib.playing.Bottom = false;
 			$scope.lib.playing.Pinned = false;
@@ -90,6 +84,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			}).removeClass('Top Bottom');
 		},
 		top:function(){
+			//console.log('top')
 			$('#playing .inner').css({
 				position:'fixed',
 				top:$scope.dims.menHeight+$scope.dims.searchHeight,
@@ -100,6 +95,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			$scope.lib.playing.Pinned = true;
 		},
 		bottom:function(){
+			//console.log('bottom')
 			$('#playing .inner').css({
 				position:'fixed',
 				top:'auto',
@@ -110,30 +106,27 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 			$scope.lib.playing.Pinned = true;
 		}
 	}
+
 	lazy.prototype.playPos = function(stop,fix){
-		if($scope.lib.playing && ($scope.pin.Page!=='title'||($scope.pin.Page==='title' && $scope.lib.playing.filter.pos === -1))){
+		if(!$scope.lib.playing) return;
+		if($scope.pin.Page!=='title'||($scope.pin.Page==='title' && $scope.lib.playing.filter.pos === -1)){
 			playPos.bottom();
 			return;
 		}
-
-		if($scope.lib.playing && $scope.lib.playing.filter.pos > -1){
-
+		if(!stop) stop = $('#playwindow').scrollTop();
+		if($scope.lib.playing.filter.pos > -1){
 			if(fix){
 				playPos.clear();
 			}
-
 			if(stop - $scope.lib.playing.top > 0){
 				if(!$scope.lib.playing.Top){
-					//console.log('top');
 					playPos.top();
 				}
 			}else if(stop + $scope.lazy.winHeight - $scope.lib.playing.bottom <= 0){
 				if(!$scope.lib.playing.Bottom){
-					//console.log('bottom');
 					playPos.bottom();
 				}
 			}else if($scope.lib.playing.Top || $scope.lib.playing.Bottom){
-				//console.log('middle');
 				playPos.clear();
 			}
 		}
@@ -154,18 +147,15 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		// watch for scrolling of the track list
 		var scrollfix;
 		$('#playwindow').scroll(function(e){
-
 			$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
 			$scope.lazy.playPos(scrollTop);
 			scrollfix = $timeout(function(){
-				$scope.lazy.scroll();
-				$scope.search.go();
+				$scope.lazy.scroll(scrollTop);
+				$scope.search.go(false,'scroll');
 				$scope.scrolling =false;
-
 			},100);
 		});
 	}
-
 	return lazy;
 }])

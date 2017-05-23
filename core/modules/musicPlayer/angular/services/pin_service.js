@@ -29,21 +29,26 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		*/
 	}
 	pin.prototype.source = function(name){
+		var self = this;
 		if(this.pinned.sources.indexOf(name) > -1){
 			if(this.pinned.sources.length > 1){
-				this.pinned.sources = this.pinned.sources.filter(function(source){
-					if(source!==name){
-						return true;
-					}
+				$timeout(function(){
+					self.pinned.sources = self.pinned.sources.filter(function(source){
+						if(source!==name){
+							return true;
+						}
+					})
+					self.pinned.sources.sort()
+					$scope.search.go(false,'pin');
 				})
 			}
-
 		}else{
-			this.pinned.sources.push(name);
+			$timeout(function(){
+				self.pinned.sources.push(name);
+				self.pinned.sources.sort()
+				$scope.search.go(false,'pin');
+			})
 		}
-		$timeout(function(){
-			$scope.search.go(true);
-		})
 	}
 	pin.prototype.pinner = function(name,type){
 		if($scope.playlist.active) return;
@@ -83,7 +88,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		})
 	}
 	pin.prototype.page = function(page,skip){
-
+		if($scope.playlist.active) return;
 		var newterm = '';
 		var terms = $scope.tools.terms($scope.searchTerm);
 
@@ -100,23 +105,21 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 
 		if(this.Page === page && !skip){
 			this.direction[page] === 'asc' ? this.direction[page] = 'desc':this.direction[page] = 'asc';
-			$scope.lazy.refresh()
+			//$scope.lazy.refresh()
 		}
 		this.Page = page;
 		switch (page){
 			case 'title':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
-				$scope.search.go();
 			break;
 			case 'artist':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['name.raw:'+this.direction[page]];
-				$scope.search.go();
 			break;
 			case 'album':
 				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
-				$scope.search.go();
 			break;
 		}
+		$scope.search.go(false,'page');
 	}
 	pin.prototype.filter = function(filter){
 		this.Filter === filter ? this.Filter = false:this.Filter = filter;

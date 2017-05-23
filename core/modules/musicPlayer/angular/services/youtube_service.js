@@ -25,7 +25,6 @@ angular.module('yolk').factory('youtube',['$http','$timeout',function($http,$tim
 
 	//Initiate the youtube search
 	youtube.prototype.search = function(term){
-		return;
 		var terms = $scope.tools.terms(term);
 		var Term = terms.prefix||'';
 		if(terms.artist) Term +=' '+terms.artist;
