@@ -384,8 +384,9 @@
 					<div class='shadow'></div>
 					<div class='shadow right'></div>
 				</div>
-				<div id='youtube2' class='small' ng-show="lib.playing.youtube">
-					<webview style="width:100%; height:100%;" id="youtube" httpReferrer="http://youtube.com" ng-src="{{lib.playing.embed}}" preload="{{settings.paths.root}}/core/modules/musicPlayer/lib/tools/youtube.js"></webview>
+				<div id='youtube2' class='small'>
+					<!-- ng-src="{{lib.playing.embed}}"  ng-show="lib.playing.youtube"-->
+					<webview style="width:100%; height:100%;" id="youtube" src="data:text/plain," preload="{{root}}/core/modules/musicPlayer/lib/tools/youtube.js"></webview>
 					<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
 						<div class='icon-fullscreen_out'></div>
 					</div>

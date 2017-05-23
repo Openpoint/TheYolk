@@ -19,6 +19,7 @@ window.addEventListener("load",function(){
 	//$($('video').parent().parent()).children().not($('video').parent()).hide()
 	//$('body').show()
 	video = $('video')[0];
+	if(!video) return;
 	video.addEventListener('loadedmetadata', function(){
 		var ratio = video.videoHeight/video.videoWidth;
 		ipcRenderer.sendToHost('media','ratio',ratio);

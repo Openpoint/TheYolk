@@ -17,6 +17,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	$scope.utils = new utils();
 	$scope.db = $scope.utils.db;
 	$scope.searchTerm = '';
+	$scope.root = Yolk.root;
 
 	$scope.audio = new audio($scope);
 	$scope.pin = new pin($scope);

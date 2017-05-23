@@ -7,45 +7,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	var fadetimer;
 	var $scope;
 
-	var webView = document.getElementById('youtube');
-
-	webView.addEventListener('dom-ready', function(e) {
-		webView.openDevTools();
-	})
-	webView.addEventListener('ipc-message',function(event){
-		if(event.channel === 'media'){
-			switch (event.args[0]) {
-				case 'ratio':
-					vidratio = event.args[1];
-					$timeout(function(){
-						$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
-					})
-				break;
-				case 'vidready':
-					$scope.lib.playing.youtube=true;
-					vidlength = event.args[1];
-
-				break;
-				case 'next':
-					self.next();
-				break;
-				case 'time':
-					if($scope.audio.buffering) $scope.audio.buffering = false;
-					vidprogress = event.args[1];
-				break;
-				case 'play':
-					$scope.lib.playing.state = 'playing';
-					$scope.$apply();
-				break;
-				case 'pause':
-					$scope.lib.playing.state = 'paused';
-					$scope.lib.playing.ani = false;
-					$scope.$apply();
-					clearTimeout(Progress);
-				break;
-			}
-		};
-	});
+	var webView;
 
 	function fadein(){
 		clearTimeout(fadetimer);
@@ -58,7 +20,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		$('#fullscreen_out').hide();
 	};
 
-	//create the audio player object
+	//create the audio player objects
 	var audio = function(scope){
 		$scope = scope;
 		$scope.fader=function(){
@@ -104,6 +66,48 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			})
 		});
 		this.playing = null;
+
+		webView = document.querySelector('webview');
+
+
+		webView.addEventListener('dom-ready', function(e) {
+			webView.openDevTools();
+		})
+
+		webView.addEventListener('ipc-message',function(event){
+			if(event.channel === 'media'){
+				switch (event.args[0]) {
+					case 'ratio':
+						vidratio = event.args[1];
+						$timeout(function(){
+							$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
+						})
+					break;
+					case 'vidready':
+						$scope.lib.playing.youtube=true;
+						vidlength = event.args[1];
+
+					break;
+					case 'next':
+						self.next();
+					break;
+					case 'time':
+						if($scope.audio.buffering) $scope.audio.buffering = false;
+						vidprogress = event.args[1];
+					break;
+					case 'play':
+						$scope.lib.playing.state = 'playing';
+						$scope.$apply();
+					break;
+					case 'pause':
+						$scope.lib.playing.state = 'paused';
+						$scope.lib.playing.ani = false;
+						$scope.$apply();
+						clearTimeout(Progress);
+					break;
+				}
+			};
+		});
 	}
 	//Play next track
 	audio.prototype.next = function(){
@@ -131,14 +135,13 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		}
 
 		if(this.playing !== source){
-
 			webView.send('media','pause');
-			webView.send('media','hide');
+			//webView.send('media','hide');
 			this.player.pause();
 			this.buffering=true;
 			this.error = false;
-
 			this.playing = source;
+
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
 				$scope.lib.playing.ani = false;
@@ -175,11 +178,15 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
-				this.player.src = source;
+				$timeout(function(){
+					self.player.src = source;
+				})
+
 			}else{
 				$timeout(function(){
 					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
-					$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
+					//$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
+					webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https:youtube.com'});
 				})
 				$scope.lib.playing.youtube = true;
 				$scope.lib.playing.state = 'playing';
