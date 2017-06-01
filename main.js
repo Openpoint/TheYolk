@@ -2,7 +2,6 @@
 
 //log back to the renderer window
 console.process=function(mess,type){
-
 	if(type !== 'log' && mess.message){
 		mess = mess.message;
 	}
@@ -36,53 +35,61 @@ console.process=function(mess,type){
 }
 console.Yolk = {
 	log:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"log");
-		process.Yolk.message.send('log',mess.log);
+		process.Yolk.message.send('log',{log:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('log',mess.object);
+			process.Yolk.message.send('log',{log:mess.object});
 		}
 	},
 	warn:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"warn");
-		process.Yolk.message.send('warn',mess.log);
+		process.Yolk.message.send('log',{warn:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('warn',mess.object);
+			process.Yolk.message.send('log',{warn:mess.object});
 		}
 	},
 	error:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"error");
-		process.Yolk.message.send('error',mess.log);
+		process.Yolk.message.send('log',{error:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('error',mess.object);
+			process.Yolk.message.send('log',{error:mess.object});
 		}
 	},
 	say:function(mess){
-		process.Yolk.message.send('log',mess);
+		if(process.env.ELECTRON_ENV !== 'development') return;
+		process.Yolk.message.send('log',{log:mess});
 	}
 };
 
 //if(require('electron-squirrel-startup')) return;
 process.Yolk = {};
 const {app, BrowserWindow, webContents, ipcMain} = require('electron');
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
 const fs=require('fs');
 const http = require('http');
-const Static = require( 'node-static' )
 const path=require('path');
 const Elastic = require('elasticsearch');
 const child = require('child_process');
 const os = require('os');
-const promise = require('promise');
+const promise = Promise;
 const Installer = require('./core/lib/installer.js');
 const bootloader = require('./core/lib/bootloader.js');
 const ft = require('./core/lib/filetools.js');
-const boot = new bootloader();
+const boot = new bootloader(path.resolve(__dirname));
 
 
 const elasticversion = '5.3.0';
 const elasticchecksum = '9273fdecb2251755887f1234d6cfcc91e44a384d';
-const javaversion = 'jre1.8.0_111';
+const javaversion = 'jre1.8.0_131';
 var installer;
 var domReady;
+
+process.on('uncaughtException',function(err){
+	console.error(err);
+})
 
 process.Yolk.modules = boot.modules;
 process.Yolk.resolver = {};
@@ -162,12 +169,19 @@ let win;
 function createWindow () {
 	win = new BrowserWindow({width: 1200, height: 900, frame:false, center:true, title:'Yolk',show:false});
 	win.loadURL(`file://${__dirname}/index.html#!/boot`);
+	//win.loadURL('chrome://gpu')
 	process.Yolk.win = win;
 	process.Yolk.message = win.webContents;
 	win.once('ready-to-show', () => {
 	  win.show()
 	})
-	win.webContents.openDevTools();
+	if(process.env.ELECTRON_ENV === 'development') win.webContents.openDevTools();
+	win.webContents.on('crashed',function(){
+		console.log('Browser window crashed')
+	})
+	win.on('unresponsive',function(){
+		console.log('Browser window unresponsive')
+	})
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {

@@ -4,7 +4,7 @@
  *
  * */
 
-const q = require('promise');
+const q = Promise;
 const elasticsearch = require('elasticsearch');
 const {ipcRenderer} = require('electron');
 const def = {
@@ -177,7 +177,6 @@ dbase.prototype.findPos = function(index,types,query,flags,id){
 
 dbase.prototype.fetchAll = function(query){
 	var self = this;
-
 	return new q(function(resolve,reject){
 		query.scroll = '30s';
 		query.size = 1000;

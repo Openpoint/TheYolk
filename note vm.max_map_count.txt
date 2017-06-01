@@ -9,3 +9,6 @@ To apply the setting on a live system type:
 
     sysctl -w vm.max_map_count=262144
 
+
+
+debian gtk engine murrine

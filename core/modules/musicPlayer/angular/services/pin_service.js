@@ -1,7 +1,7 @@
 'use strict'
 
 var oldterms = {};
-angular.module('yolk').factory('pin',['$timeout',function($timeout) {
+angular.module('yolk').factory('pin',[function() {
 	var $scope;
 	var pin = function(scope){
 		$scope = scope;
@@ -32,22 +32,18 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		var self = this;
 		if(this.pinned.sources.indexOf(name) > -1){
 			if(this.pinned.sources.length > 1){
-				$timeout(function(){
-					self.pinned.sources = self.pinned.sources.filter(function(source){
-						if(source!==name){
-							return true;
-						}
-					})
-					self.pinned.sources.sort()
-					$scope.search.go(false,'pin');
+				self.pinned.sources = self.pinned.sources.filter(function(source){
+					if(source!==name){
+						return true;
+					}
 				})
-			}
-		}else{
-			$timeout(function(){
-				self.pinned.sources.push(name);
 				self.pinned.sources.sort()
 				$scope.search.go(false,'pin');
-			})
+			}
+		}else{
+			self.pinned.sources.push(name);
+			self.pinned.sources.sort()
+			$scope.search.go(false,'pin');
 		}
 	}
 	pin.prototype.pinner = function(name,type){
@@ -65,6 +61,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 			if(key !== 'prefix') newsearch += key+':'+terms[key]+' '
 		})
 		newsearch = ((terms.prefix||'')+' '+newsearch).trim();
+		$scope.searchNow = true;
 		$scope.searchTerm = newsearch
 
 	}
@@ -82,10 +79,9 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	}
 	pin.prototype.clear = function(){
 		oldterms = {};
-		$timeout(function(){
-			$scope.searchTerm = '';
-			$('#search input').focus();
-		})
+		$scope.searchNow = true;
+		$scope.searchTerm = '';
+		$('#search input').focus();
 	}
 	pin.prototype.page = function(page,skip){
 		if($scope.playlist.active) return;
@@ -101,6 +97,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		if((terms.title||oldterms.title) && page!=='album' && page!=='artist') newterm+=' title:'+(terms.title||oldterms.title);
 		if(terms.title && (page==='album'||page==='artist')) oldterms.title = terms.title;
 
+		$scope.searchNow = 'skip';
 		$scope.searchTerm = newterm.trim()
 
 		if(this.Page === page && !skip){

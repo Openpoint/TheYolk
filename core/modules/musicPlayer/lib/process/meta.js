@@ -4,13 +4,14 @@ Fetch detailed artist and album information and process artwork
 */
 
 const path=require('path');
-const q = require('promise');
+const q = Promise;
 const os = require('os');
 const request = require('request');
 const sharp = require('sharp');
 const smartcrop = require('smartcrop-sharp');
 const {webContents,BrowserWindow,ipcMain} = require('electron');
 const ft = require(path.join(process.Yolk.root,'core/lib/filetools'));
+const cpu = require('../tools/cpu.js');
 const fs = require('fs');
 const homedir = process.Yolk.home;
 const db = process.Yolk.db;
@@ -116,6 +117,7 @@ ipcMain.on('chrome', function(event, data) {
 
 //add an artist and album to the processing queue
 artwork.add = function(item){
+	return;
 	switch (item.type){
 		case 'album':
 			if(item.coverart){
@@ -178,7 +180,7 @@ var go = function(type){
         this.delay = timeout[type].delay;
         timeout[type].to = false;
         if(queue[type].length > 0){
-            go(type);
+            if(cpu.load < 50) go(type);
         }
     },timeout[type].delay)
 }

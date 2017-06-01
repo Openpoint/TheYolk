@@ -1,4 +1,4 @@
-angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce) {
+angular.module('yolk').factory('audio',['$sce',function($sce) {
 	const path = require('path');
 	const {ipcRenderer} = require('electron');
 	var vidlength;
@@ -52,16 +52,16 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			self.next();
 		});
 		this.player.addEventListener('canplay', function(){
-			$timeout(function(){
-				self.buffering=false;
+				$scope.$apply(function(){
+					self.buffering=false;
+				})
 				if($scope.lib.playing.state !== 'paused'){
 					self.player.play();
 					vidlength = self.player.duration
 				}
-			})
 		});
 		this.player.addEventListener('error', function(){
-			$timeout(function(){
+			$scope.$apply(function(){
 				self.error = true;
 			})
 		});
@@ -71,7 +71,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 
 		webView.addEventListener('dom-ready', function(e) {
-			webView.openDevTools();
+			//webView.openDevTools();
 		})
 
 		webView.addEventListener('ipc-message',function(event){
@@ -79,7 +79,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				switch (event.args[0]) {
 					case 'ratio':
 						vidratio = event.args[1];
-						$timeout(function(){
+						$scope.$apply(function(){
 							$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
 						})
 					break;
@@ -101,9 +101,8 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 					break;
 					case 'pause':
 						$scope.lib.playing.state = 'paused';
-						$scope.lib.playing.ani = false;
 						$scope.$apply();
-						clearTimeout(Progress);
+						self.progress();
 					break;
 				}
 			};
@@ -129,9 +128,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			var source = track.path+track.file;
 		}
 		if(track.type !== 'youtube'){
-			$timeout(function(){
+			//$scope.$apply(function(){
 				$scope.dims.vidheight = false;
-			})
+			//})
 		}
 
 		if(this.playing !== source){
@@ -144,11 +143,10 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
-				$scope.lib.playing.ani = false;
 				$scope.lib.previous = $scope.lib.playing;
 			}
 			vidprogress = 0;
-			clearTimeout(Progress);
+			this.progress(false,true)
 			$scope.lib.playing = track;
 
 			//Add playing track to the recently played playlist
@@ -178,25 +176,15 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if(track.type !== 'youtube'){
 				$scope.lib.playing.youtube=false;
-				$timeout(function(){
-					self.player.src = source;
-				})
-
+				self.player.src = source;
 			}else{
-				$timeout(function(){
-					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
-					//$scope.lib.playing.embed = $sce.trustAsResourceUrl(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0');
-					webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https:youtube.com'});
-				})
+				$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
+				webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https:youtube.com'});
 				$scope.lib.playing.youtube = true;
 				$scope.lib.playing.state = 'playing';
 
 			}
-			this.progress(true,true);
-
-			$timeout(function(){
-				$scope.lib.playing.ani = true;
-			},2000);
+			this.progress(true);
 		}else{
 
 			if($scope.lib.playing.state === 'paused'){
@@ -207,14 +195,11 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				}else{
 					this.player.play();
 				}
-
-				$scope.lib.playing.ani = true;
 				this.progress(true);
 			}else{
 
 				$scope.lib.playing.state = 'paused';
-				$scope.lib.playing.ani = false;
-				clearTimeout(Progress);
+				self.progress()
 				if($scope.lib.playing.youtube){
 					webView.send('media','pause');
 				}else{
@@ -227,50 +212,48 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 	//seek in the track
 	audio.prototype.seek=function(event){
-		clearTimeout(Progress);
-		$scope.lib.playing.ani = false;
+
 		vidprogress= vidlength*(event.offsetX/$scope.dims.playwindowWidth);
 		if($scope.lib.playing.youtube){
 			webView.send('media','seek',vidprogress);
 		}else{
 			this.player.currentTime  = vidprogress;
 		}
-		this.progress(true);
-		$timeout(function(){
-			$scope.lib.playing.ani = true;
-		},10);
+		this.progress(true,false,true);
 	}
 
 	//control the progress bar
 	var Progress;
-	audio.prototype.progress = function(repeat,reset){ //update the progress bar when playing
-
+	audio.prototype.progress = function(repeat,reset,seek){ //update the progress bar when playing
+		clearTimeout(Progress)
 		var self = this;
-		if(reset){
+
+
+		if(!reset && !$scope.lib.playing.youtube){
+			vidprogress = this.player.currentTime
+		}
+		if(reset) vidprogress = 0;
+		if(vidprogress && vidlength){
+			//console.log((vidprogress/vidlength)*100 +'%')
+			if(seek){
+				$('#playing .progress').css({
+					'width':(vidprogress/vidlength)*100 +'%'
+				});
+			}else{
+				$('#playing .progress').css({
+					'width':(vidprogress/vidlength)*100 +'%'
+				});
+			}
+		}else{
+			//console.log('reset')
 			$('#playing .progress').css({
-				'width':0
+				'width':'0%'
 			});
 		}
-		if(!$scope.lib.playing.youtube){
-			vidprogress = this.player.currentTime
-			vidlength = this.player.duration;
-			if (this.player.readyState === 4){
-				//console.log(vidlength)
-				//console.log(this.player.buffered.start(this.player.buffered.length-1))
-				//console.log(this.player.seekable.end(this.player.seekable.length-1))
-			}
-		}
-
-		$('#playing .progress').css({
-			'width':(vidprogress/vidlength)*100 +'%'
-		});
-
-
-
 		if($scope.lib.playing && $scope.lib.playing.state && repeat){
 			Progress = setTimeout(function(){
 				self.progress(true);
-			},2000);
+			},1000);
 		}
 	}
 	return audio;

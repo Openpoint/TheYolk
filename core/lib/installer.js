@@ -1,6 +1,6 @@
 "use strict";
 
-const q = require('promise');
+const q = Promise;
 const fs=require('fs');
 const path=require('path');
 const ft=require('./filetools');
@@ -56,28 +56,28 @@ installer.prototype.getJava = function(){
 		message.send('install',process.Yolk.storedMesssage);
 		var versions = {
 			linuxx64:{
-				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-linux-x64.tar.gz",
-				checksum:"md5:38f7d7a29fd7346350da5a12179d05e7",
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-linux-x64.tar.gz",
+				checksum:"md5:9864b3b90840a2bc4604fba513e87453",
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			},
 			linuxia32:{
-				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-linux-i586.tar.gz",
-				checksum:"md5:1f4844c81c6d6c5c24270054638f7628",
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-linux-i586.tar.gz",
+				checksum:"md5:c88bb459288ee336a0f6109be169bc8c",
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			},
 			win32x64:{
-				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-windows-x64.tar.gz",
-				checksum:"md5:2beec3f4f0b8a2d9766fb6b8750db7c2",
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-windows-x64.tar.gz",
+				checksum:"md5:75933fa1298ab1ccc25cb1e303db7372",
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			},
 			win32ia32:{
-				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-windows-i586.tar.gz",
-				checksum:"md5:fdfe4729039451c2ca70bb91f2f27824",
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-windows-i586.tar.gz",
+				checksum:"md5:116a59cb5c1165016c01551332c02006",
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			},
 			darwinx64:{
-				url:"http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jre-8u111-macosx-x64.tar.gz",
-				checksum:"md5:0897a332edba3d39111170ba3e1f3f9f",
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-macosx-x64.tar.gz",
+				checksum:"md5:d80cdba2836949472d509d76a82e7d6b",
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			}
 		}
@@ -90,7 +90,6 @@ installer.prototype.getJava = function(){
 
 		function download(){
 			ft.download(paths,path.join(self.home,'.temp'),self.win).then(function(errors){
-
 				if(errors){
 					message.send('log','error fetching java');
 					message.send('error',errors);

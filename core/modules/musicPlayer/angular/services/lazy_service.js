@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
+angular.module('yolk').factory('lazy',[function() {
 
 	/*
 	 * construct the lazy loader and scrolling for track listings to improve rendering performance of ng-repeat
@@ -54,20 +54,16 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 
 	// get the relative position of the currently playing track in the track window
 	lazy.prototype.getPos = function(i){
-		var self = this;
-		$timeout(function(){
-			$scope.lib.playing.filter.pos = i;
-			//if($scope.lib.playing && $scope.lib.playing.state){
-			self.spacer=true;
-			if(i > -1){
-				$scope.lib.playing.top = i*$scope.lazy.trackHeight;
-				$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
-				self.playPos($('#playwindow').scrollTop(),true);
-			}else{
-				playPos.bottom();
-			}
-			//}
-		});
+		var self = this;	
+		$scope.lib.playing.filter.pos = i;
+		self.spacer=true;
+		if(i > -1){
+			$scope.lib.playing.top = i*$scope.lazy.trackHeight;
+			$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
+			self.playPos($('#playwindow').scrollTop(),true);
+		}else{
+			playPos.bottom();
+		}
 	}
 
 	// decide if the currently playing track should stick to top or bottom of screen
@@ -147,10 +143,10 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		// watch for scrolling of the track list
 		var scrollfix;
 		$('#playwindow').scroll(function(e){
-			$timeout.cancel(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
+			clearTimeout(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
 			$scope.lazy.playPos(scrollTop);
-			scrollfix = $timeout(function(){
+			scrollfix = setTimeout(function(){
 				$scope.lazy.scroll(scrollTop);
 				$scope.search.go(false,'scroll');
 				$scope.scrolling =false;

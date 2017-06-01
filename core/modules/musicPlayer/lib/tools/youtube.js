@@ -45,6 +45,7 @@ window.addEventListener("load",function(){
 	timer();
 });
 ipcRenderer.on('media',function(send,mess,time){
+	if(!video) return;
 	switch (mess){
 		case 'pause':
 		console.log('pause')

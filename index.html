@@ -7,7 +7,7 @@
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/reset.css">
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/style.css">
 	<link rel="stylesheet" type="text/css" href="./core/lib/css/animations.css">
-	<link rel="stylesheet" type="text/css" href="./core/lib/css/font-awesome-4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="./node_modules/font-awesome/css/font-awesome.min.css">
 	<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800|Roboto:700,900" rel="stylesheet">
   </head>
   <body>
@@ -17,20 +17,5 @@
 		<div onclick="Yolk.remote('chrome')('close')" class='fa fa-times close'></div>
 	</div>
 	<ng-view></ng-view>
-	<script>
-		ipcRenderer.on('log',function(event,data){
-			console.log(data);
-		})
-    	ipcRenderer.on('json',function(event,data){
-            data = JSON.parse(data);
-			console.log(data);
-		})
-		ipcRenderer.on('error',function(event,data){
-			console.error(data);
-		})
-    	ipcRenderer.on('warn',function(event,data){
-			console.warn(data);
-		})
-	</script>
   </body>
 </html>

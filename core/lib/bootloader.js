@@ -3,7 +3,7 @@
 const fs=require('fs');
 const path=require('path');
 const ft=require('./filetools');
-const q = require('promise');
+const q = Promise;
 const os = require('os');
 
 var getModule = function(module){
@@ -14,8 +14,8 @@ var checkEnd = function(end,file){
 }
 
 
-var bootloader = function(){
-	this.root = process.cwd();
+var bootloader = function(root){
+	this.root = root;
 	this.home = path.join(os.homedir(),'.yolk');
 	this.modules={};
 	this.coreProcesses={};

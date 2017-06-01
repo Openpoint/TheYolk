@@ -1,5 +1,5 @@
 {
-  "name": "player",
+  "name": "Yolk",
   "version": "0.1.0",
   "main": "main.js",
   "author": {
@@ -14,39 +14,39 @@
     "angular-drag-drop": "^3.1.0",
     "angular-route": "^1.5.8",
     "checksum": "^0.1.1",
-    "debug": "^2.6.8",
-    "deep-extend": "^0.4.2",
+    "cpu-stats": "^1.0.0",
     "elasticsearch": "^12.0.1",
-    "electron-squirrel-startup": "^1.0.0",
-    "extend": "^3.0.1",
-    "getpass": "^0.1.7",
-    "java-download": "^0.1.0",
+    "font-awesome": "^4.7.0",
     "jquery": "^3.1.0",
     "jquery.facedetection": "^2.0.2",
-    "jsmediatags": "^3.2.1",
-    "mime": "^1.3.6",
-    "minimatch": "^3.0.4",
     "musicmetadata": "^2.0.5",
-    "node-static": "^0.7.9",
-    "optimist": "^0.6.1",
     "request": "^2.75.0",
-    "rimraf": "^2.6.1",
     "sharp": "^0.17.3",
     "smartcrop-sharp": "^1.0.5",
     "tar.gz": "^1.0.5",
     "yauzl": "^2.8.0"
   },
   "devDependencies": {
+    "devtron": "^1.4.0",
     "electron": "^1.7.1",
     "electron-builder": "^8.6.0",
-    "electron-rebuild": "^1.5.11",
-    "electron-winstaller": "^2.4.1"
+    "electron-rebuild": "^1.5.11"
   },
   "build": {
-    "squirrelWindows": {}
+    "appId": "com.theyolk.app",
+    "compression": "maximum",
+    "linux": {
+      "asar": false,
+      "target": [
+        "deb"
+      ]
+    }
   },
   "scripts": {
     "pack": "build --dir",
-    "dist": "build -w"
-  }
+    "dist": "build",
+    "Yolk-dev": "ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
+    "Yolk": "./node_modules/.bin/electron ./"
+  },
+  "postinstall": "install-app-deps"
 }

@@ -40,7 +40,26 @@ $(window).ready(function(){
 const {ipcRenderer} = require('electron');
 const path = require('path');
 
+ipcRenderer.on('log',function(event,data){
+	if(data.log) console.log(data.log);
+	if(data.error) console.error(data.error);
+	if(data.warn) console.warn(data.warn);
+	if(data.json){
+		data = JSON.parse(data.json);
+		console.log(data.json);
+	}
+})
+/*
+ipcRenderer.on('json',function(event,data){
 
+})
+ipcRenderer.on('error',function(event,data){
+	console.error(data);
+})
+ipcRenderer.on('warn',function(event,data){
+	console.warn(data);
+})
+*/
 Yolk.remote = require('electron').remote.process.Yolk.remote;
 Yolk.home = Yolk.remote('home');
 Yolk.root = Yolk.remote('root');
@@ -71,7 +90,7 @@ Yolk.getModule=function(){
 		  link.id='inject'+count;
 		  count++;
 		  setTimeout(function(){
-			 head.appendChild(link); 
+			 head.appendChild(link);
 		  })
 
 	  })

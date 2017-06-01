@@ -1,6 +1,6 @@
 "use strict"
 
-angular.module('yolk').factory('dims',['$timeout',function($timeout) {
+angular.module('yolk').factory('dims',[function() {
 	var $scope;
 	var dims=function(scope){
 		$scope = scope;
@@ -17,9 +17,7 @@ angular.module('yolk').factory('dims',['$timeout',function($timeout) {
 	}
 
 	$(window).resize(function(){
-		$timeout(function(){
-			$scope.dims.update();
-		})		
+		$scope.dims.update();
 	});
 
 	return dims;

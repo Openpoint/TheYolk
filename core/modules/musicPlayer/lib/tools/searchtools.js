@@ -161,7 +161,7 @@ search.prototype.postfix = function(string){
 	if(brackets){
 		var rem = string.split(brackets[brackets.length-1]).filter(function(item){if(item!==''){return true;}})
 		if(rem.length===1){
-			return {prefix:rem[0].trim(),postfix:brackets[brackets.length-1]}
+			return {prefix:rem[0].trim(),postfix:brackets[brackets.length-1].replace(/[\(\)\{\}\[\]]/g,'')}
 		}
 	}
 	return false;

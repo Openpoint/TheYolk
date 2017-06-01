@@ -4,7 +4,7 @@ const https = require('http');
 const URL = require('url');
 const fs=require('fs');
 const path=require('path');
-var q = require('promise');
+var q = Promise;
 var request = require('request');
 
 const os = require("os");
@@ -61,7 +61,6 @@ filetools.prototype.download = function(urls,destination){
 						Cookie:src.cookie
 					}
 				}
-
 				var req = request.get(options).on('response',function(res){
 
 					size = res.headers['content-length'];

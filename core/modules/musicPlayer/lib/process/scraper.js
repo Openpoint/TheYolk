@@ -6,7 +6,7 @@ document.addEventListener("DOMNodeInserted", function(event) {
     }
 })
 
-window.q = require('promise');
+window.q = Promise;
 window.scrape = function(){
     var promise = new q(function(resolve,reject){
         var paths = []

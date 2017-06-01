@@ -5,12 +5,10 @@ const {ipcMain} = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-//const jsmediatags = require("jsmediatags");
-
 var mm = require('musicmetadata');
-
 const root = process.Yolk.root;
-const musicbrainz = require('./musicbrainz.js');
+const classical = require('../tools/musicbrainzclassical.js');
+const flow = require('../tools/musicbrainzflow.js');
 const db = process.Yolk.db;
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const message = process.Yolk.message;
@@ -81,17 +79,10 @@ function watcher(){
 //Fetch all music files in directory into flat array of objects
 ft.getDir=function(dir){
 
-	if(!ft.rootDir){
-		ft.rootDir = dir;
-	}
-	ft.watch(dir);
+	if(!ft.rootDir)ft.rootDir = dir;
+	//ft.watch(dir);
 	var self = this;
-
-
-
-	if(!fs.statSync(dir).isDirectory()){
-		return;
-	}
+	if(!fs.statSync(dir).isDirectory()) return;
 
 	fs.readdir(dir,function(err,files){
 		files.forEach(function(file){
@@ -101,7 +92,7 @@ ft.getDir=function(dir){
 			}
 			if(fs.statSync(pt).isDirectory()){
 				self.q.push(pt);
-				ft.watch(pt);
+				//ft.watch(pt);
 			}else if(fs.statSync(pt).isFile()){
 				if(types.indexOf(path.extname(file).replace('.','').toLowerCase()) > -1){
 					var id = crypto.createHash('sha1').update(pt).digest('hex');
@@ -119,21 +110,17 @@ ft.getDir=function(dir){
 		if(self.q.length > 0){
 			self.getDir(self.q.shift());
 		}else{
-
-			watcher();
+			//watcher();
 			if(self.init){
 				self.loaded=self.tracks.length;
 				self.getTags();
 				self.init = false;
 			}else{
-
 				var include = self.tracks.filter(function(current){
 					return self.verifyTracks.filter(function(current_b){
 						return current_b.id == current.id
 					}).length == 0
 				});
-
-
 				var remove = self.verifyTracks.filter(function(current){
 					return self.tracks.filter(function(current_b){
 						return current_b.id == current.id
@@ -209,59 +196,18 @@ ft.getTags=function(){
 					refresh:true,
 					body:track
 				},function(err,data){
-					err ? console.Yolk.error(err):musicbrainz.buffer(track);
+					if(err){
+						console.Yolk.error(err)
+					}else{
+						classical.get(track).then(function(info){
+							flow.add(info||track);
+						})
+					}
 				})
 				self.getTags();
 			}
 			readableStream.close();
 		});
-
-/*
-		jsmediatags.read(src, {
-			onSuccess: function(tag) {
-				if(kill){
-					return;
-				}
-				track.metadata = {};
-				track.metadata.title = tag.tags.title || self.tracks[self.q2].file;
-				track.metadata.artist =  tag.tags.artist;
-				track.metadata.album =  tag.tags.album;
-				track.date = Date.now();
-
-				track.tagged = true;
-				track.type = 'local';
-				track.file = track.file.replace(/\#/g,'%23');
-				db.client.create({
-					index:db_index,
-					type:'local',
-					id:track.id,
-					refresh:true,
-					body:track
-				},function(err,data){
-					err ? console.Yolk.error(err):musicbrainz.add(track);
-				})
-				self.getTags();
-			},
-			onError: function(error) {
-				track.tagged = false;
-				track.type = 'local';
-				console.Yolk.warn(track);
-				track.file = track.file.replace(/\#/g,'%23');
-				db.client.create({
-					index:db_index,
-					type:'local',
-					id:track.id,
-					body:track
-				},function(err,data){
-					if(err){
-						console.Yolk.warn(err);
-					}
-				})
-				self.getTags();
-			}
-
-		});
-		*/
 	}else{
 		//message.send('log','finished tagging');
 	}
@@ -299,7 +245,6 @@ ipcMain.on('kill', function(event,data) {
 	}
 	kill = true;
 	clearTimeout(watchtime);
-
 	ft.loaded = 0;
 	ft.init = false;
 	ft.tracks=[],

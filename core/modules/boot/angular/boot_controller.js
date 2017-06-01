@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('yolk').controller('boot', [
-'$scope','$location','$timeout','utils',
-function($scope,$location,$timeout,utils) {
+'$scope','$location','utils',
+function($scope,$location,utils) {
 	$('#logo .yellow').addClass('throbber');
 	const mod_name = 'boot';
 	$scope.installed = {};
@@ -33,17 +33,10 @@ function($scope,$location,$timeout,utils) {
 			}
 		}
 	})
-
-
 	function getSettings(){
-		$timeout(function(){
-			$scope.installed.message = 'Loading settings';
-		})
-
+		$scope.installed.message = 'Loading settings';
 		$scope.utils = new utils('boot');
-
 		$scope.utils.boot('global').then(function(db){
-
 			var length = 0;
 			var types = [];
 			for (var property in Yolk.modules) {
@@ -90,8 +83,7 @@ function($scope,$location,$timeout,utils) {
 	};
 	if(!ipcRenderer._events.install){
 		ipcRenderer.on('install',function(event,data){
-
-			$timeout(function(){
+			$scope.$apply(function(){
 				if(data.message){
 					$scope.installed.message = data.message;
 				}
@@ -108,5 +100,4 @@ function($scope,$location,$timeout,utils) {
 			});
 		})
 	}
-
 }])

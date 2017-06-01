@@ -459,7 +459,7 @@ body,html{
 .track .below .icons:hover{
 	opacity:1;
 }
-#widgets{
+.widgets{
 	flex-grow:1;
 	align-self:stretch;
 	align-items:center;
@@ -467,10 +467,10 @@ body,html{
 	flex-direction:row-reverse;
 	padding-bottom:5px;
 }
-.artist #widgets, .album #widgets{
+.artist .widgets, .album .widgets{
 	padding-top:70px;
 }
-#widgets .widget{
+.widgets .widget{
 	cursor:pointer;
 	margin:0 5px;
 	opacity:.3;
@@ -478,12 +478,12 @@ body,html{
 	flex-direction:row;
 	align-items:center;
 }
-#widgets .widget.error{
+.widgets .widget.error{
 	opacity:1;
 	color:red;
 }
 
-#widgets div:hover{
+.widgets div:hover{
 	opacity:1;
 }
 #playing .scroll{
@@ -571,14 +571,11 @@ body,html{
 	height:100%;
 	background:lime;
 	width:0;
-	transition:width 2s linear;
 	cursor:w-resize;
 	position:relative;
 	z-index:2;
 }
-.track .progress.noAni{
-	transition:none!important;
-}
+
 .track.paused .progress{
 	background:Tomato;
 }
@@ -600,7 +597,7 @@ body,html{
 #search .right{
 	display:flex;
 	flex-direction:row;
-	font-size:25px;
+
 	padding-right:20px;
 	color:#302B22;
 	position:relative;
@@ -609,8 +606,21 @@ body,html{
 	align-items:center;
 }
 #search .right .item{
+	font-size:25px;
 	margin:0 5px;
 	opacity:.4;
+}
+#search .right .item.stop{
+	font-size:14px;
+	width:15px;
+	height:15px;
+	padding:4px;
+	background:tomato;
+	text-align:center;
+	color:white;
+	opacity:1;
+	border-radius:50%;
+	cursor:pointer;
 }
 #search .right .item .inner{
 	position:relative;
@@ -853,41 +863,12 @@ body,html{
 	height:30px;
 	padding:0 10px;
 	box-sizing: border-box;
-	cursor:default;
+	cursor:pointer;
 }
 .control  .title{
 	font-weight:600;
 }
-.switch{
-	width:40px;
-	height:16px;
-	border:1px solid black;
-	border-radius:8px;
-	position:relative;
-	z-index:2;
-	background:#E7E7E7;
-	cursor:pointer;
-}
-.switch .button{
-	position:absolute;
-	width:16px;
-	height:16px;
-	left:0;
-	right:auto;
-	background:grey;
-	border-radius:50%;
-	z-index:1;
-	box-shadow: 2px 0 5px 0px rgba(0,0,0,0.42);
-}
-.switch .button.on{
-	width:16px;
-	height:16px;
-	border:none;
-	left:auto;
-	right:0;
-	background:lime;
-	box-shadow: -2px 0 5px 0px rgba(0,0,0,0.42);
-}
+
 .track{
 	position:relative;
 }

@@ -1,12 +1,12 @@
 "use strict"
-angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,$filter,$timeout) {
+angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 
 	var $scope;
 	var body = [];
 	var q = [];
 	var Process;
 	const tools = require('../../lib/tools/searchtools.js');
-	const Q = require('promise');
+	const Q = Promise;
 
 
 
@@ -44,7 +44,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 		}
 		if(id) $scope.db.fetch(search).then(function(data){
 			data.items[0].filter.pos = next;
-			$timeout(function(){
+			$scope.$apply(function(){
 				$scope.lib.next = data.items[0]
 			})
 
@@ -324,9 +324,7 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 			$scope.lib.drawers[$scope.pin.Page][row.id].state = false;
 			$('#drawer'+row.id).height($('#drawer'+row.id+' .drawerInner').outerHeight());
 			$scope.tracks.fixChrome()
-			$timeout(function(){
-				$('#drawer'+row.id).height(0);
-			})
+			$('#drawer'+row.id).height(0);
 
 		}else{
 			Object.keys($scope.lib.drawers[$scope.pin.Page]).forEach(function(key){
@@ -398,26 +396,13 @@ angular.module('yolk').factory('tracks',['$q','$filter','$timeout', function($q,
 									albums.push(sort[key]);
 								})
 								$scope.lib.drawers[$scope.pin.Page][row.id].albums = albums;
-								//row.albums = albums;
-								$timeout(function(){
-									resolve(true);
-								})
+								resolve(true);
 							}
 						}
 					});
 				})
 			break;
 			case 'album':
-				function update(key,key2,updated,title,id,name){
-					$timeout(function(){
-						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2] = updated;
-						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].title = title;
-
-						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].album = id;
-						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].metadata.album = name;
-						$scope.lib.drawers[$scope.pin.Page][row.id].tracks[key][key2].filter={pos:-1}
-					})
-				}
 				return new Q(function(resolve,reject){
 					if($scope.lib.drawers[$scope.pin.Page][row.id].discs && !$scope.lib.drawers[$scope.pin.Page][row.id].refresh){
 						resolve(true);

@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
+angular.module('yolk').factory('playlist',[function() {
 	var $scope;
 
 	var playlist = function(scope){

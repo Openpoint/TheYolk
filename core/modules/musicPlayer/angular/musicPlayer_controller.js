@@ -1,14 +1,14 @@
 'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$timeout','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin','playlist',
-function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin,playlist) {
+'$scope','$interval','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin','playlist',
+function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin,playlist) {
 	const mod_name = 'musicPlayer';
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
-	const Q = require('promise');
+	const Q = Promise;
 
 	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
@@ -53,7 +53,7 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
 		$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
 		$scope.search.go(true,'init');
-		$timeout(function(){
+		$scope.$apply(function(){
 			$scope.settings_loaded = true;
 		})
 	});
@@ -76,7 +76,18 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 		}
 
 	}
-	$scope.dev=function(){
+	$scope.dev=function(info,type){
+		$scope.db.client.get({index:$scope.db_index,type:type,id:info.id},function(err,data){
+			console.info('-------------------------------------------------------------------------------------------------');
+			if(data._source.metadata){
+				Object.keys(data._source.metadata).forEach(function(key){
+					console.log(key+': '+data._source.metadata[key])
+				})
+			}
+			console.info(data._source)
+			console.info('-------------------------------------------------------------------------------------------------');
+		})
+		return;
 		if($scope.dims.dev){
 			$scope.dims.dev = false;
 		}else{
@@ -99,6 +110,11 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	var refresh_time = false;
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
+			if(data  === 'bulk'){
+				$scope.search.noscroll = true;
+				$scope.search.go(true)
+			}
+			return;
 			if(refresh_time) return;
 			refresh_time = setTimeout(function(){
 				$scope.tracks.refreshDrawers();
@@ -109,26 +125,29 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 	}
 	if(!ipcRenderer._events.progress){
 		ipcRenderer.on('progress',function(event,data){
-			$timeout(function(){
-				$scope.progress[data.type]=data.size;
-			});
+			if(data.type === 'musicbrainz') $scope.musicbrainz = data.size;
 		});
 	}
 	if(!ipcRenderer._events.verify){
 		ipcRenderer.on('verify',function(event,data){
 			console.log('verify');
 			console.log(data);
-			$scope.tracks.verify(data);
+			//$scope.tracks.verify(data);
 		});
 	}
-	/*
-	$scope.tools = function(){
-		ipcRenderer.send('tools');
-	}
-	*/
+
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
+
+	$interval(function(){
+		if($scope.progress.internetarchive !== $scope.internetarchive.progress||$scope.progress.youtube !== $scope.youtube.progress||$scope.progress.musicbrainz !== $scope.musicbrainz){
+			$scope.progress.internetarchive = $scope.internetarchive.progress;
+			$scope.progress.youtube = $scope.youtube.progress;
+			$scope.progress.musicbrainz = $scope.musicbrainz;
+		}
+	},1000)
+
 	$scope.$watch('settings',function(newVal,oldVal){
 		if(newVal!==oldVal && $scope.settings_loaded){
 			$scope.db.update({
@@ -169,16 +188,29 @@ function($scope,$timeout,dims,utils,lazy,audio,jamendo,internetarchive,youtube,t
 				$scope.pin.pinned.title = false;
 				$scope.goSearch = false;
 			}
-			$timeout.cancel(searchTime);
-			searchTime = $timeout(function(){
+			clearTimeout(searchTime);
+			if($scope.searchNow){
+				$scope.searchNow = false;
+				if($scope.searchNow === 'skip') return;
 				$scope.search.go(false,'searchterm');
-			},500);
+			}else{
+				searchTime = setTimeout(function(){
+					$scope.search.go(false,'searchterm');
+				},500);
+			}
 		}
 	});
-
+	$scope.stop = function(){
+		$scope.internetarchive.kill();
+		$scope.youtube.kill();
+		ipcRenderer.send('kill');
+		setTimeout(function(){
+			ipcRenderer.send('kill','revive');
+		})
+	}
 	//for development purposes - destroy the database and reload
 	$scope.nuke=function(){
-		ipcRenderer.send('kill');
+
 		$scope.db.client.search({
 			index:'global',
 			type:'settings',
