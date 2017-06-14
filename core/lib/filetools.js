@@ -4,7 +4,7 @@ const https = require('http');
 const URL = require('url');
 const fs=require('fs');
 const path=require('path');
-var q = Promise;
+var q = require("bluebird");
 var request = require('request');
 
 const os = require("os");
@@ -21,7 +21,7 @@ var filetools = function(){
 filetools.prototype.download = function(urls,destination){
 	var self = this;
 
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		var prom = {
 			count:0,
 			error:false,
@@ -146,7 +146,7 @@ filetools.prototype.isThere = function(type,path){
 }
 filetools.prototype.extract = function(src,dest,type){
 	var self = this;
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		var destination = dest;
 		process.Yolk.storedMesssage = {
 			percent:'',
@@ -232,7 +232,7 @@ filetools.prototype.mkdir = function(base,Path){
 	});
 }
 filetools.prototype.copy = function(src,dest){
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		var rd = fs.createReadStream(src);
 		rd.on("error", function(err) {
 			reject(err);
@@ -268,7 +268,7 @@ filetools.prototype.checksum = function(file,val){
 		options = {};
 	}
 
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		checksum.file(file,options,function (err, sum) {
 			if(err){
 				reject({

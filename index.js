@@ -1,3 +1,6 @@
+"use strict"
+window.Promise  = require("bluebird");
+window.Promise.config({cancellation: true})
 window.$ = window.jQuery = require('jquery');
 const Yolk = {};
 

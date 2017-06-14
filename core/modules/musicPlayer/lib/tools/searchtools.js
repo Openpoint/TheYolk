@@ -103,16 +103,17 @@ search.prototype.queryBuilder=function(term,data){
 		if(data.operator) {
 			if(data.operator.toLowerCase() === 'and'){
 				data.operator = '+'
-			}
-			if(data.operator.toLowerCase() === 'not'){
+			}else if(data.operator.toLowerCase() === 'not'){
 				data.operator = '-'
+			}else{
+				data.operator = data.operator.toUpperCase();
 			}
-			word = data.operator+word;
+			if(index > 0) word = data.operator+' '+word;
 		}
 		if(index > 0){
-			newterm = newterm + ' '+word;
+			newterm+=' '+word;
 		}else{
-			newterm = newterm+word;
+			newterm+=word;
 		}
 	})
 	return newterm;

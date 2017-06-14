@@ -5,10 +5,14 @@ const message = process.Yolk.message;
 const tools = require('./searchtools.js');
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
 const elastic = process.Yolk.db;
-const q = Promise;
+const log = false //turn on detailed logging
+const kill = require('./killer.js');
 
+var classical = function(info){
+    this.classic = false;
+}
 
-const getClassical = function(){
+classical.prototype.getClassical = function(){
     elastic.exists(db_index+'.classical').then(function(exists){
         if(exists) return;
         var composers = require('./composers.json');
@@ -27,11 +31,7 @@ const getClassical = function(){
     });
 }
 
-const log = false //turn on detailed logging
 
-var classical = function(info){
-    this.classic = false;
-}
 
 var strim = function(string){
     string = string.replace(/[\¬\`\¦\!\£\$\%\^\*\_\-\+\=\~\#\@\:\;\,\.\?\/\\\|\']/g,' ').replace(/\&/g,' and ');
@@ -44,13 +44,7 @@ var strim = function(string){
 //fix the metadata for classical music
 classical.prototype.get = function(info){
 	var self = this;
-	return new q(function(resolve,reject){
-
-		if(info.musicbrainz_id && (!info.metadata.artist||!info.metadata.album||!info.metadata.title)){
-			info.isclassic = 'retry';
-			resolve(info);
-			return;
-		};
+	var p = new Promise(function(resolve,reject){
 
 		if(log) console.Yolk.say(info.metadata.artist+' :|: '+info.metadata.album+' :|: '+info.metadata.title);
 		var whole = '';
@@ -69,9 +63,9 @@ classical.prototype.get = function(info){
 	            if(key === 'album') whole_album = strim(info.metadata[key]);
 				if(key === 'title'){
 					whole_title = strim(info.metadata[key]);
-					whole = whole+whole_title;
+					whole+=whole_title;
 				}else{
-					whole = whole+strim(info.metadata[key])+' ';
+					whole+=strim(info.metadata[key])+' ';
 				}
 			}
 		})
@@ -84,107 +78,12 @@ classical.prototype.get = function(info){
 		var all_composers3 = false;
 		var gotnames=[];
 
-		function testname(name,composer,whole3){
-	        var regex = new RegExp("(?:^| )"+name+"(?: |$)")
-	        if(whole3.search(regex) !== -1){
-				if(typeof composers[composer] === 'string'){
-	                //get rid of ambiguous composer spelling
-					composer = composers[composer];
-				}
-				if(!all_composers) all_composers={};
-				if(!all_composers[composer]) all_composers[composer]=composers[composer];
-				return true;
-			}
-			return false;
-		}
-
-	    //get the original track artist if different to composer
-	    function putartist(composer){
-	        if(info.metadata.artist){
-	            var lastname = tools.strim(composer.split(' ').reverse()[0]);
-	            var artist = tools.strim(info.metadata.artist);
-	            //if(artist.indexOf(lastname)===-1){
-	                var artists = info.metadata.artist.split(/(?:[\/\,]| - | and | et | by | with | conductor )/g).map(function(artist){return artist.trim()}).filter(function(artist){
-	                    if(artist.length && artist.indexOf(lastname) === -1){return true}
-	                });
-	                if(artists.length) info.classical.artist = artists.map(function(artist){return {name:artist}})
-
-	            //}
-	        }
-	    }
-
-	    //get the composer name and details
-		function getnames(whole2){
-			all_composers = false;
-
-	        //check for match on full name first
-			Object.keys(composers).forEach(function(composer){
-				var lastname = composer.split(' ').reverse()[0];
-				if(gotnames.indexOf(lastname)==-1){
-					if(testname(composer,composer,whole2)){
-						gotnames.push(lastname)
-					}
-				}
-			})
-
-	        //then on initials and surname
-			Object.keys(composers).forEach(function(composer){
-				var lastname = composer.split(' ').reverse()[0];
-				var init='';
-				var split = composer.split(' ');
-				split.forEach(function(part,index){
-					if(index < split.length-1){
-						init=init+part[0]+' '
-					}else{
-						init=init+part;
-					}
-				})
-				if(gotnames.indexOf(lastname)==-1){
-					if(testname(init,composer,whole2)){
-						gotnames.push(lastname)
-					}
-				}
-			})
-
-	        //then on surname only
-			Object.keys(composers).forEach(function(composer){
-				var lastname = composer.split(' ').reverse()[0];
-				if(gotnames.indexOf(lastname)==-1){
-					testname(lastname,composer,whole2)
-				}
-			})
-
-	        //reduce numerous composers to the most likely by album only then title
-			if(all_composers){
-				var keys = Object.keys(all_composers);
-				if(keys.length === 1){ //only one composer, so happy days!
-					info.classical.composer = keys[0];
-	                putartist(info.classical.composer)
-				}else if(!info.retry||info.retry===1){
-					if(!info.retry){ //more than one composer, so check the album name for the authoratative one
-						all_composers2 = all_composers;
-						info.retry = 1;
-						if(info.metadata.album){
-							getnames(whole_album);
-						}else{
-							info.retry = 2;
-							getnames(whole_title);
-						}
-					}else{ //still more than one composer, so check the track title for the authoratative one
-						all_composers3 = all_composers;
-						info.retry = 2;
-						getnames(whole_title);
-					}
-				}
-			}
-		}
-
 	    elastic.fetchAll({index:db_index,type:'classical',body:{query:{match:{name:{query:whole,operator:'or'}}}}}).then(function(data){
+			kill.update('promises');
+			if(kill.kill) return;
 	        if(!data.length){
 	            if(log) console.Yolk.say('REJECTED ----------------- No composer found');
 	            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-				//console.Yolk.warn(info.id)
-	            //message.send('classical_'+info.id,false);
 				delete info.classical;
 				info.isclassic = 'no';
 				resolve(info);
@@ -202,17 +101,15 @@ classical.prototype.get = function(info){
 	    		if(all_composers3) all_composers = all_composers3;
 	    		Object.keys(all_composers).some(function(composer){
 	    			return all_composers[composer].some(function(cat){
-	                    var ident = self.divider(whole,cat);
+	                    var ident = self.divider(whole,cat,true);
 	                    if(ident=== 'too long'){
 	                        [whole_album+' '+whole_title,whole_title].some(function(string){
-	                            ident = self.divider(string,cat);
+	                            ident = self.divider(string,cat,true);
 	                            if(!ident || ident=== 'too long'){return false}
 	                            return true;
 	                        })
 	                    }
 	    				if(ident){
-	    					info.classical.composer = composer;
-	                        putartist(info.classical.composer);
 	    					info.classical.cat={
 	    						id:cat,
 	    						val:ident[0]
@@ -227,8 +124,6 @@ classical.prototype.get = function(info){
 	        if(!info.classical.composer){
 	            if(log) console.Yolk.say('REJECTED ----------------- No composer found');
 	            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-				//console.Yolk.warn(info.id)
-	            //message.send('classical_'+info.id,false);
 				delete info.classical;
 				info.isclassic = 'no';
 				resolve(info);
@@ -260,8 +155,6 @@ classical.prototype.get = function(info){
 	        if(!info.classical.types && !info.classical.op && !info.classical.cat && !info.classical.key){
 	            if(log) console.Yolk.say('REJECTED ----------------- Not enough information found');
 	            if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-				//console.Yolk.warn(info.id)
-	            //message.send('classical_'+info.id,false);
 				delete info.classical;
 				info.isclassic = 'no';
 				resolve(info);
@@ -269,17 +162,136 @@ classical.prototype.get = function(info){
 	        }
 	        if(log) console.Yolk.say(info.classical);
 	        if(log) console.Yolk.say('---------------------------------------------------------------------------------------------------------------------------------');
-			//console.Yolk.warn(info.id)
-	        //message.send('classical_'+info.id,info)
-	        //return;
 			info.isclassic = 'yes';
 			resolve(info);
 	    })
+
+		//get the original track artist if different to composer
+		function putartist(comps){
+			if(info.metadata.artist){
+				var artist = tools.strim(info.metadata.artist);
+				var artists = info.metadata.artist.replace(/[\(\)\{\}\[\]0-9]/g,'').split(/(?:[\/\,]| - | and | et | by | with | conductor )/g).map(function(artist){return artist.trim()}).filter(function(artist){
+					var lastname = tools.strim(artist.split(' ').reverse()[0]);
+					if(!lastname) return false;
+					return !comps.some(function(c){
+						return (c.indexOf(lastname) > -1)
+					})
+				});
+			}else{
+				var artists = [];
+			}
+
+			//prefer artist with work codes
+			comps = comps.filter(function(c){
+				if(all_composers[c].length){
+					return !all_composers[c].some(function(i){
+						var r = new RegExp("(^| )"+i+" [0-9]")
+						if(whole.search(r) !== -1){
+							info.classical.composer = c;
+							return true;
+						}
+					})
+				};
+				return true;
+			})
+			if(!info.classical.composer){
+				//check for match on whole name
+				var ar = comps.filter(function(c){
+					var r =  new RegExp("(^| )"+c+"( |$)")
+					return whole.search(r) > -1;
+				})
+				//check for match on initials and name
+				if(!ar.length) ar = comps.filter(function(c){
+					var init = c.split(' ');
+					var lastname = init.pop();
+					init = init.map(function(i){return i[0]}).join(' ')+' '+lastname;
+					var r =  new RegExp("(^| )"+init+"( |$)");
+					return whole.search(r) > -1;
+				})
+				//check for match on last name
+				if(!ar.length) ar = comps.filter(function(c){
+					var lastname = c.split(' ').reverse()[0];
+					var r =  new RegExp("(^| )"+lastname+"( |$)")
+					return whole.search(r) > -1;
+				})
+				info.classical.composer = ar.shift();
+				comps = comps.filter(function(c){
+					return c!== info.classical.composer;
+				})
+			}else{
+				comps=[];
+			}
+			comps = comps.concat(artists)
+			if(comps.length) info.classical.artist = comps.map(function(artist){return {name:artist}});
+
+		}
+
+		function testname(name,composer,whole3){
+			var regex = new RegExp("(?:^| )"+name+"(?: |$)");
+			if(name.split(' ').length === 1 && tools.roman([name]).length) return false;
+			//console.Yolk.say(name+' : '+whole3)
+			if(whole3.search(regex) !== -1){
+				if(typeof composers[composer] === 'string'){
+					//get rid of ambiguous composer spelling
+					composer = composers[composer];
+				}
+				if(!all_composers) all_composers={};
+				if(!all_composers[composer]) all_composers[composer]=composers[composer];
+				return true;
+			}
+			return false;
+		}
+
+		//get the composer name and details
+
+		function getnames(whole2){
+			all_composers = false;
+
+			//check for match on full name first
+			Object.keys(composers).forEach(function(composer){
+				var lastname = composer.split(' ').reverse()[0];
+				if(gotnames.indexOf(lastname)==-1){
+					if(testname(composer,composer,whole2)){
+						gotnames.push(lastname)
+					}
+				}
+			})
+
+			//then on initials and surname
+			Object.keys(composers).forEach(function(composer){
+				var lastname = composer.split(' ').reverse()[0];
+				var init='';
+				var split = composer.split(' ');
+				split.forEach(function(part,index){
+					if(index < split.length-1){
+						init=init+part[0]+' '
+					}else{
+						init=init+part;
+					}
+				})
+				if(gotnames.indexOf(lastname)==-1){
+					if(testname(init,composer,whole2)){
+						gotnames.push(lastname)
+					}
+				}
+			})
+
+			//then on surname only
+			Object.keys(composers).forEach(function(composer){
+				var lastname = composer.split(' ').reverse()[0];
+				if(gotnames.indexOf(lastname)==-1){
+					testname(lastname,composer,whole2)
+				}
+			})
+			if(all_composers) putartist(Object.keys(all_composers))
+		}
 	})
+	kill.promises.push(p);
+	return p;
 }
 
 //find classical work number references from recording title
-classical.prototype.divider = function(title,op){
+classical.prototype.divider = function(title,op,noroman){
 	if(!title){return false};
 	var self = this;
 
@@ -292,23 +304,34 @@ classical.prototype.divider = function(title,op){
     		title = title.replace(fix,fix2)
     	})
     }
-    //clean up numbers with leading characters
-    title = title.replace(/[0-9][a-z]/g,function(foo){return foo.replace(/[a-z]/,'')})
+
+    //clean up numbers with trailing characters
+    if(!noroman) title = title.replace(/[0-9][a-z]/g,function(foo){return foo.replace(/[a-z]/,'')})
     title = title.replace(/((?:^| )(no|number|num|nº|nr)[\s0-9])/g,function(match){return ' '+match.replace(/[^0-9]/g,'')});
     title = tools.despace(title);
 
     regex = new RegExp("(?:^| )"+op+" ",'g');
 	if(title.search(regex)!==-1){
 		var string = title.split(regex).filter(function(section){if(section.length){return true}});
-        if(string.length > 2){return 'too long'}
-		string = string[string.length-1];
+
+		if(string.length > 2) string = string.filter(function(s,i){
+			if(!i) return true;
+			return string.some(function(s2,i2){
+				if(!i2) return false;
+				return (i!==i2 && s.indexOf(s2) === 0);
+			})
+		})
+
+        if(string.length !== 2){return 'too long'}
+		string = string[1];
+
         var brackets = ['{}','[]','()','“”','‘’','""'];
         brackets.forEach(function(bracket){
             var regex = new RegExp("\\"+bracket[0]+"(.*?)\\"+bracket[1],"g");
             string = string.replace(regex,'');
             string = tools.despace(string);
         })
-        //if(log) console.Yolk.say(string);
+
         var rem = string.split(' ');
         if(op === 'in'){
             op1=[];
@@ -324,6 +347,11 @@ classical.prototype.divider = function(title,op){
             if(op1.length){return op1}
         }
         if(op === 'op'){rem = [rem[0],rem[1]]}else{rem = [rem[0]]};
+		if(noroman){
+			if(rem[0][0] == '0') rem[0] = rem[0].substr(1);
+			if(isNaN(rem[0][0])) return false;
+			return rem;
+		}
         var op1 = tools.roman(rem);
         if(!op1[0]){return false}else{return op1}
 	}
@@ -332,17 +360,6 @@ classical.prototype.divider = function(title,op){
 
 var divider = ['act','symphony','sinfonía','symphonie','sinfonie','variation','variatio','sonata','sonate','triosonata','suite','concerto','ballade','balada','walzer','waltz','scherzo','poloneise','impromptu','mvt','op','in'];
 
-/*
-ipcMain.on('musicbrainz_classical', function(event, track) {
-	//console.Yolk.warn(track.id)
-	Classical.get(track);
-})
-*/
-ipcMain.on('kill', function(event,data) {
-	if(data === 'revive'){
-		getClassical()
-	}
-})
 var Classical = new classical();
 
 module.exports = Classical;

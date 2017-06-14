@@ -8,30 +8,43 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 	const tools = require('../../lib/tools/searchtools.js');
 	const Tools = require('../../lib/tools/youtubetools.js');
 	const log = false;
-	const q = Promise;
-	var youtubeArtists={};
+	const kill = require('../../lib/tools/killer.js')
 	var moot = []
 	var $scope;
-	var done = [];
 
 	var youtube = function(scope){
 		$scope = scope;
 		this.busy={};
 		var self = this;
+		this.getDone();
+		$scope.db.client.get({index:$scope.db_index,id:1,type:'youtubeartists'},function(err,data){
+			if(data._source) {Tools.youtubeArtists = data._source.arts};
+		})
+	}
+	youtube.prototype.getDone = function(){
+		if(log) console.log('getDone');
 		$scope.db.fetchAll({index:$scope.db_index,type:'youtubesearch',body:{query:{match:{searched:{query:'yes',type:'phrase'}}}}}).then(function(data){
-			done = data.map(function(video){return video.file});
+			if(kill.kill) return;
+			data = data.filter(function(v){
+				if(v.musicbrainzed === 'no'){
+					return false;
+				}else{
+					return true;
+				}
+			})
+			Tools.done = data.map(function(video){return video.file});
 		},function(err){
 			console.error(err)
 		});
 	}
-
 	//Initiate the youtube search
 	youtube.prototype.search = function(term){
-
+		if(log) console.log('search');
+		kill.kill = false;
 		var self = this;
 		this.progress = 'search';
 		if(!Tools.videos[term]) Tools.videos[term]=[];
-		var terms = $scope.tools.terms(term);
+		var terms = tools.terms(term);
 		var Term = terms.prefix||'';
 		if(terms.artist) Term +=' '+terms.artist;
 		if(terms.album) Term +=' '+terms.album;
@@ -39,12 +52,20 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 		var self = this;
 		var query = 'https://www.googleapis.com/youtube/v3/search?part=snippet&key=AIzaSyBGwfPX9w5DLGlchh93z-K35PAnJCXEgeg&q='+tools.queryBuilder(Term)+'&videoEmbeddable=true&type=video&videoCategoryId=10&maxResults=50'
 		Tools.search(query).then(function(ids){
-			self.getVideos(ids,term);
+			ids = ids.filter(function(id){
+				return Tools.done.indexOf(id) === -1;
+			});
+			if(ids.length){
+				self.getVideos(ids,term)
+			}else{
+				self.progress = 0;
+			}
 		})
 	}
 
 	//Get info for each individual found video from youtube
 	youtube.prototype.getVideos = function(ids,term){
+		if(log) console.log('getVideos');
 		var self = this;
 		if(ids.length > 50){
 			var ids2 = ids.slice(0, 50);
@@ -55,8 +76,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 		}
 
 		var query = 'https://www.googleapis.com/youtube/v3/videos?key=AIzaSyBGwfPX9w5DLGlchh93z-K35PAnJCXEgeg&maxResults=50&part=snippet,statistics,contentDetails&id='+ids2.join(',');
-		$.get(query).done(function(response){
-			if(log) console.log(response.items)
+		var r = $.get(query).done(function(response){
 			var bulk = []
 			response.items = response.items.filter(function(video){
 				bulk.push({index:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
@@ -65,39 +85,52 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 					bulk.push({file:video.id});
 					return true;
 				}else{
+					Tools.done.push(video.id)
 					bulk.push({file:video.id,searched:'yes'})
 					return false;
 				}
 			})
+
+
 			$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
+				if(kill.kill) return;
 				if(err) console.error(err);
-				if(log) console.log(data)
-				Tools.videos[term] = Tools.videos[term].concat(response.items);
+				if(response.items.length){
+					Tools.videos[term] = Tools.videos[term].concat(response.items);
+					self.getArtist(term);
+				}
 				self.progress = Tools.libsize();
-				self.getArtist(term);
 			})
 		}).fail(function(err){
-			console.log(err);
+			console.error(err);
 		}).always(function(){
+			kill.update('requests')
+			if(kill.kill) return;
 			if(ids.length){
 				self.getVideos(ids,term);
-			}else{
-				self.commit(term)
 			}
+
 		});
+		kill.requests.push(r);
 	};
 	//get the potential artists for each video
 	youtube.prototype.getArtist = function(term){
+		if(log) console.log('getArtist');
 		if(this.busy[term]) return;
-		this.busy[term] = true;
 		var self = this;
+		if(!Tools.videos[term].length){
+			self.progress = Tools.libsize();
+			self.commit(term);
+			return;
+		}
+		this.busy[term] = true;
 		var video = Tools.videos[term].shift();
-
 		var artists = [];
 		if(!video.retry){
 			artists = Tools.artists(video);
 		}else{
 			Object.keys(Tools.youtubeArtists).forEach(function(artist){
+				if(Tools.youtubeArtists[artist].nope) return;
 				if(tools.fix(video.snippet.title).indexOf(artist) > -1){
 					artists.push(artist)
 				}
@@ -105,7 +138,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 			if(!artists.length){
 				if(log) console.error('NO ARTISTS FOUND: '+video.snippet.title)
 
-				//$scope.db.client.update({index:$scope.db_index,type:'youtubesearch',id:video.id,refresh:"true",body:{doc:{searched:'yes'}}})
+				Tools.done.push(video.id)
 				Tools.bulk.push({update:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
 				Tools.bulk.push({doc:{searched:'yes'}})
 			}else{
@@ -113,12 +146,13 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 			}
 			self.progress = Tools.libsize();
 			self.busy[term] = false;
-			if(Tools.videos[term].length) self.getArtist(term);
+			self.getArtist(term);
 			return;
 		}
 		if(artists.length){
 			Tools.checkArtists(artists).then(function(gartists){
 				if(gartists && gartists.length){
+
 					artists = artists.filter(function(artist){
 						if(gartists.indexOf(artist)===-1){return true}
 					})
@@ -128,20 +162,20 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 							Tools.makeTrack(video,artists);
 							self.progress = Tools.libsize();
 							self.busy[term] = false;
-							if(Tools.videos[term].length) self.getArtist(term);
-							//self.makeTrack(video,artists)
+							self.getArtist(term);
 						})
 					}else if(!artists.length){
 						Tools.makeTrack(video,gartists);
 						self.progress = Tools.libsize();
 						self.busy[term] = false;
-						if(Tools.videos[term].length) self.getArtist(term);
+						self.getArtist(term);
 					}else{
+						Tools.done.push(video.id)
 						Tools.bulk.push({update:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
 						Tools.bulk.push({doc:{searched:'yes'}})
 						self.progress = Tools.libsize();
 						self.busy[term] = false;
-						if(Tools.videos[term].length) self.getArtist(term);
+						self.getArtist(term);
 					}
 				}else{
 					if(video.statistics.viewCount*1 > 10000){
@@ -149,21 +183,21 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 							if(nartists.length){
 								Tools.makeTrack(video,nartists);
 							}else{
-								//$scope.db.client.update({index:$scope.db_index,type:'youtubesearch',id:video.id,refresh:"true",body:{doc:{searched:'yes'}}})
+								Tools.done.push(video.id)
 								Tools.bulk.push({update:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
 								Tools.bulk.push({doc:{searched:'yes'}})
 							}
 							self.progress = Tools.libsize();
 							self.busy[term] = false;
-							if(Tools.videos[term].length) self.getArtist(term);
+							self.getArtist(term);
 						})
 					}else{
-						//$scope.db.client.update({index:$scope.db_index,type:'youtubesearch',id:video.id,refresh:"true",body:{doc:{searched:'yes'}}})
+						Tools.done.push(video.id)
 						Tools.bulk.push({update:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
 						Tools.bulk.push({doc:{searched:'yes'}})
 						self.progress = Tools.libsize();
 						self.busy[term] = false;
-						if(Tools.videos[term].length) self.getArtist(term);
+						self.getArtist(term);
 					}
 				}
 			})
@@ -176,18 +210,28 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 		}
 	};
 	//process list of tracks and submit to musicbrainz for tagging
+	//var ctimeout = {};
 	youtube.prototype.commit = function(term){
+		if(log) console.log('commit');
+		//if(ctimeout[term]) return;
 		var self = this;
 		function go(term){
 			if(Tools.bulk && Tools.bulk.length){
+				if(log) console.log('commit bulk')
 				$scope.db.client.bulk({body:Tools.bulk,refresh:true},function(err,data){
+					if(kill.kill) return;
 					if(err) console.error(err)
 					if(log) console.log(data)
+					go(term)
+					self.getDone();
 				})
 				Tools.bulk=[];
+				//clearTimeout(ctimeout[term])
 			}else{
 				var Query = tools.extquery(term,'yt')
+				if(log) console.log('commit query')
 				$scope.db.fetchAll({index:$scope.db_index,type:'youtubesearch',body:{query:Query}}).then(function(data){
+					if(kill.kill) return;
 					data = data.sort(function(a,b){
 						return (b.rating*1)-(a.rating*1)
 					});
@@ -196,19 +240,21 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 				},function(err){
 					console.error(err)
 				})
+				$scope.db.client.update({index:$scope.db_index,type:'youtubeartists',id:1,doc_as_upsert:true,refresh:true,body:{doc:{arts:Tools.youtubeArtists}}},function(err,data){
+					if(err) console.error(err);
+				})
 			}
-			if(Tools.videos[term].length) setTimeout(function(){go(term)},2000)
 		}
 		go(term);
-
 	}
-	/*
+
 	youtube.prototype.kill=function(){
-		$scope.youtube.kill = true;
-		$scope.youtube.get1.abort();
-		$scope.youtube.progress = 0;
+		if(log) console.log('kill');
+		Tools.Kill();
+		this.progress = Tools.libsize();
+		this.getDone();
+		this.busy = {};
 	}
 
-	*/
 	return youtube;
 }])

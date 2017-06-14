@@ -121,7 +121,7 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
-		if(track.type === 'jamendo' || track.type === 'internetarchive'){
+		if(track.type === 'internetarchive'){
 			var source = track.file;
 		}
 		if(track.type === 'youtube'){

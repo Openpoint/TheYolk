@@ -5,68 +5,73 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 	const {ipcRenderer} = require('electron');
 	const path = require('path');
 	const crypto = require('crypto');
+	const cpu = require('../../lib/tools/cpu.js');
+	const kill = require('../../lib/tools/killer.js');
+	const tools = require('../../lib/tools/searchtools.js');
 	const log = false;
 
 	var $scope;
-	const tools = require('../../lib/tools/searchtools.js');
 
-	var q = {
-		queries:[],
-		meta:[],
-		sources:[]
-	};
-	var canceler = $q.defer();
-	var reqs = {};
-	var Kill = false;
-
+	var q;
+	var resetq = function(){
+		q = {
+			queries:[],
+			meta:[],
+			sources:[]
+		};
+	}
+	resetq();
 	var ia = function(scope){
 		var self = this;
 		$scope = scope;
 		this.progress = 0;
 		this.searches = [];
 		this.max_duration = 30*60*1000 //maximum track length in milliseconds
-
-		this.getSearches = function(){
-			$scope.db.client.get({index:$scope.db_index,type:"internetarchivesearch",id:"queries"},function(err,data){
-				if(!err){
-					self.queries = data._source.queries;
-				}else{
-					self.queries=[];
-				}
-			})
-		}
-		this.saveSearches = function(){
-			$scope.db.client.update({index:$scope.db_index,type:"internetarchivesearch",id:"queries",refresh:true,body:{
-				doc:{queries:self.queries},doc_as_upsert:true
-			}},function(err,data){
-				if(err) console.error(err);
-			})
-		}
 		this.getSearches()
 	}
-
+	ia.prototype.getSearches = function(){
+		var self = this;
+		this.queries=[];
+		$scope.db.client.get({index:$scope.db_index,type:"internetarchivesearch",id:"queries"},function(err,data){
+			if(!err){
+				self.queries = data._source.queries;
+			}
+		})
+	}
+	ia.prototype.saveSearches = function(query){
+		var self = this;
+		$scope.db.client.update({index:$scope.db_index,type:"internetarchivesearch",id:"queries",refresh:true,body:{doc:{queries:self.queries},doc_as_upsert:true}},function(err,data){
+			if(kill.kill)return;
+			if(err) console.error(err);
+			self.musicbrainz(query);
+		})
+	}
 	//submit a search to the internetarchive server	and get a list of identifiers
 	ia.prototype.search = function(term){
-		Kill = false;
+		kill.kill=false;
 		var self = this;
 		var queries = self.searchString(term);
-		this.musicbrainz(queries.qdb);
 		if(!this.progress) this.progress = 'load';
+		this.musicbrainz(queries.qdb);
 		var query = 'https://archive.org/advancedsearch.php?q='+queries.qia;
-		$http({method:'GET',url:query,timeout:canceler.promise}).then(function(response){
-			var result = response.data.response.docs;
-			if(self.progress === 'load') self.progress = 0;
+		var r = $.get({url:query}).done(function(response){
+			var result = response.response.docs;
 			if(result.length){
 				q.meta.push({
 					query:queries.qdb,
 					blocks:result
 				});
+				if(self.progress === 'load') self.progress = 0;
 				self.progress+=result.length;
-				self.getMeta();
+				self.getMeta(queries.qdb);
 			}
-		},function(err){
+		}).fail(function(err){
+			if(!this.progress==='load') this.progress = 0;
 			console.error(err);
+		}).always(function(){
+			kill.update('requests')
 		});
+		kill.requests.push(r);
 	}
 	//process the query to a database search string
 	ia.prototype.searchString = function(term){
@@ -117,12 +122,12 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 	//get the full details of the specific found identifier, including track file listing
 	ia.prototype.proceed = function(query){
 		var self = this;
-		if(Kill) return;
 		self.progress--;
-		if(!self.progress) self.saveSearches();
-		self.musicbrainz(query);
+		if(!self.progress){
+			self.saveSearches(query);
+		}
 	}
-	ia.prototype.getMeta = function(){
+	ia.prototype.getMeta = function(query){
 		var self = this;
 		if (q.meta.length){
 			var query = q.meta[0].query;
@@ -133,18 +138,16 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 				q.meta.shift();
 			}
 			if(this.queries.indexOf(src) !== -1){
-				if(Kill) return;
 				self.progress--;
-				if(!self.progress) self.saveSearches();
-				self.getMeta();
+				if(!self.progress) self.saveSearches(query);
+				self.getMeta(query);
 				return;
 			}else{
 				this.queries.push(src);
 			}
 			var url = 'https://archive.org/metadata/'+src;
-			$http({method:'GET',url: url,timeout:canceler.promise}).then(function(response){
-				reqs[url]=[];
-				if(response.data.files) var files = self.getFiles(response.data.files);
+			var r = $.get({url: url}).done(function(response){
+				if(response.files) var files = self.getFiles(response.files);
 				if(files && files.length){
 					var bulk=[];
 					var count = files.length;
@@ -154,7 +157,7 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 							metadata:{}
 						};
 						newfile.name = encodeURIComponent(file.name);
-						newfile.dir = encodeURIComponent(response.data.metadata.identifier);
+						newfile.dir = encodeURIComponent(response.metadata.identifier);
 						newfile.url = 'https://archive.org/download/'+path.join(newfile.dir,newfile.name);
 						newfile.metadata.title = file.title;
 						newfile.metadata.artist = file.artist;
@@ -166,37 +169,36 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 						newfile.internetarchive = src;
 						newfile.downloads = downloads;
 
-						//ipcRenderer.send('musicbrainz_classical',newfile);
-						//ipcRenderer.once('classical_'+newfile.id,function(event,data){
-							//if(Kill) return;
-							count--;
-							//if(data) newfile = data;
-							bulk.push({create:{_index:$scope.db_index,_type:'internetarchivesearch',_id:newfile.id}});
-							bulk.push(newfile);
-							//put the found files to database
-							if(bulk.length && !count){
-								$scope.db.client.bulk({body:bulk,refresh:true},function(err,response){
-									self.proceed(query);
-									if(err){
-										console.error(err);
-									}
-								});
-							}else if(!count){
+						count--;
+						//if(data) newfile = data;
+						bulk.push({create:{_index:$scope.db_index,_type:'internetarchivesearch',_id:newfile.id}});
+						bulk.push(newfile);
+						//put the found files to database
+						if(bulk.length && !count){
+							$scope.db.client.bulk({body:bulk,refresh:true},function(err,response){
+								if(kill.kill) return;
 								self.proceed(query);
-							}
-						//})
+								if(err){
+									console.error(err);
+								}
+							});
+						}else if(!count){
+							self.proceed(query);
+						}
 					});
 				}else{
-					if(Kill) return;
 					self.progress--;
-					if(!self.progress) self.saveSearches();
+					if(!self.progress) self.saveSearches(query);
 				}
-			},function(err){
-				if(Kill) return;
+			}).fail(function(err){
+				if(kill.kill) return;
 				self.progress--;
-				if(!self.progress) self.saveSearches();
+				if(!self.progress) self.saveSearches(query);
+			}).always(function(){
+				kill.update('requests')
 			});
-			self.getMeta();
+			kill.requests.push(r);
+			self.getMeta(query);
 		}else{
 			if(log) console.log('Finished Meta');
 		}
@@ -307,55 +309,54 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 			metadata:file.metadata,
 			id:file.id,
 			file:file.url,
+			rootdir:file.dir,
 			duration:file.duration,
 			download:file.url,
 			path:'',
 			filter:{},
 			musicbrainz_id:file.musicbrainz_id,
 			type:'internetarchive',
-			downloads:file.downloads
+			downloads:file.downloads,
+			deleted:'no'
 		}
 		if(file.musicbrainz_id) track.musicbrainz_id = file.musicbrainz_id;
-		if(file.classical) track.classical = file.classical
 		return track;
 	}
 
 	//fetch the query from the local database and submit to musicbrainz for querying
+	var mtimeout;
 	ia.prototype.musicbrainz = function(query){
 		var self = this;
-		this.timeout = setTimeout(function(){
-			$scope.db.fetchAll(query).then(function(data){
-				data = data.filter(function(track){
-					if(self.searches.indexOf(track.id) === -1){
-						self.searches.push(track.id);
-						return true;
-					}
-				})
-				data = data.map(function(track){
-					return self.format(track);
-				});
-				ipcRenderer.send('musicbrainz',data);
-			},function(err){
-				console.error(err);
+		clearTimeout(mtimeout);
+
+		if(cpu.load < 75) $scope.db.fetchAll(query).then(function(data){
+			if(kill.kill) return;
+			data = data.filter(function(track){
+				if(self.searches.indexOf(track.id) === -1){
+					self.searches.push(track.id);
+					return true;
+				}
+			})
+			data = data.map(function(track){
+				return self.format(track);
 			});
-		},500);
+
+			ipcRenderer.send('musicbrainz',data);
+
+		},function(err){
+			console.error(err);
+		});
+
+		if(self.progress) mtimeout = setTimeout(function(){
+			if(kill.kill) return;
+			self.musicbrainz(query);
+		},1000)
 	}
 	ia.prototype.kill=function(){
-		Kill = true;
-		q.meta=[];
-		clearTimeout(this.timeout);
-		canceler.resolve();
-		canceler = $q.defer();
-		/*
-		Object.keys(reqs).forEach(function(key){
-			reqs[key].forEach(function(r){
-				r.abort();
-			});
-		})
-		reqs={}
-		*/
-		this.getSearches();
 		this.progress = 0;
+		this.searches = [];
+		resetq();
+		this.getSearches();
 	}
 	return ia;
 }])

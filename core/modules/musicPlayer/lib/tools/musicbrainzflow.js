@@ -1,14 +1,25 @@
 "use strict"
 
 const tools = require('./searchtools.js');
-const mbtools = require('./musicbrainztools.js');
+var mbtools;
+var mbdb;
+const classical = require('./musicbrainzclassical.js');
+classical.getClassical();
 const request = require('request');
+const cpu = require('./cpu.js');
+const kill = require('./killer.js');
 const mb_url="https://musicbrainz.org/ws/2/";
-const q = Promise;
+const q = require("bluebird");
 
 var flow = function(){
 	this.busy = false;
-	this.kill = false;
+	this.resetq();
+}
+flow.prototype.inject=function(type,f){
+	if(type === 'mbdb') mbdb = f;
+	if(type === 'mbtools') mbtools = f;
+}
+flow.prototype.resetq=function(){
 	this.mbq={
 		album:[],
 		youtube:[],
@@ -16,19 +27,23 @@ var flow = function(){
 		mbz:[],
 		artist:[],
 		ytartist:[],
-		fromalbum:[]
+		fromalbum:[],
+		classic:[]
 	};
 }
 
-
-flow.prototype.len = function(){
+flow.prototype.len = function(reset){
 	var len = 0;
 	var self = this;
 
 	Object.keys(this.mbq).forEach(function(key){
-		if(self.mbq.hasOwnProperty(key)) len+=self.mbq[key].length;
+		if(self.mbq.hasOwnProperty(key)){
+			if(reset) self.mbq[key]=[];
+			len+=self.mbq[key].length;
+		}
 	});
-	return len;
+	if(reset) mbdb.bulk = [[]];
+	return len+mbdb.bulk.length-1;
 }
 var opt = 'youtube';
 flow.prototype.getTrack = function(){
@@ -43,10 +58,17 @@ flow.prototype.getTrack = function(){
 	}else if(this.mbq.artist.length){
 		track = this.mbq.artist.shift();
 	}else if(this.mbq.mbz.length){
-		track = this.mbq.mbz.shift();
+		if(this.mbq.youtube.length){
+			opt==='youtube' ? opt='mbz':opt='youtube';
+			track = this.mbq[opt].shift();
+		}else{
+			track = this.mbq.mbz.shift();
+		}
+	}else if(this.mbq.classic.length){
+		track = this.mbq.classic.shift();
 	}else{
 		if(this.mbq.youtube.length && this.mbq.other.length){
-			opt==='youtube' ? opt='other':opt='youtube';
+			opt==='youtube'||opt==='mbz' ? opt='other':opt='youtube';
 			track = this.mbq[opt].shift();
 		}else if(this.mbq.other.length){
 			track = this.mbq.other.shift();
@@ -54,6 +76,7 @@ flow.prototype.getTrack = function(){
 			track = this.mbq.youtube.shift();
 		}
 	}
+
 	return{art:art,track:track}
 }
 //add a track to the processing queue
@@ -65,7 +88,7 @@ flow.prototype.add = function(track,resub){
 			if(track.metadata.hasOwnProperty(key)) track.metadata[key] = tools.fix(track.metadata[key]);
 		});
 	}
-	if(!this.mbdb.dupe(track)){
+	if(!mbtools.dupe(track)){
 		//construct the musicbrainz query string
 		if(track.type === 'album'){
 			track.query = mb_url+'release/'+track.id+'?fmt=json&inc=recordings+artists+artist-rels+artist-credits+url-rels+release-groups+recording-level-rels+work-level-rels';
@@ -79,11 +102,19 @@ flow.prototype.add = function(track,resub){
 			track = mbtools.musicbrainz(track);
 			this.mbq.youtube.push(track);
 		}else{
-			track = mbtools.musicbrainz(track);
+			//track = mbtools.musicbrainz(track);
 			if(track && track.musicbrainz_id){
+				track = mbtools.musicbrainz(track);
 				this.mbq.mbz.unshift(track);
 			}else if(track){
-				this.mbq.other.unshift(track);
+				classical.get(track).then(function(track){
+					track = mbtools.musicbrainz(track);
+					if(track.classical){
+						self.mbq.classic.unshift(track);
+					}else{
+						self.mbq.other.unshift(track);
+					}
+				})
 			}
 		}
 		Resub()
@@ -99,20 +130,30 @@ flow.prototype.add = function(track,resub){
 	}
 }
 var rootfolders = {};
+var ocount = 0;
 flow.prototype.isOnline = function(track){
-	return new q(function(resolve,reject){
+	var self = this;
+	var p = new Promise(function(resolve,reject){
 		if(track.online){
+			//console.log('Tracks being checked if online: DUPE');
 			resolve(track)
 			return;
 		}
+
 		var root = track.download.split('/')
 		root.pop();
 		root = root.join('/')
 		if(rootfolders[root] && rootfolders[root] >10){
+			kill.update('promises')
 			resolve(false)
 			return;
 		}
-		var req = request.head(track.download,function(err,res){
+		//console.log('Tracks being checked if online: '+ocount+' | '+track.id);
+		ocount++
+		var r = request.head(track.download,function(err,res){
+			ocount--
+			kill.update('promises')
+			kill.update('requests')
 			if(err || res.statusCode!=200){
 				if(!rootfolders[root]) rootfolders[root]=0;
 				rootfolders[root]++;
@@ -123,15 +164,20 @@ flow.prototype.isOnline = function(track){
 				resolve(track);
 			}
 		})
+		kill.requests.push(r)
 	})
+	kill.promises.push(p);
+	return p;
 }
 
 //use network idle time to check if musicbrainz tracks are available
 var qu = []
 flow.prototype.bulkOnline = function(repeat,type,track){
+	if(!this.busy || ocount > 20 || cpu.load > 85 || this.stopidle) return;
 	if(!type) var type;
 	var self = this;
-	if(!repeat){
+	if(!repeat && !qu.length){
+		//console.log('Heavy work: '+ocount);
 		qu = []
 		if(this.mbq.mbz.length){
 			qu = this.mbq.mbz.filter(function(track){
@@ -140,17 +186,33 @@ flow.prototype.bulkOnline = function(repeat,type,track){
 			type = 'mbz';
 		}
 		if(!qu.length){
+			qu = this.mbq.classic.filter(function(track){
+				return (track.type === 'internetarchive' && !track.online);
+			})
+			type = 'classic'
+		}
+		if(!qu.length){
 			qu = this.mbq.other.filter(function(track){
 				return (track.type === 'internetarchive' && !track.online);
 			})
 			type = 'other'
 		}
-		//console.Yolk.warn('renew: '+qu.length);
 	}
 	if(!qu.length) return;
-	//if(repeat) console.Yolk.error('repeat: '+qu.length);
+
 	if(!track) var track = qu.shift();
+	if(!type){
+		if(this.mbq.mbz.length){
+			type = 'mbz'
+		}else if(this.mbq.classic.length){
+			type='classic'
+		}else if(this.mbq.other.length){
+			type='other'
+		}
+	}
+
 	this.isOnline(track).then(function(track2){
+		if(!type) return;
 		if(!track2){
 			self.mbq[type] = self.mbq[type].filter(function(t){
 				return t.id !== track.id;
@@ -166,7 +228,7 @@ flow.prototype.bulkOnline = function(repeat,type,track){
 		})
 		track = false;
 		if(qu.length) track = qu.shift();
-		if (self.busy) self.bulkOnline(true,type,track);
+		self.bulkOnline(true,type,track);
 	})
 }
 

@@ -433,6 +433,7 @@
 					<div class='item sort' ng-class="{active:pin.Filter==='deleted'}" ng-click="pin.filter('deleted')"  ng-show="!playlist.active">Deleted</div>
 				</div>
 			</div>
+
 			<div id='sources' ng-show="!playlist.active && pin.Page === 'title'">
 				<div class='control' ng-click="pin.source('local')">
 					<div class='title'>Local</div>
@@ -478,6 +479,7 @@
 		-->
 		</div>
 		<div class='temp'>
+			<div ng-click = "albums()">Albums</div>
 			<div ng-click='nuke()'>NUKE!</div>
 			<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
 		</div>

@@ -1,6 +1,6 @@
 "use strict";
 
-const q = Promise;
+const q = require("bluebird");
 const fs=require('fs');
 const path=require('path');
 const ft=require('./filetools');
@@ -17,7 +17,7 @@ var installer = function(){
 
 installer.prototype.hasJava=function(Path){
 	var self = this;
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		if(Path){
 			var jpath = path.join(Path,'bin','java');
 		}else{
@@ -48,7 +48,7 @@ installer.prototype.hasJava=function(Path){
 }
 installer.prototype.getJava = function(){
 	var self = this;
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		process.Yolk.storedMesssage = {
 			message:'Getting Java'
 		}
@@ -126,7 +126,7 @@ installer.prototype.getJava = function(){
 
 installer.prototype.hasElastic=function(Path){
 
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 		var elastic = child.spawnSync(Path,['-V']);
 		if(elastic.error){
 			resolve(false);
@@ -139,7 +139,7 @@ installer.prototype.hasElastic=function(Path){
 }
 installer.prototype.getElastic = function(elasticversion,hash){
 	var self = this;
-	var promise = new q(function(resolve,reject){
+	var promise = new Promise(function(resolve,reject){
 
 		process.Yolk.storedMesssage = {
 			message:'Getting Elastic'

@@ -1,14 +1,14 @@
 'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$interval','dims','utils','lazy','audio','jamendo','internetarchive','youtube','tracks','search','pin','playlist',
-function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,tracks,search,pin,playlist) {
+'$scope','$interval','dims','utils','lazy','audio','internetarchive','youtube','tracks','search','pin','playlist',
+function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,search,pin,playlist) {
 	const mod_name = 'musicPlayer';
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
-	const Q = Promise;
+	const Q = require("bluebird");
 
 	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
@@ -24,7 +24,6 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 	$scope.playlist = new playlist($scope);
 	$scope.lazy = new lazy($scope);
 	$scope.tracks = new tracks($scope);
-	$scope.jamendo = new jamendo($scope);
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
@@ -43,8 +42,6 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 	};
 	$scope.allTracks;
 
-	//$scope.data_sources = ['local','jamendo','internetarchive','youtube','torrents'];
-	//$scope.data_sources = ['local','internetarchive','youtube'];
 	$scope.db.get('global.settings.'+mod_name).then(function(data){
 		$scope.settings = data;
 		$scope.settings.paths.home = Yolk.home;
@@ -100,6 +97,7 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 	//set the local music library location and scan files
 	$scope.fileSelect= function(){
 		dialog.showOpenDialog({properties: ['openDirectory']},function(Dir){
+			if(!Dir || !Dir.length) return;
 			$scope.settings.paths.musicDir = Dir[0];
 			$scope.$apply();
 			ipcRenderer.send('getDir', Dir[0]);
@@ -112,7 +110,7 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 		ipcRenderer.on('refresh',function(event,data){
 			if(data  === 'bulk'){
 				$scope.search.noscroll = true;
-				$scope.search.go(true)
+				$scope.search.go(true);
 			}
 			return;
 			if(refresh_time) return;
@@ -135,7 +133,13 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 			//$scope.tracks.verify(data);
 		});
 	}
-
+	if(!ipcRenderer._events.albums){
+		ipcRenderer.on('albums',function(event,data){
+			console.log(data);
+			$scope.search.noscroll = true;
+			$scope.search.go(true);
+		});
+	}
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
@@ -200,6 +204,10 @@ function($scope,$interval,dims,utils,lazy,audio,jamendo,internetarchive,youtube,
 			}
 		}
 	});
+	$scope.albums = function(){
+		ipcRenderer.send('albums');
+	}
+
 	$scope.stop = function(){
 		$scope.internetarchive.kill();
 		$scope.youtube.kill();

@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <script>
             window.$ = window.jQuery = require('jquery');
-            const q = Promise;
+            const q = require("bluebird");
             const {ipcRenderer} = require('electron');
             require('jquery.facedetection');
         </script>
@@ -14,7 +14,7 @@
         <script>
 
             var face = function(src,discoq){
-                var promise = new q(function(resolve,reject){
+                var promise = new Promise(function(resolve,reject){
                     var image = document.createElement('img');
                     $(image).attr('src',src);
 

@@ -4,7 +4,7 @@ Fetch detailed artist and album information and process artwork
 */
 
 const path=require('path');
-const q = Promise;
+const q = require("bluebird");
 const os = require('os');
 const request = require('request');
 const sharp = require('sharp');
@@ -14,7 +14,7 @@ const ft = require(path.join(process.Yolk.root,'core/lib/filetools'));
 const cpu = require('../tools/cpu.js');
 const fs = require('fs');
 const homedir = process.Yolk.home;
-const db = process.Yolk.db;
+const elastic = process.Yolk.db;
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const mb_url="https://musicbrainz.org/ws/2/";
 const mb_query="?fmt=json";
@@ -117,7 +117,6 @@ ipcMain.on('chrome', function(event, data) {
 
 //add an artist and album to the processing queue
 artwork.add = function(item){
-	return;
 	switch (item.type){
 		case 'album':
 			if(item.coverart){
@@ -370,7 +369,7 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 			.resize(width, height)
 			.toFile(dest);
 
-			db.update({
+			elastic.update({
 				index:db_index,
 				type:item.type,
 				id:item.id,

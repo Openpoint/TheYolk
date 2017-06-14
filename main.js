@@ -74,7 +74,9 @@ const path=require('path');
 const Elastic = require('elasticsearch');
 const child = require('child_process');
 const os = require('os');
-const promise = Promise;
+Promise = require("bluebird");
+Promise.config({cancellation: true});
+
 const Installer = require('./core/lib/installer.js');
 const bootloader = require('./core/lib/bootloader.js');
 const ft = require('./core/lib/filetools.js');
@@ -113,7 +115,7 @@ process.Yolk.clientReady = function(){
 	return boot.modules;
 }
 //tell the renderer that the database is ready
-process.Yolk.dbReady = new promise(function(resolve,reject){
+process.Yolk.dbReady = new Promise(function(resolve,reject){
 	process.Yolk.resolver.dbReady = function(){
 		resolve();
 	}
@@ -375,7 +377,7 @@ function elastic(home){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			process.Yolk.message.send('install',process.Yolk.storedMesssage);
 		}
-		if(string.indexOf('[GREEN]') > -1 || string.indexOf('[yolk] recovered [0] indices into cluster_state') > -1){
+		if(string.indexOf('[RED] to [YELLOW]') > -1 || string.indexOf('[RED] to [GREEN]') > -1 || string.indexOf('[yolk] recovered [0] indices into cluster_state') > -1){
 			process.Yolk.resolver.dbReady();
 		}
 	});

@@ -4,7 +4,7 @@ angular.module('yolk').factory('search',[function() {
 	var $scope;
 	const tools = require('../../lib/tools/searchtools.js');
 	const crypto = require('crypto');
-	const Q = Promise;
+	const Q = require("bluebird");
 	const request = require('request');
 	var Memory = false;
 	var StateChange = false;
@@ -211,7 +211,7 @@ angular.module('yolk').factory('search',[function() {
 	search.prototype.album = function(refresh){
 		var self = this;
 		var should = []
-		var must = [{bool:{should:should}},{match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}},{match:{youtube:{query:'no',type:'phrase'}}}];
+		var must = [{bool:{should:should}},{match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}},{match:{'youtube':{query:'no',type:'phrase'}}}];
 		var search = {index:$scope.db_index,type:['album'],sort:$scope.pin.sortby,body:{query:{bool:{must:must}}}}
 		var terms = false;
 		if($scope.searchTerm && $scope.searchTerm.length > 1){
@@ -275,7 +275,7 @@ angular.module('yolk').factory('search',[function() {
 	}
 
 	search.prototype.artistAlbums = function(artist){
-		return new Q(function(resolve,reject){
+		return new Promise(function(resolve,reject){
 			var must = $scope.tools.wrap.bool([{must:[
 				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},
 				{match:{deleted:{query:'no',type:'phrase'}}}
@@ -299,7 +299,7 @@ angular.module('yolk').factory('search',[function() {
 				]}}
 			]}}}
 		}
-		return new Q(function(resolve,reject){
+		return new Promise(function(resolve,reject){
 			$scope.db.fetchAll(query).then(function(data){
 				resolve(data)
 			},function(err){

@@ -132,6 +132,7 @@ function Types(){
 			}
 		},
 		{type:'youtubesearch',mapping:mapping()},
+		{type:'youtubeartists',mapping:{properties:{}}},
 		{type:'artist',
 			mapping:{
 				properties:{
@@ -161,6 +162,12 @@ function Types(){
 						type:'nested',
 						properties:{}
 					}
+				}
+			},
+			disambig:{
+				type:'nested',
+				properties:{
+					dis:{type:'string'}
 				}
 			},
 			album:Mapping(),

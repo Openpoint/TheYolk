@@ -6,9 +6,9 @@ document.addEventListener("DOMNodeInserted", function(event) {
     }
 })
 
-window.q = Promise;
+window.q = require("bluebird");
 window.scrape = function(){
-    var promise = new q(function(resolve,reject){
+    var promise = new Promise(function(resolve,reject){
         var paths = []
         resolve($('#view_images img').first().attr('src'));
     });
@@ -16,7 +16,7 @@ window.scrape = function(){
 }
 window.firstClick=function(i){
 
-    var promise = new q(function(resolve,reject){
+    var promise = new Promise(function(resolve,reject){
 
         if(!$('#search img').length){
             reject('no images found');

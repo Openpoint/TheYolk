@@ -4,7 +4,7 @@
  *
  * */
 
-const q = Promise;
+const q = require("bluebird");
 const elasticsearch = require('elasticsearch');
 const {ipcRenderer} = require('electron');
 const def = {
@@ -24,7 +24,7 @@ var dbase = function(){
 }
 dbase.prototype.exists = function(index){
 	var self = this;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		index = index.split('.');
 
 		if(index.length === 1){
@@ -73,7 +73,7 @@ dbase.prototype.create = function(hash){
 		hash.body.settings[key] = def.settings[key]
 	})
 
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		self.client.indices.create(hash,function(err,data){
 			if(err){
 				reject(err);
@@ -87,7 +87,7 @@ dbase.prototype.create = function(hash){
 //fetch a single document by path
 dbase.prototype.get = function(path){
 	var self = this;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		path = path.split('.');
 		var location = {
 			index:path[0],
@@ -111,7 +111,7 @@ dbase.prototype.get = function(path){
 //get a formatted object with array of search results by hash query
 dbase.prototype.fetch = function(query){
 	var self = this;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		self.client.search(query,function(err,data){
 
 			if(!err){
@@ -134,7 +134,7 @@ dbase.prototype.fetch = function(query){
 dbase.prototype.findPos = function(index,types,query,flags,id){
 	var self = this;
 	this.id = id;
-	var result = new q(function(resolve,reject){
+	var result = new Promise(function(resolve,reject){
 		var len = 0;
 		var search = {
 			index:index,
@@ -177,7 +177,7 @@ dbase.prototype.findPos = function(index,types,query,flags,id){
 
 dbase.prototype.fetchAll = function(query){
 	var self = this;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		query.scroll = '30s';
 		query.size = 1000;
 		var all = [];
@@ -218,7 +218,7 @@ dbase.prototype.update = function(query){
 	var self = this;
 	query.refresh = true;
 	query.retry_on_conflict = 2;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		self.client.update(query,function(err,data){
 			if(err){
 				reject(err);
@@ -231,7 +231,7 @@ dbase.prototype.update = function(query){
 
 dbase.prototype.nuke = function(){
 	var self = this;
-	return new q(function(resolve,reject){
+	return new Promise(function(resolve,reject){
 		console.log('Database is nuked - hope you are happy now.....');
 		self.client.indices.delete({index:'_all'},function(err,data){
 			resolve();

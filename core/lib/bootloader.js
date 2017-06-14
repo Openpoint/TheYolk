@@ -3,7 +3,7 @@
 const fs=require('fs');
 const path=require('path');
 const ft=require('./filetools');
-const q = Promise;
+const q = require("bluebird");
 const os = require('os');
 
 var getModule = function(module){

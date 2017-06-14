@@ -1,31 +1,33 @@
 "use strict";
 
-const q = Promise;
 const log = false;
 const tools = require('./searchtools.js');
 const {ipcRenderer} = require('electron');
 const crypto = require('crypto');
+const kill = require('./killer.js')
 
 var youtubetools = function(){
 	this.youtubeArtists={};
 	this.bulk=[];
 	this.videos={};
+	this.done = [];
 	this.db_index = require('../../musicPlayer.js').db_index.index;
 };
 
 youtubetools.prototype.search =function(query){
-	return new q(function(resolve,reject){
+	var self = this;
+	var p = new Promise(function(resolve,reject){
 		var ids=[];
 		var block = 0;
 		function submit(token){
 			var q2 = token ? query+'&pageToken='+token : query;
-			$.get(q2).done(function(response){
+			var r = $.get(q2).done(function(response){
 				if(response.items && response.items.length){
 					if(log) console.log(response.items)
 					response.items.forEach(function(item){
 						ids.push(item.id.videoId);
 					});
-					if(response.nextPageToken && block < 2){
+					if(response.nextPageToken && block < 3){
 						submit(response.nextPageToken);
 						block++;
 					}else{
@@ -34,13 +36,21 @@ youtubetools.prototype.search =function(query){
 				}else{
 					resolve(ids);
 				}
+
 			}).fail(function(err){
 				console.log(err);
 				resolve(ids);
+			}).always(function(){
+				kill.update('requests')
 			})
+			kill.update('promises')
+			kill.requests.push(r);
 		}
 		submit()
 	})
+	kill.promises.push(p);
+	return p;
+
 }
 youtubetools.prototype.convert_time = function(duration) {
 	var a = duration.match(/\d+/g);
@@ -64,15 +74,16 @@ youtubetools.prototype.convert_time = function(duration) {
 }
 
 youtubetools.prototype.artists = function(video){
+	var self = this;
 	var artists = [];
-
 	video.snippet.title = video.snippet.title.replace(/[a-z]-([A-Z]|[^a-zA-Z])/g,function(char){
 		return char.split().join(' ')
 	})
 
 	var split = video.snippet.title.split(/ -|- | - |  |\~|\/|\:| \:| \: |\: /);
 	if(split.length > 1){
-		if(this.youtubeArtists[tools.fix(split[1])]) split.reverse();
+
+		if(this.youtubeArtists[tools.fix(split[1])] && !this.youtubeArtists[tools.fix(split[1])].nope) split.reverse();
 		split[0].replace(/\&/g,' and ').toLowerCase().split(/\,| and | ft(?: |[^0-9a-z])| feat(?: |[^0-9a-z])| vs(?: |[^0-9a-z])| with |\//g).forEach(function(art){
 			art = tools.fix(art);
 			if(art){artists.push(art)}
@@ -81,6 +92,7 @@ youtubetools.prototype.artists = function(video){
 		var retry = true;
 		var postfix = tools.postfix(video.snippet.title)
 		Object.keys(this.youtubeArtists).forEach(function(artist){
+			if(self.youtubeArtists[artist].nope) return;
 			if(tools.fix(video.snippet.title).indexOf(artist) === 0){
 				artists.push(artist)
 				retry = false;
@@ -115,31 +127,39 @@ youtubetools.prototype.artists = function(video){
 youtubetools.prototype.checkArtists = function(artists){
 	var self = this;
 	var cartists=[];
-	return new q(function(resolve,reject){
+	var p = new Promise(function(resolve,reject){
 		var titles = []
 		artists.forEach(function(artist){
 			if(!artist.length){return}
-			if(self.youtubeArtists[tools.fix(artist)]){
+			if(self.youtubeArtists[tools.fix(artist)] && self.youtubeArtists[tools.fix(artist)]!=={nope:true}){
 				cartists.push(tools.fix(artist))
 				return;
 			}
-			titles.push(tools.queryBuilder(artist.toUpperCase()))
-			titles.push(tools.queryBuilder(artist.replace(/\b(\w)/g,function(init){return init.toUpperCase()})))
+			if(self.youtubeArtists[tools.fix(artist)]!=={nope:true}){
+				titles.push(tools.queryBuilder(artist.toUpperCase()))
+				titles.push(tools.queryBuilder(artist.replace(/\b(\w)/g,function(init){return init.toUpperCase()})))
+			}
 		})
 		if(!titles.length && cartists.length){resolve(cartists)}
 		if(!titles.length){
 			resolve(false);
 			return;
 		}
+
 		var string = 'titles='+titles.join('|');
 		//check wikipedia for artist
-		wikidata(string).then(function(lookup){
-			if(!lookup){
+		self.wikidata(string).then(function(lookup){
+			if(!lookup || (!lookup.artists.length && !lookup.disambig.length)){
+				artists.forEach(function(art){
+					self.youtubeArtists[tools.fix(art)]={nope:true};
+				})
 				resolve(false);
 				return;
 			}
 			if(lookup.artists.length){
-				lookup.artists.forEach(function(art){self.youtubeArtists[art] = {}});
+				lookup.artists.forEach(function(art){
+					self.youtubeArtists[art] = {}
+				});
 				cartists = cartists.concat(lookup.artists)
 			}
 
@@ -151,7 +171,7 @@ youtubetools.prototype.checkArtists = function(artists){
 				lookup.disambig.forEach(function(artist){
 					count++
 					var query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='+tools.queryBuilder(artist)+'&language=en&format=json';
-					$.get(query).done(function(response){
+					var r = $.get(query).done(function(response){
 						response.search.forEach(function(result){
 							ids.push(result.id)
 						})
@@ -160,7 +180,7 @@ youtubetools.prototype.checkArtists = function(artists){
 					}).always(function(){
 						count--;
 						if(count === 0){
-							wikidata('ids='+ids.join('|')).then(function(lookup){
+							self.wikidata('ids='+ids.join('|')).then(function(lookup){
 								if(!lookup){
 									resolve(false);
 									return;
@@ -168,20 +188,25 @@ youtubetools.prototype.checkArtists = function(artists){
 								resolve(cartists.concat(lookup.artists))
 							})
 						}
+						kill.update('promises')
+						kill.update('requests')
 					})
+					kill.requests.push(r);
 				})
 			}
 		})
 
 	})
+	kill.promises.push(p)
+	return p;
 }
 
 youtubetools.prototype.mbArtists = function(artists){
 	var self = this;
-	artists = artists.filter(function(artist,pos,self){
-		if(artist.trim().length > 2 && self.indexOf(artist) === pos){return true}
+	artists = artists.filter(function(artist,pos,me){
+		if(artist.trim().length > 2 && me.indexOf(artist) === pos && !self.youtubeArtists[artist.trim()]){return true}
 	})
-	return new q(function(resolve,reject){
+	var p = new Promise(function(resolve,reject){
 		if(!artists.length) {
 			resolve([]);
 			return;
@@ -191,21 +216,30 @@ youtubetools.prototype.mbArtists = function(artists){
 		artists.forEach(function(artist){
 			ipcRenderer.send('musicbrainz_artist',artist);
 			ipcRenderer.once('mb_'+artist,function(event,data){
-				if(data && data.key) self.youtubeArtists[data.key]={canon:data.canon}
-				if(data && data.key) mbartists.push(data.key)
+				if(data && data.key){
+					self.youtubeArtists[data.key]={canon:data.canon}
+					mbartists.push(data.key)
+				}else{
+					self.youtubeArtists[data] = {nope:true};
+				}
 				count++
 				if(log) console.log(count+' : '+artists.length)
 				if(count===artists.length){
+					kill.update('promises')
 					resolve(mbartists)
 				}
 			})
 		})
 	})
+	kill.promises.push(p)
+	return p;
 }
 
 youtubetools.prototype.makeTrack = function(video,artists,db_index){
+
 	var self = this;
 	var title = video.snippet.title
+
 	var track={
 		metadata:{
 			album:'YouTube',
@@ -217,6 +251,7 @@ youtubetools.prototype.makeTrack = function(video,artists,db_index){
 		download:'https://www.youtube.com/watch?v='+video.id,
 		path:'https://www.youtube.com/embed/',
 		filter:{},
+		deleted:'no',
 		type:'youtube',
 		rating:video.statistics.viewCount,
 		canon_title:video.snippet.title,
@@ -231,6 +266,7 @@ youtubetools.prototype.makeTrack = function(video,artists,db_index){
 		this.bulk.push({doc:track2})
 		return track2;
 	}else{
+		this.done.push(video.id)
 		this.bulk.push({update:{_index:this.db_index,_type:'youtubesearch',_id:video.id}})
 		this.bulk.push({doc:{id:track.id,searched:'yes'}})
 		return false;
@@ -244,6 +280,7 @@ youtubetools.prototype.makeTrack = function(video,artists,db_index){
 youtubetools.prototype.fixTrack=function(track,Title,artists){
 	var self = this;
 	track.metadata.title = fixTitle(Title,artists);
+
 	if(!track.metadata.title){return false}
 	track.disambig=[];
 	function pf(title){
@@ -258,6 +295,8 @@ youtubetools.prototype.fixTrack=function(track,Title,artists){
 
 	track.metadata.title = track.metadata.title.split(/ ft([\s]|[^0-9a-z])| feat([\s]|[^0-9a-z])/g)[0];
 	pf(track.metadata.title);
+
+	/*
 	artists = artists.map(function(artist){
 		if(self.youtubeArtists[artist] && self.youtubeArtists[artist].canon){
 			return self.youtubeArtists[artist].canon
@@ -265,6 +304,8 @@ youtubetools.prototype.fixTrack=function(track,Title,artists){
 			return artist
 		}
 	})
+	*/
+
 	track.metadata.artist = artists.shift();
 	if(artists.length){
 		track.artists=artists.map(function(artist){return {name:artist}});
@@ -280,25 +321,19 @@ youtubetools.prototype.libsize = function(){
 	})
 	return size
 }
-
-var fixTitle = function(title,artists){
-	title = tools.fix(title);
-	artists.forEach(function(name){
-		name = tools.fix(name);
-		name = name.replace(/([^a-z0-9])/g,function(char){return '\\'+char})
-		var regex = new RegExp('([^0-9a-z]|^| )'+name+'( |$|[^0-9a-z])','g');
-		title = title.replace(regex,' ').trim().replace(/^([^0-9a-z]*) | ([^0-9a-z]*)$/g,' ');
-		title = tools.despace(tools.fix(title));
-	})
-	if(!title.length){return false}
-	return title;
+youtubetools.prototype.Kill = function(){
+	this.videos={};
+	kill.Kill()
 }
-var wikidata = function(string){
+
+youtubetools.prototype.wikidata = function(string){
+	var self = this;
 	var artists = []
 	var disambig = []
-	return new q(function(resolve,reject){
+	var p = new Promise(function(resolve,reject){
 		var query = 'https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&'+string+'&languages=en&format=json';
-		$.get(query).done(function(response){
+		var r = $.get(query).done(function(response){
+
 			Object.keys(response.entities).forEach(function(key){
 				if(Number(key)){return}
 				var item = response.entities[key];
@@ -311,10 +346,29 @@ var wikidata = function(string){
 			})
 			resolve({artists:artists,disambig:disambig})
 		}).fail(function(err){
+			if(kill.kill) return;
 			console.error(err);
 			resolve(false)
+		}).always(function(){
+			kill.update('requests');
+			kill.update('promises')
 		})
+		kill.requests.push(r)
 	})
+	kill.promises.push(p)
+	return p;
 }
-
+var fixTitle = function(title,artists){
+	title = tools.fix(title);
+	artists.forEach(function(name){
+		name = tools.fix(name);
+		name = name.replace(/([^a-z0-9])/g,function(char){return '\\'+char})
+		var regex = new RegExp('([^0-9a-z]|^| )'+name+'( |$|[^0-9a-z])','g');
+		title = title.replace(regex,' ').trim().replace(/^([^0-9a-z]*) | ([^0-9a-z]*)$/g,' ');
+	})
+	title = title.replace(/\./g,' ')
+	title = tools.despace(tools.fix(title));
+	if(!title.length){return false};
+	return title;
+}
 module.exports = new youtubetools();

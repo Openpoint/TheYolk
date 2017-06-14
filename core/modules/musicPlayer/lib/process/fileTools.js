@@ -7,7 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 var mm = require('musicmetadata');
 const root = process.Yolk.root;
-const classical = require('../tools/musicbrainzclassical.js');
+//const classical = require('../tools/musicbrainzclassical.js');
 const flow = require('../tools/musicbrainzflow.js');
 const db = process.Yolk.db;
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
@@ -153,7 +153,6 @@ ft.getTags=function(){
 	if(self.tracks.length > 0){
 
 		var track = self.tracks.shift();
-		track.deleted = 'no';
 		var src = path.join(track.path,track.file);
 
 		var readableStream = fs.createReadStream(src);
@@ -189,6 +188,9 @@ ft.getTags=function(){
 				track.date = Date.now();
 				track.tagged = true;
 				track.type = 'local';
+				track.deleted = 'no';
+				track.filter = {};
+
 				db.client.create({
 					index:db_index,
 					type:'local',
@@ -199,9 +201,7 @@ ft.getTags=function(){
 					if(err){
 						console.Yolk.error(err)
 					}else{
-						classical.get(track).then(function(info){
-							flow.add(info||track);
-						})
+						flow.add(track);
 					}
 				})
 				self.getTags();

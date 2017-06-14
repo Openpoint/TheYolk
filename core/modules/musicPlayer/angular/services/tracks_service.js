@@ -6,7 +6,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 	var q = [];
 	var Process;
 	const tools = require('../../lib/tools/searchtools.js');
-	const Q = Promise;
+	const Q = require("bluebird");
 
 
 
@@ -352,7 +352,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 	tracks.prototype.drawerContent = function(row){
 		switch($scope.pin.Page){
 			case "artist":
-				return new Q(function(resolve,reject){
+				return new Promise(function(resolve,reject){
 					$scope.search.artistAlbums(row.name).then(function(data){
 						if(data){
 							var albums=[{
@@ -403,7 +403,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 				})
 			break;
 			case 'album':
-				return new Q(function(resolve,reject){
+				return new Promise(function(resolve,reject){
 					if($scope.lib.drawers[$scope.pin.Page][row.id].discs && !$scope.lib.drawers[$scope.pin.Page][row.id].refresh){
 						resolve(true);
 						return;
