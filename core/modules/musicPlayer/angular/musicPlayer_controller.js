@@ -33,12 +33,13 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	$scope.tools = require('../lib/tools/searchtools.js');
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.Sort = {};
-
 	$scope.dims.update();
+	$scope.dpos={isvis:false};
 	$scope.lib={
 		bios:{},
 		tracks:[],
-		drawers:{}
+		drawers:{},
+		padding:0
 	};
 	$scope.allTracks;
 
@@ -74,6 +75,7 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 
 	}
 	$scope.dev=function(info,type){
+		console.log(info.filter)
 		$scope.db.client.get({index:$scope.db_index,type:type,id:info.id},function(err,data){
 			console.info('-------------------------------------------------------------------------------------------------');
 			if(data._source.metadata){

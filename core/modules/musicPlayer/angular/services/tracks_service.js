@@ -69,23 +69,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 		self.next(index);
 	}
 
-	//set the padding in the playwindow
-	tracks.prototype.fixChrome = function(){
-		if($scope.lazy.chunk > 1){
-			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
-		}else{
-			var padding = 0;
-		}
-		var height = $scope.lib.size*$scope.lazy.trackHeight;
-		if($scope.lazy.drawer && $scope.lazy.drawer.active === $scope.pin.Page){
-			height = height+$scope.lazy.drawer.height;
-			if($scope.lazy.drawer.chunk+1 < $scope.lazy.chunk) padding = padding+$scope.lazy.drawer.height;
-		}
 
-		//if($scope.lazy.drawer && $scope.lazy.drawer.chunk === $scope.lazy.chunk) height = height+$scope.lazy.drawer.height
-		$('#tracks').css({paddingTop:padding});
-		$('#tracks').height(height-padding);
-	}
 	//check if artist has remaining tracks and delete if not
 	tracks.prototype.deleteArtist = function(artist){
 		var must = $scope.tools.wrap.bool([{must:[
@@ -318,41 +302,94 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 		if(!$scope.lib.drawers[$scope.pin.Page][row.id]){
 			$scope.lib.drawers[$scope.pin.Page][row.id]={}
 		}
-		if($scope.lib.drawers[$scope.pin.Page][row.id].state){
-			$scope.lazy.step()
-			$scope.lazy.drawer = false
+		if($scope.lib.drawers[$scope.pin.Page][row.id].state){ //close the drawer
 			$scope.lib.drawers[$scope.pin.Page][row.id].state = false;
-			$('#drawer'+row.id).height($('#drawer'+row.id+' .drawerInner').outerHeight());
-			$scope.tracks.fixChrome()
+			$('#drawer'+row.id).height($scope.lib.drawers[$scope.pin.Page][row.id].height);
 			$('#drawer'+row.id).height(0);
+			$scope.lib.drawers[$scope.pin.Page].open=false;
+			$scope.dpos.open = false;
+			$scope.dpos.height = 0;
+			$scope.dpos.spacer = 0;
+			$scope.lazy.fixChrome()
+		}else{ //open the drawer
+			if($scope.lib.drawers[$scope.pin.Page].open){ //close open drawers on page
+				var key = $scope.lib.drawers[$scope.pin.Page].open;
+				$scope.lib.drawers[$scope.pin.Page][key].state = false;
+				$('#drawer'+key).height($scope.lib.drawers[$scope.pin.Page][key].height);
 
-		}else{
-			Object.keys($scope.lib.drawers[$scope.pin.Page]).forEach(function(key){
-				if($scope.lib.drawers[$scope.pin.Page][key].state && key!== row.id){
-					$scope.lib.drawers[$scope.pin.Page][key].state = false;
-					$('#drawer'+key).height($('#drawer'+key+' .drawerInner').outerHeight());
-					$('#drawer'+key).height(0);
+				if(($('#drawer'+row.id).offset().top-$('#tracks').offset().top) > $scope.lib.drawers[$scope.pin.Page][key].top){
+					$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top-$scope.lib.drawers[$scope.pin.Page][key].height;
+				}else{
+					$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top
 				}
-			})
+				$('#drawer'+key).height(0);
+			}else{
+				$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top
+			}
 			$scope.lib.drawers[$scope.pin.Page][row.id].state = true;
 			$('#drawer'+row.id).height(0);
+
 			self.drawerContent(row).then(function(){
 				var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
+				$scope.lib.drawers[$scope.pin.Page][row.id].height = height;
+				$scope.lib.drawers[$scope.pin.Page].open = row.id;
 				$('#drawer'+row.id).height(height);
-				$scope.lazy.drawer = {
-					id:row.id,
-					height:height,
-					active:$scope.pin.Page,
-				}
-				$scope.lazy.step()
+				$scope.dpos.open = true;
+				$scope.lazy.fixChrome(true);
+				$('#playwindow').animate({scrollTop:($scope.lib.drawers[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
 			})
 		}
+	}
 
+	tracks.prototype.drawerPos = function(check,open){
+		$scope.dpos.isvis = false;
+		if(!$scope.lib.drawers[$scope.pin.Page]||!$scope.lib.drawers[$scope.pin.Page].open) return;
+		var index = $scope.lib.drawers[$scope.pin.Page].open;
+		if(check) $scope.dpos.indom = $scope.lib[$scope.pin.Page].some(function(album){return album.id===index});
+		if(open){
+			$scope.dpos.indom = true;
+			$scope.dpos.pt = $('#playwindow').offset().top;
+			$scope.dpos.height = $scope.lib.drawers[$scope.pin.Page][index].height;
+		}
+		var tabove = ($scope.dims.scrollTop||0) - $scope.lib.drawers[$scope.pin.Page][index].top;
+		var tbelow = (tabove + $scope.dims.playwindowHeight)*-1;
+		var babove = tabove - $scope.dpos.height;
+		var bbelow = tbelow + $scope.dpos.height;
+		if(tabove<=0&&bbelow<=0){
+			var vis = 'full';
+			$scope.dpos.isvis = true;
+		}else if(tabove>0&&bbelow>0){
+			var vis = 'overflow';
+			$scope.dpos.isvis = true;
+		}else if(tabove>0&&babove<0||bbelow>0&&tbelow<0){
+			var vis = 'partial';
+			$scope.dpos.isvis = true;
+		}else if(tabove>0){
+			var vis = 'above'
+			$scope.dpos.isvis = true;
+		}else{
+			var vis = 'below'
+			$scope.dpos.isvis = false;
+		}
+		$scope.dpos.top = {above:tabove,below:tbelow};
+		$scope.dpos.bottom = {above:babove,below:bbelow};
+		$scope.dpos.vis = vis;
+
+		if($scope.dpos.indom){
+			$scope.dpos.spacer = 0;
+		}else{
+			if($scope.dpos.vis === 'above') $scope.dpos.spacer = $scope.dpos.height;
+			if($scope.dpos.vis === 'below') $scope.dpos.spacer = 0;
+		}
 	}
 	tracks.prototype.drawerContent = function(row){
 		switch($scope.pin.Page){
 			case "artist":
 				return new Promise(function(resolve,reject){
+					if($scope.lib.drawers[$scope.pin.Page][row.id].albums && !$scope.lib.drawers[$scope.pin.Page][row.id].refresh){
+						resolve(true);
+						return;
+					}
 					$scope.search.artistAlbums(row.name).then(function(data){
 						if(data){
 							var albums=[{
@@ -362,31 +399,32 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 							}]
 							var sort = {};
 							var count = 0;
-
-							data.forEach(function(track,index,orig){
-
+							function get(){
+								if(!data.length){
+									proceed();
+									return;
+								}
+								if(data.length) var track = data.shift();
 								if(track.type === 'youtube'){
 									count++;
 									albums[0].count++
-
-									if(count===orig.length){proceed()}
-								}else if(track.album){
+									get();
+								}else if(sort[track.album]){
+									count++
+									sort[track.album].count++
+									get();
+								}else{
 									$scope.db.client.get({index:$scope.db_index,type:'album',id:track.album},function(err,data){
 										count++;
-
-										if(!sort[track.album] && data._source.deleted === 'no'){
-											sort[track.album] = {
-												count:1,
-												name:track.metadata.album
-											}
-										}else if(data._source.deleted === 'no'){
-											sort[track.album].count++
+										sort[track.album] = {
+											count:1,
+											name:track.metadata.album
 										}
-
-										if(count===orig.length){proceed()}
+										get();
 									})
 								}
-							})
+							}
+							get();
 							function proceed(){
 								if(!albums[0].count){
 									albums=[];
@@ -396,6 +434,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 									albums.push(sort[key]);
 								})
 								$scope.lib.drawers[$scope.pin.Page][row.id].albums = albums;
+								$scope.$apply();
 								resolve(true);
 							}
 						}

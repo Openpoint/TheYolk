@@ -322,7 +322,9 @@ body,html{
 	position:relative;
 	min-height:100%;
 }
-
+#trackspacer {
+	width:100%;
+}
 .track.even,.artist.even,.album.even{
 
 	background:#E7E7E7;

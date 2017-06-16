@@ -17,6 +17,37 @@ angular.module('yolk').factory('lazy',[function() {
 		this.chunk = 0;
 		watchScroll();
 	}
+	//set the padding in the playwindow
+	lazy.prototype.fixChrome = function(drawers){
+		$scope.tracks.drawerPos(true,drawers);
+		if($scope.lazy.chunk > 1){
+			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
+		}else{
+			var padding = 0;
+		}
+		var height = $scope.lib.size*$scope.lazy.trackHeight+($scope.dpos.spacer||$scope.dpos.height||0);
+		$scope.dims.dyn = {
+			paddingTop:padding,
+			height:height-padding
+		}
+		//$('#tracks').css({paddingTop:padding});
+		//$('#tracks').height(height-padding);
+		/*
+		$scope.lib.drawers.noscroll = true;
+		setTimeout(function(){
+			$scope.tracks.drawerPos();
+			$scope.lib.drawers.noscroll = false;
+		})
+
+		setTimeout(function(){
+			//$scope.tracks.drawerPos();
+			$('#tracks').css({paddingTop:padding+$scope.lib.drawers.padding});
+			$('#tracks').height(height-padding);
+			console.log('height:'+$scope.lib.drawers.height+' padding:'+$scope.lib.drawers.padding)
+		})
+		*/
+
+	}
 
 	lazy.prototype.refresh = function(sTop){
 		if(sTop){
@@ -31,30 +62,27 @@ angular.module('yolk').factory('lazy',[function() {
 	}
 
 	lazy.prototype.scroll = function(scrolltop){
-		/*
-		if($scope.lazy.drawer && $scope.lazy.drawer.active){
-			$scope.lazy.drawer.offset = $('#drawer'+$scope.lazy.drawer.id).offset().top+$scope.lazy.drawer.height-$scope.dims.menHeight-$scope.dims.searchHeight;
-			console.log($scope.lazy.drawer.offset);
+		if($scope.dpos.isvis){
+			scrolltop-=$scope.dpos.spacer||$scope.dpos.height;
+			var newchunk = Math.floor(scrolltop/this.chunkHeight);
+			if(newchunk > this.chunk||$scope.dpos.vis==='above') this.chunk = newchunk;
+		}else{
+			this.chunk = Math.floor(scrolltop/this.chunkHeight);
 		}
-		*/
-
-		this.chunk = Math.floor(scrolltop/this.chunkHeight);
-		if($scope.lazy.drawer && $scope.lazy.drawer.active === $scope.pin.Page && !$scope.lazy.drawer.chunk) $scope.lazy.drawer.chunk = this.chunk
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step*2;
 	}
 
-	lazy.prototype.step = function(drawer){
+	lazy.prototype.step = function(){
 		this.winHeight = $scope.dims.playwindowHeight;
 		this.Step = Math.ceil(this.winHeight/this.trackHeight);
-		if($scope.lazy.drawer && $scope.lazy.drawer.active === $scope.pin.Page) this.Step = this.Step + Math.ceil($scope.lazy.drawer.height/this.trackHeight);
 		this.chunkHeight = this.Step*this.trackHeight;
 		this.scroll($('#playwindow').scrollTop());
 	}
 
 	// get the relative position of the currently playing track in the track window
 	lazy.prototype.getPos = function(i){
-		var self = this;	
+		var self = this;
 		$scope.lib.playing.filter.pos = i;
 		self.spacer=true;
 		if(i > -1){
@@ -142,15 +170,20 @@ angular.module('yolk').factory('lazy',[function() {
 	var watchScroll = function(){
 		// watch for scrolling of the track list
 		var scrollfix;
+		var t=0;
 		$('#playwindow').scroll(function(e){
+			//if($scope.lib.drawers.noscroll) return;
 			clearTimeout(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
 			$scope.lazy.playPos(scrollTop);
 			scrollfix = setTimeout(function(){
+				$scope.tracks.drawerPos();
 				$scope.lazy.scroll(scrollTop);
 				$scope.search.go(false,'scroll');
 				$scope.scrolling =false;
 			},100);
+
+
 		});
 	}
 	return lazy;

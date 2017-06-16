@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('yolk').factory('search',[function() {
+angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	var $scope;
 	const tools = require('../../lib/tools/searchtools.js');
 	const crypto = require('crypto');
@@ -86,15 +86,6 @@ angular.module('yolk').factory('search',[function() {
 		if(state.playing && (refresh || !state.sortby ||!state.searchterm ||!state.sources||!state.filter||!state.playlist.active||!state.playlist.selected)){
 			state.checkfocus = true;
 		}
-		//if(!state.sortby) this.memory[mem][$scope.pin.Page] = this.memory[mem][$scope.pin.Page].reverse();
-		//hack the GUI lookup and refresh if a conent drawer is open
-		/*
-		if($scope.lazy.drawer && $scope.lazy.drawer.chunk < $scope.lazy.chunk && $scope.lazy.drawer.offset > 0){
-			state.get = false;
-		}
-		*/
-
-
 		this.state = state;
 	}
 
@@ -113,7 +104,7 @@ angular.module('yolk').factory('search',[function() {
 			if(!self.memory[mem].scrolltop) self.memory[mem].scrolltop = 0;
 			$scope.lib.size = this.memory[mem].libsize;
 			$scope.lazy.scroll(self.memory[mem].scrolltop)
-			$scope.tracks.fixChrome();
+			//$scope.tracks.fixChrome();
 			//$scope.lazy.chunk === oldChunk.chunk
 			setOldChunk();
 			$('#playwindow').scrollTop(self.memory[mem].scrolltop);
@@ -183,31 +174,15 @@ angular.module('yolk').factory('search',[function() {
 					return id.id;
 				})
 				self.memory[mem].all = data;
-				Search();
+				self.Search(search,'title');
 			},function(err){
 				console.error(err);
 			})
 		}else{
-			Search();
-		}
-		function Search(){
-			$scope.db.fetch(search).then(function(data){
-				$scope.lib.size = data.libsize;
-				self.memory[mem].libsize = data.libsize;
-				data.items = playpos(data.items);
-				self.memory[mem][$scope.pin.Page] = data.items;
-				$scope.tracks.fixChrome();
-				$scope.$apply(function(){
-					$scope.lib[$scope.pin.Page] = data.items;
-					if(!$scope.playlist.active) $scope.tracks.all = self.memory[mem].all;
-					if(self.state.checkfocus) $scope.tracks.isInFocus();
-				})
-
-			},function(err){
-				if(err) console.error(err);
-			})
+			self.Search(search,'title');
 		}
 	}
+
 	search.prototype.album = function(refresh){
 		var self = this;
 		var should = []
@@ -229,17 +204,7 @@ angular.module('yolk').factory('search',[function() {
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
-
-		$scope.db.fetch(search).then(function(data){
-			$scope.lib.size = data.libsize;
-			self.memory[mem].libsize = data.libsize;
-			data.items = playpos(data.items);
-			self.memory[mem][$scope.pin.Page] = data.items;
-			$scope.tracks.fixChrome();
-			$scope.$apply(function(){
-				$scope.lib[$scope.pin.Page] = data.items;
-			})
-		})
+		self.Search(search,'album');
 	}
 
 	search.prototype.artist = function(refresh){
@@ -258,27 +223,39 @@ angular.module('yolk').factory('search',[function() {
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
-
+		self.Search(search,'artist');
+	}
+	search.prototype.Search=function(search,type){
+		var self = this;
 		$scope.db.fetch(search).then(function(data){
 			$scope.lib.size = data.libsize;
 			self.memory[mem].libsize = data.libsize;
 			data.items = playpos(data.items);
 			self.memory[mem][$scope.pin.Page] = data.items;
-			$scope.tracks.fixChrome();
 			$scope.$apply(function(){
 				$scope.lib[$scope.pin.Page] = data.items;
+				$scope.lazy.fixChrome();
+				if(type === 'title'){
+					if(!$scope.playlist.active) $scope.tracks.all = self.memory[mem].all;
+					if(self.state.checkfocus) $scope.tracks.isInFocus();
+				}
+				if(type === 'artist'){
+					data.items.forEach(function(row){
+						wiki(row);
+					})
+				}
 			})
-			data.items.forEach(function(row){
-				wiki(row);
-			})
+
+		},function(err){
+			if(err) console.error(err);
 		})
 	}
-
 	search.prototype.artistAlbums = function(artist){
 		return new Promise(function(resolve,reject){
 			var must = $scope.tools.wrap.bool([{must:[
 				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},
-				{match:{deleted:{query:'no',type:'phrase'}}}
+				{match:{deleted:{query:'no',type:'phrase'}}},
+				{match:{musicbrainzed:{query:'yes',type:'phrase'}}}
 			]}])
 			var query = {index:$scope.db_index,type:"local,internetarchive,youtube",body:{query:must}}
 			$scope.db.fetchAll(query).then(function(data){resolve(data)},function(err){reject(err)})

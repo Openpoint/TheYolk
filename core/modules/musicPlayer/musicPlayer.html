@@ -88,7 +88,8 @@
 			<div ng-click='fileSelect()'>Select your music folder</div>
 		</div>
 
-		<div id='tracks' ng-show="settings.paths.musicDir">
+		<div id='tracks' ng-show="settings.paths.musicDir" ng-style="dims.dyn">
+			<div id='trackspacer' ng-style = "{height:dpos.spacer}"></div>
 			<div id="artists" ng-if="pin.Page === 'artist'">
 				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
 					<div class='title'>
