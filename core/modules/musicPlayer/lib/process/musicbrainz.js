@@ -223,7 +223,7 @@ ipcMain.on('kill', function(event,data) {
 		rootfolders={};
 		rec = [];
 		mbdb.getDupes().then(function(){
-			console.Yolk.log('restart')
+			//console.Yolk.log('restart')
 			mbz.pacer()
 		});
 		return;

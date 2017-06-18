@@ -14,6 +14,7 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	$scope.db_index = defaults.db_index.index;
 	$scope.progress={};
 	$scope.Sortby={};
+	$scope.refresh = {};
 	$scope.utils = new utils();
 	$scope.db = $scope.utils.db;
 	$scope.searchTerm = '';
@@ -34,7 +35,11 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.Sort = {};
 	$scope.dims.update();
-	$scope.dpos={isvis:false};
+	$scope.dpos={
+		album:{isvis:false},
+		artist:{isvis:false},
+		title:{isvis:false}
+	};
 	$scope.lib={
 		bios:{},
 		tracks:[],
@@ -111,14 +116,22 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
 			if(data  === 'bulk'){
-				$scope.search.noscroll = true;
-				$scope.search.go(true);
+				$scope.refresh.title?$scope.refresh.title++:$scope.refresh.title=1
+				$scope.refresh.album?$scope.refresh.album++:$scope.refresh.album=1
+				$scope.refresh.artist?$scope.refresh.artist++:$scope.refresh.artist=1
+			}else{
+				$scope.refresh[data]?$scope.refresh[data]++:$scope.refresh[data]=1
 			}
-			return;
 			if(refresh_time) return;
 			refresh_time = setTimeout(function(){
+				Object.keys($scope.refresh).forEach(function(key){
+					if($scope.refresh[key]){
+						delete $scope.search.memory[key];
+						$scope.refresh[key] = 0;
+					}
+				})
 				$scope.tracks.refreshDrawers();
-				$scope.search.go(true,'refresh');
+				$scope.search.go(true);
 				refresh_time = false;
 			},3000)
 		});

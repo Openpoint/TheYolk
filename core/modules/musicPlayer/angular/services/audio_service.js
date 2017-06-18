@@ -151,24 +151,12 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 
 			//Add playing track to the recently played playlist
 			if(!$scope.playlist.active || $scope.playlist.selected !== 1){
-				$scope.playlist.renew[1]=true;
-				$scope.db.client.update({index:$scope.db_index,type:track.type,id:track.id,refresh:true,body:{doc:{played:Date.now()}}}, function (error, response){
-					if(error) console.error(error);
-					var pos = -1;
-					$scope.playlist.activelist[1].some(function(t,index){
-						if (t.id === track.id){
-							pos = index;
-							return true;
-						}
-					})
-					if(pos === -1){
-						$scope.playlist.activelist[1].unshift({id:track.id,type:track.type});
-					}else{
-						$scope.playlist.activelist[1].splice(pos, 1);
-						$scope.playlist.activelist[1].unshift({id:track.id,type:track.type});
-					}
-					$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
-				})
+				var i = $scope.playlist.activelist[1].indexOf(track.id)
+				if(i!==-1){
+					$scope.playlist.activelist[1].splice(i,1);
+				}
+				$scope.playlist.activelist[1].unshift(track.id)
+				$scope.playlist.updatePlaylist(1,$scope.playlist.activelist[1]);
 			}
 			$scope.lib.devinfo=JSON.stringify(track, null, 4)
 			$scope.lib.playing.state = 'playing';

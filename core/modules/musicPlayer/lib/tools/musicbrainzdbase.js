@@ -188,9 +188,7 @@ mbdbase.prototype.saveTrack = function(track,timer){
 	}
 	var self = this;
 	var i = this.bulk.length -1;
-
 	if(track){
-		//if(track.type === 'internetarchive') console.log(track.deleted);
 		track.date = Date.now();
 		track.musicbrainzed ='yes';
 		if(track.type === 'internetarchive'||track.type === 'youtube'){

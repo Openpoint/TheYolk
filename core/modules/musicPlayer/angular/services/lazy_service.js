@@ -15,69 +15,51 @@ angular.module('yolk').factory('lazy',[function() {
 		this.progressHeight = 10;
 		this.playingHeight = this.trackHeight+this.progressHeight;
 		this.chunk = 0;
+		this.over=3 //how many times the window height worth of tracks to fetch
 		watchScroll();
 	}
 	//set the padding in the playwindow
 	lazy.prototype.fixChrome = function(drawers){
 		$scope.tracks.drawerPos(true,drawers);
-		if($scope.lazy.chunk > 1){
+		if($scope.lazy.chunk){
 			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
 		}else{
 			var padding = 0;
 		}
-		var height = $scope.lib.size*$scope.lazy.trackHeight+($scope.dpos.spacer||$scope.dpos.height||0);
+		var height = $scope.lib.size*$scope.lazy.trackHeight+($scope.dpos[$scope.pin.Page].spacer||$scope.dpos[$scope.pin.Page].height||0);
 		$scope.dims.dyn = {
 			paddingTop:padding,
 			height:height-padding
 		}
-		//$('#tracks').css({paddingTop:padding});
-		//$('#tracks').height(height-padding);
-		/*
-		$scope.lib.drawers.noscroll = true;
-		setTimeout(function(){
-			$scope.tracks.drawerPos();
-			$scope.lib.drawers.noscroll = false;
-		})
-
-		setTimeout(function(){
-			//$scope.tracks.drawerPos();
-			$('#tracks').css({paddingTop:padding+$scope.lib.drawers.padding});
-			$('#tracks').height(height-padding);
-			console.log('height:'+$scope.lib.drawers.height+' padding:'+$scope.lib.drawers.padding)
-		})
-		*/
-
+		$('#tracks').css($scope.dims.dyn);
 	}
 
 	lazy.prototype.refresh = function(sTop){
-		if(sTop){
-			var top = sTop;
-		}else{
-			var top = 0;
+		if(!sTop){
 			this.chunk = 0;
-			$('#playwindow').scrollTop(top);
+			$('#playwindow').scrollTop(0);
 		}
-		this.step(top);
+		this.step(sTop);
 		//this.getPos();
 	}
 
 	lazy.prototype.scroll = function(scrolltop){
-		if($scope.dpos.isvis){
-			scrolltop-=$scope.dpos.spacer||$scope.dpos.height;
+		if($scope.dpos[$scope.pin.Page].isvis){
+			scrolltop-=$scope.dpos[$scope.pin.Page].spacer||$scope.dpos[$scope.pin.Page].height;
 			var newchunk = Math.floor(scrolltop/this.chunkHeight);
-			if(newchunk > this.chunk||$scope.dpos.vis==='above') this.chunk = newchunk;
+			if(newchunk > this.chunk||$scope.dpos[$scope.pin.Page].vis==='above') this.chunk = newchunk;
 		}else{
 			this.chunk = Math.floor(scrolltop/this.chunkHeight);
 		}
 		this.Top = this.Step*this.chunk;
-		this.Bottom = this.Top+this.Step*2;
+		this.Bottom = this.Top+this.Step;
 	}
 
-	lazy.prototype.step = function(){
+	lazy.prototype.step = function(top){
 		this.winHeight = $scope.dims.playwindowHeight;
-		this.Step = Math.ceil(this.winHeight/this.trackHeight);
+		this.Step = Math.ceil(this.winHeight/this.trackHeight)*this.over;
 		this.chunkHeight = this.Step*this.trackHeight;
-		this.scroll($('#playwindow').scrollTop());
+		this.scroll(top||$('#playwindow').scrollTop());
 	}
 
 	// get the relative position of the currently playing track in the track window

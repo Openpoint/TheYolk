@@ -6,7 +6,7 @@ angular.module('yolk').factory('playlist',[function() {
 	var playlist = function(scope){
 		$scope = scope;
 		var self = this;
-		this.renew = {1:false};
+		//this.renew = {1:false};
 		$scope.db.client.get({
 			index:$scope.db_index,
 			type:'playlists',
@@ -64,7 +64,7 @@ angular.module('yolk').factory('playlist',[function() {
 		}else{
 			self.options.push({id:self.unique,name:playlist});
 			self.selected=$scope.playlist.options[$scope.playlist.options.length-1].id;
-			if(!self.renew[self.selected]) self.renew[self.selected]=false;
+			//if(!self.renew[self.selected]) self.renew[self.selected]=false;
 			self.new = null;
 			var body = {properties:{}}
 			body.properties['playlist'+self.selected]={type:'integer'};
@@ -132,10 +132,10 @@ angular.module('yolk').factory('playlist',[function() {
 	}
 	playlist.prototype.remove = function(id){
 		this.activelist[this.selected] = this.activelist[this.selected].filter(function(track){
-			return track.id!==id
+			return track!==id
 		})
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
-		$scope.search.go(false,'playlist track removed');
+		$scope.search.go(true);
 	}
 	playlist.prototype.handleDragStart=function(event,data){
 		if(this.active && this.selected!==1){
@@ -144,51 +144,31 @@ angular.module('yolk').factory('playlist',[function() {
 	}
 	playlist.prototype.onDrop = function(event,data){
 		if(this.activelist[this.selected].some(function(track){
-			return track.id === data.id;
+			return track === data.id;
 		})){
 			return;
 		}
-		this.activelist[this.selected].push({id:data.id,type:data.type});
+		this.activelist[this.selected].push(data.id);
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
-		$scope.playlist.renew[this.selected]=true;
-		this.positions();
 	}
 	playlist.prototype.onReorder = function(event,data,target){
 		var pos={}
-		this.activelist[this.selected].forEach(function(track,index){
-			if(track.id===data.id) pos.old = index;
-			if(track.id===target) pos.new = index;
+		this.activelist[this.selected].forEach(function(id,index){
+			if(id===data.id) pos.old = index;
+			if(id===target) pos.new = index;
 		})
-
-		if(pos.new > pos.old){
-			this.activelist[this.selected].splice(pos.new+1,0,{id:data.id,type:data.type})
+		console.log(pos.old,pos.new)
+		if(typeof pos.old === 'undefined'){
+			this.activelist[this.selected].splice(pos.new+1,0,data.id)
+		}else if(pos.new > pos.old){
+			this.activelist[this.selected].splice(pos.new+1,0,data.id)
 			this.activelist[this.selected].splice(pos.old,1)
 		}else{
 			this.activelist[this.selected].splice(pos.old,1)
-			this.activelist[this.selected].splice(pos.new,0,{id:data.id,type:data.type})
+			this.activelist[this.selected].splice(pos.new,0,data.id)
 		}
 		this.updatePlaylist(this.selected,this.activelist[this.selected])
-		$scope.playlist.renew[this.selected]=true;
-		this.positions(true);
-
-	}
-	playlist.prototype.positions=function(update){
-		var self = this;
-		var count = 0;
-		var bulk = [];
-		this.activelist[this.selected].forEach(function(track,index){
-			var doc = {};
-			doc["playlist"+self.selected] = index;
-			bulk.push({update:{_index:$scope.db_index,_type:track.type,_id:track.id}})
-			bulk.push({doc:doc});
-		});
-		$scope.db.client.bulk({body:bulk,refresh:true},function(err){
-			if(err){
-				console.error(err);
-				return;
-			}
-			if($scope.playlist.active) $scope.search.go(true,'playlist positions');
-		})
+		$scope.search.go(true);
 	}
 	return playlist;
 }])

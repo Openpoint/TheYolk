@@ -57,13 +57,8 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 	tracks.prototype.isInFocus = function(){
 		if(!$scope.lib.playing) return;
 		var self = this;
-		if($scope.playlist.active){
-			var all = $scope.playlist.activelist[$scope.playlist.selected].map(function(item,index){
-				return item.id;
-			})
-		}else{
-			all = this.all;
-		}
+		var all;
+		$scope.playlist.active?all=$scope.playlist.activelist[$scope.playlist.selected]:all=this.all;
 		var index = all.indexOf($scope.lib.playing.id);
 		$scope.lazy.getPos(index);
 		self.next(index);
@@ -307,25 +302,18 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 			$('#drawer'+row.id).height($scope.lib.drawers[$scope.pin.Page][row.id].height);
 			$('#drawer'+row.id).height(0);
 			$scope.lib.drawers[$scope.pin.Page].open=false;
-			$scope.dpos.open = false;
-			$scope.dpos.height = 0;
-			$scope.dpos.spacer = 0;
+			$scope.dpos[$scope.pin.Page].open = false;
+			$scope.dpos[$scope.pin.Page].height = 0;
+			$scope.dpos[$scope.pin.Page].spacer = 0;
 			$scope.lazy.fixChrome()
 		}else{ //open the drawer
 			if($scope.lib.drawers[$scope.pin.Page].open){ //close open drawers on page
 				var key = $scope.lib.drawers[$scope.pin.Page].open;
 				$scope.lib.drawers[$scope.pin.Page][key].state = false;
 				$('#drawer'+key).height($scope.lib.drawers[$scope.pin.Page][key].height);
-
-				if(($('#drawer'+row.id).offset().top-$('#tracks').offset().top) > $scope.lib.drawers[$scope.pin.Page][key].top){
-					$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top-$scope.lib.drawers[$scope.pin.Page][key].height;
-				}else{
-					$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top
-				}
 				$('#drawer'+key).height(0);
-			}else{
-				$scope.lib.drawers[$scope.pin.Page][row.id].top = $('#drawer'+row.id).offset().top-$('#tracks').offset().top
 			}
+			$scope.lib.drawers[$scope.pin.Page][row.id].top = (row.filter.pos+1)*$scope.lazy.trackHeight;
 			$scope.lib.drawers[$scope.pin.Page][row.id].state = true;
 			$('#drawer'+row.id).height(0);
 
@@ -334,7 +322,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 				$scope.lib.drawers[$scope.pin.Page][row.id].height = height;
 				$scope.lib.drawers[$scope.pin.Page].open = row.id;
 				$('#drawer'+row.id).height(height);
-				$scope.dpos.open = true;
+				$scope.dpos[$scope.pin.Page].open = true;
 				$scope.lazy.fixChrome(true);
 				$('#playwindow').animate({scrollTop:($scope.lib.drawers[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
 			})
@@ -342,44 +330,47 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 	}
 
 	tracks.prototype.drawerPos = function(check,open){
-		$scope.dpos.isvis = false;
+		$scope.dpos[$scope.pin.Page].isvis = false;
 		if(!$scope.lib.drawers[$scope.pin.Page]||!$scope.lib.drawers[$scope.pin.Page].open) return;
 		var index = $scope.lib.drawers[$scope.pin.Page].open;
-		if(check) $scope.dpos.indom = $scope.lib[$scope.pin.Page].some(function(album){return album.id===index});
+		if(check){
+			$scope.lib.drawers[$scope.pin.Page][index].top = ($scope.tracks.all.indexOf(index)+1)*$scope.lazy.trackHeight;
+			$scope.dpos[$scope.pin.Page].indom = $scope.lib[$scope.pin.Page].some(function(album){return album.id===index});
+		}
 		if(open){
-			$scope.dpos.indom = true;
-			$scope.dpos.pt = $('#playwindow').offset().top;
-			$scope.dpos.height = $scope.lib.drawers[$scope.pin.Page][index].height;
+			$scope.dpos[$scope.pin.Page].indom = true;
+			$scope.dpos[$scope.pin.Page].pt = $('#playwindow').offset().top;
+			$scope.dpos[$scope.pin.Page].height = $scope.lib.drawers[$scope.pin.Page][index].height;
 		}
 		var tabove = ($scope.dims.scrollTop||0) - $scope.lib.drawers[$scope.pin.Page][index].top;
 		var tbelow = (tabove + $scope.dims.playwindowHeight)*-1;
-		var babove = tabove - $scope.dpos.height;
-		var bbelow = tbelow + $scope.dpos.height;
+		var babove = tabove - $scope.dpos[$scope.pin.Page].height;
+		var bbelow = tbelow + $scope.dpos[$scope.pin.Page].height;
 		if(tabove<=0&&bbelow<=0){
 			var vis = 'full';
-			$scope.dpos.isvis = true;
+			$scope.dpos[$scope.pin.Page].isvis = true;
 		}else if(tabove>0&&bbelow>0){
 			var vis = 'overflow';
-			$scope.dpos.isvis = true;
+			$scope.dpos[$scope.pin.Page].isvis = true;
 		}else if(tabove>0&&babove<0||bbelow>0&&tbelow<0){
 			var vis = 'partial';
-			$scope.dpos.isvis = true;
+			$scope.dpos[$scope.pin.Page].isvis = true;
 		}else if(tabove>0){
 			var vis = 'above'
-			$scope.dpos.isvis = true;
+			$scope.dpos[$scope.pin.Page].isvis = true;
 		}else{
 			var vis = 'below'
-			$scope.dpos.isvis = false;
+			$scope.dpos[$scope.pin.Page].isvis = false;
 		}
-		$scope.dpos.top = {above:tabove,below:tbelow};
-		$scope.dpos.bottom = {above:babove,below:bbelow};
-		$scope.dpos.vis = vis;
+		$scope.dpos[$scope.pin.Page].top = {above:tabove,below:tbelow};
+		$scope.dpos[$scope.pin.Page].bottom = {above:babove,below:bbelow};
+		$scope.dpos[$scope.pin.Page].vis = vis;
 
-		if($scope.dpos.indom){
-			$scope.dpos.spacer = 0;
+		if($scope.dpos[$scope.pin.Page].indom){
+			$scope.dpos[$scope.pin.Page].spacer = 0;
 		}else{
-			if($scope.dpos.vis === 'above') $scope.dpos.spacer = $scope.dpos.height;
-			if($scope.dpos.vis === 'below') $scope.dpos.spacer = 0;
+			if($scope.dpos[$scope.pin.Page].vis === 'above') $scope.dpos[$scope.pin.Page].spacer = $scope.dpos[$scope.pin.Page].height;
+			if($scope.dpos[$scope.pin.Page].vis === 'below') $scope.dpos[$scope.pin.Page].spacer = 0;
 		}
 	}
 	tracks.prototype.drawerContent = function(row){
