@@ -15,41 +15,44 @@ angular.module('yolk').factory('lazy',[function() {
 		this.progressHeight = 10;
 		this.playingHeight = this.trackHeight+this.progressHeight;
 		this.chunk = 0;
-		this.over=3 //how many times the window height worth of tracks to fetch
+		this.over=7 //how many times the window height worth of tracks to fetch
 		watchScroll();
 	}
 	//set the padding in the playwindow
 	lazy.prototype.fixChrome = function(drawers){
 		$scope.tracks.drawerPos(true,drawers);
+		var b = Math.floor(this.over/3);
 		if($scope.lazy.chunk){
-			var padding = ($scope.lazy.Top-$scope.lazy.Step)*$scope.lazy.trackHeight;
+			var padding = (($scope.lazy.Step*$scope.lazy.chunk*b)-($scope.lazy.Step*b))*$scope.lazy.trackHeight;
 		}else{
 			var padding = 0;
 		}
 		var height = $scope.lib.size*$scope.lazy.trackHeight+($scope.dpos[$scope.pin.Page].spacer||$scope.dpos[$scope.pin.Page].height||0);
 		$scope.dims.dyn = {
 			paddingTop:padding,
-			height:height-padding
+			height:height-padding+$scope.lazy.trackHeight
 		}
+
 		$('#tracks').css($scope.dims.dyn);
 	}
 
 	lazy.prototype.refresh = function(sTop){
 		if(!sTop){
 			this.chunk = 0;
-			$('#playwindow').scrollTop(0);
+			//$('#playwindow').scrollTop(0);
 		}
 		this.step(sTop);
 		//this.getPos();
 	}
 
 	lazy.prototype.scroll = function(scrolltop){
+		var b = Math.floor(this.over/3);
 		if($scope.dpos[$scope.pin.Page].isvis){
 			scrolltop-=$scope.dpos[$scope.pin.Page].spacer||$scope.dpos[$scope.pin.Page].height;
-			var newchunk = Math.floor(scrolltop/this.chunkHeight);
+			var newchunk = Math.floor(scrolltop/(this.chunkHeight*b));
 			if(newchunk > this.chunk||$scope.dpos[$scope.pin.Page].vis==='above') this.chunk = newchunk;
 		}else{
-			this.chunk = Math.floor(scrolltop/this.chunkHeight);
+			this.chunk = Math.floor(scrolltop/(this.chunkHeight*b));
 		}
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step;
@@ -57,9 +60,9 @@ angular.module('yolk').factory('lazy',[function() {
 
 	lazy.prototype.step = function(top){
 		this.winHeight = $scope.dims.playwindowHeight;
-		this.Step = Math.ceil(this.winHeight/this.trackHeight)*this.over;
+		this.Step = Math.ceil(this.winHeight/this.trackHeight);
 		this.chunkHeight = this.Step*this.trackHeight;
-		this.scroll(top||$('#playwindow').scrollTop());
+		this.scroll(top||$scope.dims.scrollTop);
 	}
 
 	// get the relative position of the currently playing track in the track window
@@ -67,10 +70,16 @@ angular.module('yolk').factory('lazy',[function() {
 		var self = this;
 		$scope.lib.playing.filter.pos = i;
 		self.spacer=true;
+		if($scope.pin.Page !== 'title'){
+			setTimeout(function(){
+				playPos.bottom();
+			})
+			return;
+		}
 		if(i > -1){
 			$scope.lib.playing.top = i*$scope.lazy.trackHeight;
 			$scope.lib.playing.bottom = $scope.lib.playing.top + $scope.lazy.trackHeight;
-			self.playPos($('#playwindow').scrollTop(),true);
+			self.playPos(true);
 		}else{
 			playPos.bottom();
 		}
@@ -112,23 +121,22 @@ angular.module('yolk').factory('lazy',[function() {
 			$scope.lib.playing.Pinned = true;
 		}
 	}
-
-	lazy.prototype.playPos = function(stop,fix){
+	// decide if the currently playing track should stick to top or bottom of screen
+	lazy.prototype.playPos = function(fix){
 		if(!$scope.lib.playing) return;
 		if($scope.pin.Page!=='title'||($scope.pin.Page==='title' && $scope.lib.playing.filter.pos === -1)){
 			playPos.bottom();
 			return;
 		}
-		if(!stop) stop = $('#playwindow').scrollTop();
 		if($scope.lib.playing.filter.pos > -1){
 			if(fix){
 				playPos.clear();
 			}
-			if(stop - $scope.lib.playing.top > 0){
+			if($scope.dims.scrollTop - $scope.lib.playing.top > 0){
 				if(!$scope.lib.playing.Top){
 					playPos.top();
 				}
-			}else if(stop + $scope.lazy.winHeight - $scope.lib.playing.bottom <= 0){
+			}else if($scope.dims.scrollTop + $scope.lazy.winHeight - $scope.lib.playing.bottom <= 0){
 				if(!$scope.lib.playing.Bottom){
 					playPos.bottom();
 				}
@@ -157,7 +165,7 @@ angular.module('yolk').factory('lazy',[function() {
 			//if($scope.lib.drawers.noscroll) return;
 			clearTimeout(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			var scrollTop = $scope.dims.scrollTop = $('#playwindow').scrollTop();
-			$scope.lazy.playPos(scrollTop);
+			$scope.lazy.playPos();
 			scrollfix = setTimeout(function(){
 				$scope.tracks.drawerPos();
 				$scope.lazy.scroll(scrollTop);

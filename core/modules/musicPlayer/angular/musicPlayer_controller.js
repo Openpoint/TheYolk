@@ -130,7 +130,7 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 						$scope.refresh[key] = 0;
 					}
 				})
-				$scope.tracks.refreshDrawers();
+				//$scope.tracks.refreshDrawers();
 				$scope.search.go(true);
 				refresh_time = false;
 			},3000)

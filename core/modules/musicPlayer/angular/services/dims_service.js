@@ -9,6 +9,7 @@ angular.module('yolk').factory('dims',[function() {
 		this.sidebarWidth = 250;
 		this.scroller = 15;
 		this.drawerHeight = 0;
+		this.scrollTop = 0;
 	}
 	dims.prototype.update = function(){
 		this.playwindowWidth = $(window).width() - this.sidebarWidth;

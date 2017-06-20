@@ -7,8 +7,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	const Q = require("bluebird");
 	const request = require('request');
 	const sizeof = require('object-sizeof');
+	const log = true;
 	var Memory = false;
-	var StateChange = false;
 	var oldChunk = false;
 	var flags = {};
 	var context;
@@ -53,11 +53,13 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		flags = {
 			size:$scope.lazy.Step*$scope.lazy.over
 		}
-		if($scope.lazy.chunk > 0){
-			flags.from = $scope.lazy.Step*($scope.lazy.chunk-1)
-		}else{
-			flags.from = $scope.lazy.Top
+		flags.from = 0
+
+		var b = Math.floor($scope.lazy.over/3);
+		if($scope.lazy.chunk){
+			flags.from = ($scope.lazy.Step*$scope.lazy.chunk*b)-($scope.lazy.Step*b)
 		}
+
 		var state={
 			chunk:$scope.lazy.chunk === oldChunk.chunk,
 			sources:$scope.pin.pinned.sources.length === oldChunk.sources,
@@ -65,7 +67,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			searchterm:$scope.searchTerm === oldChunk.searchTerm,
 			filter:$scope.pin.Filter === oldChunk.filter,
 			page:$scope.pin.Page === oldChunk.page,
-			playing:$scope.lib.playing ? true : false,
+
 			playlist:{
 				selected:$scope.playlist.selected===oldChunk.playlistSelected,
 				active:$scope.playlist.active===oldChunk.playlistActive
@@ -74,55 +76,71 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			get:true,
 		}
 		if(!state.playlist.selected||!state.playlist.active||!state.searchterm||!state.filter||!state.sources) state.page = false;
-		//if(!state.page) $scope.lazy.playPos();
 		if((state.page && $scope.pin.sortby[0] === oldChunk.sortby)||!state.page||!state.filter) state.sortby = true;
 		if(!refresh && state.chunk && state.sortby && state.searchterm && state.page && state.filter && state.playlist.selected && state.playlist.active && state.sources){
 			state.get = false;
 		}
-		if(!state.sortby && self.memory[context][mem].all) self.memory[context][mem].all = self.memory[context][mem].all.reverse();
-		if(state.playing && (refresh || !state.sortby ||!state.searchterm ||!state.sources||!state.filter||!state.playlist.active||!state.playlist.selected)){
-			state.checkfocus = true;
+		if(!state.sortby && self.memory[context][mem].all){
+			if(log) console.log('reverse')
+			self.memory[context][mem].all = self.memory[context][mem].all.reverse();
+			this.memory[context][mem].chunks={};
 		}
 		this.state = state;
 	}
 
-
+	var t =false
+	//var brake = false;
 	search.prototype.go = function(refresh,origin){
-
+		//if(brake) return;
 		var self = this;
 		if(!oldChunk) setOldChunk();
 		this.prepare(refresh)
 		setOldChunk();
 		if(typeof this.memory[context][mem].scrolltop === 'undefined'){
-			console.log('scroll1')
+			t = true
+			if(log) console.warn($scope.playlist.active?'playlist':$scope.pin.Page);
+			if(log) console.log('scroll1')
 			if(refresh){
-				console.log('scroll2')
+				if(log) console.log('scroll2')
 				this.memory[context][mem].scrolltop = $('#playwindow').scrollTop();
 			}else{
-				console.log('scroll3')
+				if(log) console.log('scroll3')
+				flags.from = 0;
+				$scope.lazy.refresh();
 				this.memory[context][mem].scrolltop = 0;
+				//brake = true;
 				if($('#playwindow').scrollTop() > 0){
-					console.log('scroll4')
+					if(log) console.log('scroll4')
 					$('#playwindow').scrollTop(0);
+					if($scope.lazy.chunk!==oldChunk.chunk) return;
 				}
+
 			}
 		}
 		if(!self.state.page && $('#playwindow').scrollTop()!==self.memory[context][mem].scrolltop){
-			console.log('scroll5')
-			$scope.lazy.chunk = self.memory[context][mem].chunk;
+			t = true
+			if(log) console.warn($scope.playlist.active?'playlist':$scope.pin.Page);
+			if(log) console.log('scroll5')
+			//$scope.lazy.chunk = self.memory[context][mem].chunk;
 			$scope.lib.size = self.memory[context][mem].libsize;
 			$scope.lazy.refresh(self.memory[context][mem].scrolltop);
+			flags.from=0;
+			var b = Math.floor($scope.lazy.over/2);
+			if($scope.lazy.chunk >= b){
+				flags.from = $scope.lazy.Step*($scope.lazy.chunk-b+1)*b
+			}
 			$scope.lazy.fixChrome();
 			setTimeout(function(){
 				$('#playwindow').scrollTop(self.memory[context][mem].scrolltop);
 			})
-			//return;
+			if($scope.lazy.chunk!==oldChunk.chunk) return;
 		}
 
 		if(origin === 'scroll') this.memory[context][mem].scrolltop = $('#playwindow').scrollTop();
-
 		if(!this.state.get) return;
-		console.log('GO:'+go);
+		if(log && !t) console.warn($scope.playlist.active?'playlist':$scope.pin.Page);
+		t=false;
+		if(log) console.log('GO:'+go);
 		go++;
 		if($scope.pin.Page!=='title'){
 			this[$scope.pin.Page]();
@@ -134,22 +152,14 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 		var scs = ['download','file','id','metadata.*','path','type','artist','album','date','deleted'];
 		var search = {index:$scope.db_index,type:'local,internetarchive,youtube',body:{_source:scs,query:{bool:{must:[{bool:{should:[]}}]}}}};
-		if(!$scope.playlist.active){
-			search.sort=$scope.pin.sortby;
-			search.type = $scope.pin.pinned.sources.toString();
-			search.body.query.bool.must.push({match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}})
-		}else if($scope.playlist.selected === 1){
-			search.sort = ["played:desc"]
-			//search.body.query.bool.must.push({match:{'deleted':'no'}})
-		}else{
-			search.sort = ["playlist"+$scope.playlist.selected+":asc"];
-			//search.body.query.bool.must.push({match:{'deleted':'no'}})
-		}
+		search.sort=$scope.pin.sortby;
+		search.type = $scope.pin.pinned.sources.toString();
+		search.body.query.bool.must.push({match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}})
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})
 		var terms = false;
-		if($scope.searchTerm && $scope.searchTerm.length > 1 && !$scope.playlist.active){
+		if($scope.searchTerm && $scope.searchTerm.length > 1){
 			terms = tools.terms($scope.searchTerm);
 			if(terms.prefix){
 				search.body.query.bool.must[0].bool.should.push({multi_match:
@@ -163,15 +173,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 					search.body.query.bool.must.push(match);
 				}
 			})
-		}
-		if($scope.playlist && $scope.playlist.active){
-			if($scope.playlist.activelist[$scope.playlist.selected].length){
-				$scope.playlist.activelist[$scope.playlist.selected].forEach(function(track){
-					search.body.query.bool.must[0].bool.should.push({match:{id:{query:track.id,type:'phrase'}}});
-				})
-			}else{
-				search.body.query.bool.must.push({match:{id:{query:"nothing",type:'phrase'}}});
-			}
 		}
 		this.getMem(search,'title')
 	}
@@ -222,24 +223,27 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		var self = this;
 		var tracks = $scope.playlist.activelist[$scope.playlist.selected];
 		var data = [];
+		console.log(Flags)
 		if(tracks.some(function(id,index){
-			if(index>=flags.from && index<flags.size) data.push(self.all[id])
+			if(index>=Flags.from && index<Flags.size+Flags.from) data.push(self.all[id])
 			return !self.all[id]
 		})){
 			var body = tracks.map(function(id){
 				return {match:{id:{query:id,type:'phrase'}}}
 			})
 			body = $scope.tools.wrap.bool([{should:body}]);
-			//console.log(body)
 			$scope.db.fetchAll({index:$scope.db_index,type:'internetarchive,local,youtube',body:{query:body}}).then(function(data){
 				data.forEach(function(track){
 					self.all[track.id] = track;
 				})
+				if(log) console.log('refreshing playlist')
 				self.playlist(Flags);
 			},function(err){
 				console.error(err)
 			})
+			return;
 		}else{
+			console.log(data)
 			$scope.lib.size = tracks.length
 			self.memory[context][mem].libsize = tracks.length;
 			$timeout(function(){
@@ -248,6 +252,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 	}
 	search.prototype.getMem = function(search,type){
+		if(log) console.log('getMem('+type+')')
 		var self = this;
 		if(!self.memory[context][mem].all){
 			var activesearch = {};
@@ -259,12 +264,13 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				if(key!=='_source') activesearch.body[key] = search.body[key]
 			})
 			activesearch.body._source = "id";
+
 			$scope.db.fetchAll(activesearch).then(function(data){
 				data = data.map(function(id){
 					return id.id;
 				})
 				self.memory[context][mem].all = data;
-				//console.log(self.memory[mem].all)
+				if(log) console.log('renew "All"')
 				self.Search(search,type,flags);
 			},function(err){
 				console.error(err);
@@ -274,20 +280,23 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 	}
 	search.prototype.Search=function(search,type,Flags){
+		if(log) console.log('Search('+type+')')
 		var self = this;
 		if(this.memory[context][mem].chunks[$scope.lazy.chunk]){
-			console.log('cache')
+
 			$scope.lib.size = self.memory[context][mem].libsize;
 			var data = this.memory[context][mem].chunks[$scope.lazy.chunk].map(function(id){
 				return self.all[id]
 			})
 			$timeout(function(){
+				if(log) console.log('from cache')
 				self.commit(data,type,Flags);
 			})
 			return;
 		}
+
 		$scope.db.fetch(search).then(function(data){
-			console.log(data)
+			if(!data.items.length && data.libsize && log) console.error(search,data,Flags)
 			$scope.lib.size = data.libsize;
 			self.memory[context][mem].libsize = data.libsize;
 			self.memory[context][mem].chunks[$scope.lazy.chunk] = [];
@@ -296,6 +305,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				self.all[item.id] = item;
 			})
 			$scope.$apply(function(){
+				if(log) console.log('renew cache');
 				self.commit(data.items,type,Flags);
 			})
 
@@ -304,21 +314,28 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 	}
 	search.prototype.commit = function(items,type,Flags){
+		if(log) console.log('commit('+type+')')
 		var self = this;
 		items = playpos(items,Flags);
-		console.warn(items)
+		console.log(Flags)
+		console.log(items)
 		self.memory[context][mem].chunk = $scope.lazy.chunk;
 		$scope.lib[$scope.pin.Page] = items;
 		if(!$scope.playlist.active) $scope.tracks.all = self.memory[context][mem].all;
 		$scope.lazy.fixChrome();
-		if(type === 'title'){
-			if(self.state.checkfocus) $scope.tracks.isInFocus();
-		}
+		$scope.tracks.isInFocus();
 		if(type === 'artist'){
 			items.forEach(function(row){
 				wiki(row);
 			})
 		}
+
+		/*
+		if(brake) setTimeout(function(){
+			console.warn('unset brake')
+			brake = false;
+		},500)
+		*/
 	}
 	search.prototype.artistAlbums = function(artist){
 		return new Promise(function(resolve,reject){
@@ -371,8 +388,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	}
 
 	var setOldChunk = function(){
-		if(oldChunk.filter !== $scope.pin.Filter) StateChange = true;
-		//console.log($scope.pin.pinned.sources)
+
 		oldChunk = {
 			chunk:$scope.lazy.chunk,
 			sources:$scope.pin.pinned.sources.length,

@@ -192,7 +192,7 @@
 									<div class='heading'>Disc {{$index+1}}</div>
 									<div class='songs'>
 										<div ng-repeat = "track in disc track by track.id"  ng-click="
-										audio.play(lib.drawers[pin.Page][album.id].tracks[track.id])
+										audio.play(lib.drawers[pin.Page][album.id].tracks[track.id],'album')
 										" class='track_row'>
 											<div class='number'>{{$index+1}}: </div>
 											<div class='track' ng-class="{active:lib.drawers[pin.Page][album.id].tracks[track.id].type}">
@@ -223,15 +223,15 @@
 					<div class='track'
 						ng-class="track.filter.zebra"
 						ng-style="{
-							height: track.state ? lazy.playingHeight : lazy.trackHeight
+							height:lazy.trackHeight
 						} "
 						>
-						<div class='inner' ng-if="!track.state">
+						<div class='inner'>
 							<div ng-if='playlist.active && playlist.selected!==1' class='reorder'>
 								<div ng-show='playlist.reorder && playlist.reorder!==track.id' drop-container on-drop="playlist.onReorder($event, $dragData, track.id)" class='pad'></div>
 							</div>
 							<div class='above'>
-								<div class='icons' ng-click="audio.play(track)">
+								<div class='icons' ng-click="audio.play(track,true)">
 									<div class='play'>
 										<i class='fa fa-play-circle-o'></i>
 									</div>
@@ -286,14 +286,11 @@
 				</div>
 
 			</div>
-			<div id='bottomspacer' ng-style="{height:lazy.trackHeight+lazy.progressHeight}" ng-if="lib.playing.Bottom"></div>
 			<div id='playing' class='track row'
 
 				ng-if = "lib.playing"
 				ng-style="{
-					height:lazy.trackHeight+lazy.progressHeight,
 					top:lib.playing.top,
-
 				}"
 				ng-class="{
 					playing:lib.playing.state === 'playing',
@@ -336,7 +333,7 @@
 						</div>
 						<div class='scroll'>
 							<div class='up fa fa-arrow-up' ng-click="lazy.Scroll('up')"
-							ng-if="lib.playing.Bottom && lazy.spacer"></div>
+							ng-if="lib.playing.Bottom && lib.playing.filter.pos!==-1 && pin.Page==='title'"></div>
 						</div>
 					</div>
 					<div class='progressBar' ng-click="audio.seek($event)" ng-style="{height:lazy.progressHeight}" ng-class="{error:audio.error}">
@@ -371,7 +368,7 @@
 						</div>
 						<div class='scroll'>
 							<div class='down fa fa-arrow-down' ng-click="lazy.Scroll('down')"
-							ng-if="lib.playing.Top && lazy.spacer"></div>
+							ng-if="lib.playing.Top && lib.playing.filter.pos!==-1 && pin.Page==='title'"></div>
 						</div>
 					</div>
 				</div>
@@ -457,7 +454,10 @@
 					</div>
 				</div>
 			</div>
-
+			<div ng-if='tracks.source.type' id='source'>
+				<div class='title'>Source: {{tracks.source.type}}</div>
+				<div>{{tracks.source.name}}</div>
+			</div>
 
 			<!--
 			<div class='anchor'
