@@ -1,14 +1,13 @@
 'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$interval','dims','utils','lazy','audio','internetarchive','youtube','tracks','search','pin','playlist',
-function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,search,pin,playlist) {
+'$scope','$interval','dims','utils','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
+function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
 	const mod_name = 'musicPlayer';
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
-	const Q = require("bluebird");
 
 	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
@@ -25,6 +24,7 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	$scope.playlist = new playlist($scope);
 	$scope.lazy = new lazy($scope);
 	$scope.tracks = new tracks($scope);
+	$scope.drawers = new drawers($scope);
 	$scope.internetarchive = new internetarchive($scope);
 	$scope.youtube = new youtube($scope);
 	$scope.dims = new dims($scope);
@@ -35,15 +35,10 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.Sort = {};
 	$scope.dims.update();
-	$scope.dpos={
-		album:{isvis:false},
-		artist:{isvis:false},
-		title:{isvis:false}
-	};
+
 	$scope.lib={
 		bios:{},
 		tracks:[],
-		drawers:{},
 		padding:0
 	};
 	$scope.allTracks;
@@ -130,7 +125,7 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,s
 						$scope.refresh[key] = 0;
 					}
 				})
-				//$scope.tracks.refreshDrawers();
+				$scope.drawers.refreshDrawers();
 				$scope.search.go(true);
 				refresh_time = false;
 			},3000)

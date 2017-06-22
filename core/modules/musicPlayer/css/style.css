@@ -1,3 +1,20 @@
+#tester{
+	position:absolute;
+	background:red;
+	opacity:.2;
+	width:100%;
+	z-index:10;
+	pointer-events:none;
+	color:red;
+	font-weight:bold;
+	font-size:2em;
+}
+#tester .message{
+	position:absolute;
+	text-align:center;
+	width:100%;
+	bottom:10px;
+}
 body,html{
 	position:relative;
 	height:100%;
@@ -206,8 +223,29 @@ body,html{
 	padding:10px;
 	box-sizing: border-box;
 }
+
+#source{
+	text-transform:capitalize;
+	border-bottom:1px solid #302B22;
+	margin:20px 10px 0 10px;
+	padding:0 0 10px 0;
+	text-align:center;
+}
+#source .title{
+	background:#302B22;
+	color:white;
+	padding:10px 0 10px 0;
+}
+#source .source{
+	padding-top:20px;
+	padding-bottom:6px;
+	font-size:.85em;
+	cursor:pointer;
+	line-height:1.5em;
+}
 #filters{
 	padding:8px;
+	height:58px;
 }
 #playlist .form{
 	margin-bottom:20px;

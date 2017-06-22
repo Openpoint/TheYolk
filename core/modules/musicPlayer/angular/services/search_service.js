@@ -7,8 +7,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	const Q = require("bluebird");
 	const request = require('request');
 	const sizeof = require('object-sizeof');
-	const log = true;
-	var Memory = false;
+	const log = false;
 	var oldChunk = false;
 	var flags = {};
 	var context;
@@ -44,22 +43,15 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	search.prototype.prepare = function(refresh){
 
 		var self = this;
-		if(!$scope.lazy.Step){
-			$scope.lazy.refresh();
-		}
-
+		if(!$scope.lazy.Step) $scope.lazy.step();
 		this.memory = this.makemem()
-
-		flags = {
-			size:$scope.lazy.Step*$scope.lazy.over
-		}
+		flags = {size:$scope.lazy.Step*$scope.lazy.over}
 		flags.from = 0
 
-		var b = Math.floor($scope.lazy.over/3);
 		if($scope.lazy.chunk){
-			flags.from = ($scope.lazy.Step*$scope.lazy.chunk*b)-($scope.lazy.Step*b)
+			flags.from = ($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O)
 		}
-
+		$scope.drawers.test = flags.from;
 		var state={
 			chunk:$scope.lazy.chunk === oldChunk.chunk,
 			sources:$scope.pin.pinned.sources.length === oldChunk.sources,
@@ -67,12 +59,10 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			searchterm:$scope.searchTerm === oldChunk.searchTerm,
 			filter:$scope.pin.Filter === oldChunk.filter,
 			page:$scope.pin.Page === oldChunk.page,
-
 			playlist:{
 				selected:$scope.playlist.selected===oldChunk.playlistSelected,
 				active:$scope.playlist.active===oldChunk.playlistActive
 			},
-			checkfocus:false,
 			get:true,
 		}
 		if(!state.playlist.selected||!state.playlist.active||!state.searchterm||!state.filter||!state.sources) state.page = false;
@@ -91,7 +81,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	var t =false
 	//var brake = false;
 	search.prototype.go = function(refresh,origin){
-		//if(brake) return;
+
 		var self = this;
 		if(!oldChunk) setOldChunk();
 		this.prepare(refresh)
@@ -106,7 +96,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			}else{
 				if(log) console.log('scroll3')
 				flags.from = 0;
-				$scope.lazy.refresh();
+				$scope.lazy.step(1);
 				this.memory[context][mem].scrolltop = 0;
 				//brake = true;
 				if($('#playwindow').scrollTop() > 0){
@@ -123,12 +113,14 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			if(log) console.log('scroll5')
 			//$scope.lazy.chunk = self.memory[context][mem].chunk;
 			$scope.lib.size = self.memory[context][mem].libsize;
-			$scope.lazy.refresh(self.memory[context][mem].scrolltop);
+			$scope.lazy.step(self.memory[context][mem].scrolltop);
 			flags.from=0;
-			var b = Math.floor($scope.lazy.over/2);
-			if($scope.lazy.chunk >= b){
-				flags.from = $scope.lazy.Step*($scope.lazy.chunk-b+1)*b
+
+
+			if($scope.lazy.chunk){
+				flags.from = ($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O)
 			}
+
 			$scope.lazy.fixChrome();
 			setTimeout(function(){
 				$('#playwindow').scrollTop(self.memory[context][mem].scrolltop);
@@ -222,8 +214,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	search.prototype.playlist = function(Flags){
 		var self = this;
 		var tracks = $scope.playlist.activelist[$scope.playlist.selected];
+		if(!tracks) tracks = [];
 		var data = [];
-		console.log(Flags)
 		if(tracks.some(function(id,index){
 			if(index>=Flags.from && index<Flags.size+Flags.from) data.push(self.all[id])
 			return !self.all[id]
@@ -243,7 +235,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			})
 			return;
 		}else{
-			console.log(data)
 			$scope.lib.size = tracks.length
 			self.memory[context][mem].libsize = tracks.length;
 			$timeout(function(){
@@ -266,9 +257,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			activesearch.body._source = "id";
 
 			$scope.db.fetchAll(activesearch).then(function(data){
-				data = data.map(function(id){
-					return id.id;
-				})
+				data = data.map(function(id){return id.id});
 				self.memory[context][mem].all = data;
 				if(log) console.log('renew "All"')
 				self.Search(search,type,flags);
@@ -317,25 +306,19 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		if(log) console.log('commit('+type+')')
 		var self = this;
 		items = playpos(items,Flags);
-		console.log(Flags)
-		console.log(items)
 		self.memory[context][mem].chunk = $scope.lazy.chunk;
 		$scope.lib[$scope.pin.Page] = items;
-		if(!$scope.playlist.active) $scope.tracks.all = self.memory[context][mem].all;
+		if(!$scope.playlist.active){
+			$scope.tracks.all = self.memory[context][mem].all;
+			if($scope.pin.Page === 'title') self.memory.Title = self.memory[context][mem].all;
+		}else{
+			$scope.tracks.all = $scope.playlist.activelist[$scope.playlist.selected];
+		}
 		$scope.lazy.fixChrome();
 		$scope.tracks.isInFocus();
 		if(type === 'artist'){
-			items.forEach(function(row){
-				wiki(row);
-			})
+			items.forEach(function(row){wiki(row)});
 		}
-
-		/*
-		if(brake) setTimeout(function(){
-			console.warn('unset brake')
-			brake = false;
-		},500)
-		*/
 	}
 	search.prototype.artistAlbums = function(artist){
 		return new Promise(function(resolve,reject){

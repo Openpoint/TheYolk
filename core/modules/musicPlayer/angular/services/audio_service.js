@@ -141,10 +141,12 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 			if(init){
 				$scope.tracks.albumAll = false;
 				$scope.tracks.playlistAll = false;
+				if($scope.drawers.lib['album']) $scope.drawers.lib['album'].playing = false;
 				if($scope.playlist.active){
 					$scope.tracks.playlistAll = true;
 				}else if($scope.pin.Page === 'album'){
-					var dr = $scope.lib.drawers[$scope.pin.Page][$scope.lib.drawers[$scope.pin.Page].open];
+					var dr = $scope.drawers.lib['album'][$scope.drawers.dpos[$scope.pin.Page].open];
+					$scope.drawers.lib['album'].playing = $scope.drawers.dpos[$scope.pin.Page].open;
 					$scope.tracks.albumAll=[];
 					dr.discs.forEach(function(disc){
 						disc.forEach(function(track){

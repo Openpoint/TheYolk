@@ -1,14 +1,8 @@
 "use strict"
-angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
+angular.module('yolk').factory('tracks',[function(){
 
 	var $scope;
-	var body = [];
-	var q = [];
-	var Process;
 	const tools = require('../../lib/tools/searchtools.js');
-	const Q = require("bluebird");
-
-
 
 	var tracks = function(scope){
 		$scope = scope;
@@ -17,45 +11,40 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 			name:false,
 		}
 	}
-	function getAll(album,playlist,up){
-		if(album && !$scope.playlist.active){
-			return $scope.tracks.all;
-		}
+	function getAll(playlist,up){
+		//if(album && !$scope.playlist.active) return $scope.tracks.all;
 		if($scope.tracks.playlistAll || playlist){
-
 			if(!playlist){
 				$scope.tracks.source.type='Playlist';
 				$scope.tracks.source.name = $scope.playlist.options.filter(function(op){
 					return op.id === $scope.playlist.selected
 				})[0].name;
-				console.log($scope.tracks.source)
+				$scope.tracks.source.id = $scope.playlist.selected
 			}
 			return $scope.playlist.activelist[$scope.playlist.selected];
 		}
 		if($scope.tracks.albumAll){
-			//if(!up){
-				$scope.tracks.source.type = 'Album';
-				$scope.tracks.source.name = $scope.lib.drawers['album'][$scope.lib.drawers['album'].open].title;
-				console.log($scope.tracks.source)
-			//}
+			$scope.tracks.source.type = 'Album';
+			$scope.tracks.source.name = $scope.drawers.lib['album'][$scope.drawers.lib['album'].playing].title;
+			$scope.tracks.source.id = $scope.drawers.lib['album'][$scope.drawers.lib['album'].playing].id;
 			return $scope.tracks.albumAll;
 		}
 		$scope.tracks.source.type= false;
 		$scope.tracks.source.name= false;
-		return $scope.tracks.all;
+		$scope.tracks.source.id= false;
+		return $scope.search.memory.Title;
 	}
 	//find the next playing track
 	tracks.prototype.next = function(){
 		if(!$scope.lib.playing) return;
-		var all = getAll(false,false,true);
-		if(!all.length){
+		var all = getAll(false,true);
+		if(!all||all.length){
 			$scope.lib.next = false;
 			return;
 		}
 		var index = all.indexOf($scope.lib.playing.id);
 		var next = all[index+1] ? index+1:0;
 		var id = all[next];
-		console.log(id)
 		var search = {
 			index:$scope.db_index,
 			type:$scope.pin.pinned.sources.toString(),
@@ -80,8 +69,10 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 	tracks.prototype.isInFocus = function(){
 		if(!$scope.lib.playing) return;
 		var self = this;
-		var all = getAll($scope.pin.Page !== 'album',$scope.playlist.active);
-		var index = all.indexOf($scope.lib.playing.id);
+		var all = getAll($scope.playlist.active);
+		($scope.tracks.source.type==='Album'||($scope.tracks.source.type==='Playlist'&&!$scope.playlist.active))?$scope.tracks.nofocus = true:$scope.tracks.nofocus = false;
+		var index = -1;
+		if(all) index = all.indexOf($scope.lib.playing.id);
 		$scope.lazy.getPos(index);
 		self.next();
 	}
@@ -117,7 +108,7 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 			var type = track.type;
 		}
 		var self = this;
-		//this.refreshDrawers();
+		$scope.drawers.refreshDrawers();
 		if(playing){
 			$scope.audio.next();
 		}
@@ -169,7 +160,12 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 				date:Date.now()
 			}}
 		}).then(function(data){
-			if(type!=='artist'&&type!=='album') self.deleteArtist(track.artist);
+			if(type!=='artist'&&type!=='album'){
+				delete $scope.search.memory['title'];
+				self.deleteArtist(track.artist);
+			}else{
+				delete $scope.search.memory[type];
+			}
 			$scope.search.go(true,'track deleted');
 		},function(err){
 			console.error(err);
@@ -258,12 +254,6 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 			console.error(err);
 		})
 	}
-	/*
-	//Apply pin and source filters to the active array of tracks
-	tracks.prototype.Filter = function(){
-		$scope.lib.tracks = $filter('tracks')($scope);
-	}
-	*/
 	//Send database tracks to be verified against local file system
 	tracks.prototype.checkLocal = function(index){
 		console.log(index)
@@ -311,209 +301,5 @@ angular.module('yolk').factory('tracks',['$q','$filter', function($q,$filter) {
 		}
 	}
 
-	tracks.prototype.drawer = function(row){
-		var self = this;
-		if(!$scope.lib.drawers[$scope.pin.Page]){
-			$scope.lib.drawers[$scope.pin.Page]={};
-		}
-		if(!$scope.lib.drawers[$scope.pin.Page][row.id]){
-			$scope.lib.drawers[$scope.pin.Page][row.id]={}
-		}
-		if($scope.lib.drawers[$scope.pin.Page][row.id].state){ //close the drawer
-			$scope.lib.drawers[$scope.pin.Page][row.id].state = false;
-			$('#drawer'+row.id).height($scope.lib.drawers[$scope.pin.Page][row.id].height);
-			$('#drawer'+row.id).height(0);
-			$scope.lib.drawers[$scope.pin.Page].open=false;
-			$scope.dpos[$scope.pin.Page].open = false;
-			$scope.dpos[$scope.pin.Page].height = 0;
-			$scope.dpos[$scope.pin.Page].spacer = 0;
-			$scope.lazy.fixChrome()
-		}else{ //open the drawer
-			if($scope.lib.drawers[$scope.pin.Page].open){ //close open drawers on page
-				var key = $scope.lib.drawers[$scope.pin.Page].open;
-				$scope.lib.drawers[$scope.pin.Page][key].state = false;
-				$('#drawer'+key).height($scope.lib.drawers[$scope.pin.Page][key].height);
-				$('#drawer'+key).height(0);
-			}
-			$scope.lib.drawers[$scope.pin.Page][row.id].top = (row.filter.pos+1)*$scope.lazy.trackHeight;
-			$scope.lib.drawers[$scope.pin.Page][row.id].state = true;
-			$('#drawer'+row.id).height(0);
-
-			self.drawerContent(row).then(function(){
-				var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
-				$scope.lib.drawers[$scope.pin.Page][row.id].height = height;
-				$scope.lib.drawers[$scope.pin.Page].open = row.id;
-				$('#drawer'+row.id).height(height);
-				$scope.dpos[$scope.pin.Page].open = true;
-				$scope.lazy.fixChrome(true);
-				$('#playwindow').animate({scrollTop:($scope.lib.drawers[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
-			})
-		}
-	}
-
-	tracks.prototype.drawerPos = function(check,open){
-		$scope.dpos[$scope.pin.Page].isvis = false;
-		if(!$scope.lib.drawers[$scope.pin.Page]||!$scope.lib.drawers[$scope.pin.Page].open) return;
-		var index = $scope.lib.drawers[$scope.pin.Page].open;
-		if(check){
-			$scope.lib.drawers[$scope.pin.Page][index].top = ($scope.tracks.all.indexOf(index)+1)*$scope.lazy.trackHeight;
-			$scope.dpos[$scope.pin.Page].indom = $scope.lib[$scope.pin.Page].some(function(album){return album.id===index});
-		}
-		if(open){
-			$scope.dpos[$scope.pin.Page].indom = true;
-			$scope.dpos[$scope.pin.Page].pt = $('#playwindow').offset().top;
-			$scope.dpos[$scope.pin.Page].height = $scope.lib.drawers[$scope.pin.Page][index].height;
-		}
-		var tabove = ($scope.dims.scrollTop||0) - $scope.lib.drawers[$scope.pin.Page][index].top;
-		var tbelow = (tabove + $scope.dims.playwindowHeight)*-1;
-		var babove = tabove - $scope.dpos[$scope.pin.Page].height;
-		var bbelow = tbelow + $scope.dpos[$scope.pin.Page].height;
-		if(tabove<=0&&bbelow<=0){
-			var vis = 'full';
-			$scope.dpos[$scope.pin.Page].isvis = true;
-		}else if(tabove>0&&bbelow>0){
-			var vis = 'overflow';
-			$scope.dpos[$scope.pin.Page].isvis = true;
-		}else if(tabove>0&&babove<0||bbelow>0&&tbelow<0){
-			var vis = 'partial';
-			$scope.dpos[$scope.pin.Page].isvis = true;
-		}else if(tabove>0){
-			var vis = 'above'
-			$scope.dpos[$scope.pin.Page].isvis = true;
-		}else{
-			var vis = 'below'
-			$scope.dpos[$scope.pin.Page].isvis = false;
-		}
-		$scope.dpos[$scope.pin.Page].top = {above:tabove,below:tbelow};
-		$scope.dpos[$scope.pin.Page].bottom = {above:babove,below:bbelow};
-		$scope.dpos[$scope.pin.Page].vis = vis;
-
-		if($scope.dpos[$scope.pin.Page].indom){
-			$scope.dpos[$scope.pin.Page].spacer = 0;
-		}else{
-			if($scope.dpos[$scope.pin.Page].vis === 'above') $scope.dpos[$scope.pin.Page].spacer = $scope.dpos[$scope.pin.Page].height;
-			if($scope.dpos[$scope.pin.Page].vis === 'below') $scope.dpos[$scope.pin.Page].spacer = 0;
-		}
-	}
-	tracks.prototype.drawerContent = function(row){
-		switch($scope.pin.Page){
-			case "artist":
-				return new Promise(function(resolve,reject){
-					if($scope.lib.drawers[$scope.pin.Page][row.id].albums && !$scope.lib.drawers[$scope.pin.Page][row.id].refresh){
-						resolve(true);
-						return;
-					}
-					$scope.search.artistAlbums(row.name).then(function(data){
-						if(data){
-							var albums=[{
-								id:'youtube',
-								name:'Youtube',
-								count:0
-							}]
-							var sort = {};
-							var count = 0;
-							function get(){
-								if(!data.length){
-									proceed();
-									return;
-								}
-								if(data.length) var track = data.shift();
-								if(track.type === 'youtube'){
-									count++;
-									albums[0].count++
-									get();
-								}else if(sort[track.album]){
-									count++
-									sort[track.album].count++
-									get();
-								}else{
-									$scope.db.client.get({index:$scope.db_index,type:'album',id:track.album},function(err,data){
-										count++;
-										sort[track.album] = {
-											count:1,
-											name:track.metadata.album
-										}
-										get();
-									})
-								}
-							}
-							get();
-							function proceed(){
-								if(!albums[0].count){
-									albums=[];
-								}
-								Object.keys(sort).sort(function(a,b){return sort[b].count-sort[a].count}).forEach(function(key){
-									sort[key].id=key;
-									albums.push(sort[key]);
-								})
-								$scope.lib.drawers[$scope.pin.Page][row.id].albums = albums;
-								$scope.$apply();
-								resolve(true);
-							}
-						}
-					});
-				})
-			break;
-			case 'album':
-				return new Promise(function(resolve,reject){
-					if($scope.lib.drawers[$scope.pin.Page][row.id].discs && !$scope.lib.drawers[$scope.pin.Page][row.id].refresh){
-						resolve(true);
-						return;
-					}
-					$scope.lib.drawers[$scope.pin.Page][row.id].title = row.metadata.title;
-					$scope.lib.drawers[$scope.pin.Page][row.id].id = row.id;
-					$scope.lib.drawers[$scope.pin.Page][row.id].refresh = false;
-					if(!$scope.lib.drawers[$scope.pin.Page][row.id].discs){
-						var discs = []
-						Object.keys(row.tracks).forEach(function(key){
-							var p1=row.tracks[key].disc-1;
-							var p2=row.tracks[key].position-1;
-							if(!discs[p1]){
-								discs.splice(p1,0,[])
-							}
-							discs[p1].splice(p2,0,row.tracks[key])
-						})
-						$scope.lib.drawers[$scope.pin.Page][row.id].discs = discs
-					}
-
-					$scope.lib.drawers[$scope.pin.Page][row.id].tracks = {};
-
-					var body = {index:$scope.db_index,type:'local,internetarchive',body:{query:{
-						bool:{
-							//should:[{match:{album:{query:row.id,boost:2}}}],
-							must:[
-								{bool:{should:[]}},
-								{match:{deleted:{query:'no',type:'phrase'}}}
-							]
-						}
-					}}}
-					$scope.lib.drawers[$scope.pin.Page][row.id].discs.forEach(function(disc,key){
-						disc.forEach(function(Track,key2){
-							//console.log(Track)
-							body.body.query.bool.must[0].bool.should.push({match:{musicbrainz_id:{query:Track.id,type:'phrase'}}})
-						})
-
-					})
-					$scope.db.fetchAll(body).then(function(data){
-						data.forEach(function(track){
-							$scope.lib.drawers[$scope.pin.Page][row.id].tracks[track.musicbrainz_id]=track;
-						})
-						$scope.$apply();
-						resolve(true);
-					},function(err){
-						console.error(err)
-					})
-				})
-			break;
-
-		}
-	}
-	/*
-	tracks.prototype.refreshDrawers = function(){
-		if($scope.lib.drawers.album) Object.keys($scope.lib.drawers.album).forEach(function(key){
-			$scope.lib.drawers.album[key].refresh = true;
-		})
-	}
-	*/
 	return tracks;
 }])

@@ -1,7 +1,7 @@
 'use strict'
 
 var oldterms = {};
-angular.module('yolk').factory('pin',[function() {
+angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	var $scope;
 	var pin = function(scope){
 		$scope = scope;
@@ -27,6 +27,26 @@ angular.module('yolk').factory('pin',[function() {
 		};
 		$scope.sources = [];
 		*/
+	}
+	pin.prototype.Source = function(data){
+		if(data.type==='Album'){
+			if($scope.pin.Page!=='album'){
+				if($scope.playlist.active) $scope.playlist.toggle(true);
+				this.page('album');
+				$timeout(function(){
+					$scope.drawers.drawer($scope.search.all[data.id],true)
+				})
+			}else{
+				$scope.drawers.drawer($scope.search.all[data.id],true,true)
+			}
+		}
+		if(data.type==='Playlist'){
+			if(!$scope.playlist.active) $scope.playlist.toggle($scope.playlist.selected !== data.id);
+			if($scope.playlist.selected !== data.id){
+				$scope.playlist.selected = data.id;
+				$scope.playlist.change();
+			}
+		}
 	}
 	pin.prototype.source = function(name){
 		var self = this;
@@ -102,7 +122,6 @@ angular.module('yolk').factory('pin',[function() {
 
 		if(this.Page === page && !skip){
 			this.direction[page] === 'asc' ? this.direction[page] = 'desc':this.direction[page] = 'asc';
-			//$scope.lazy.refresh()
 		}
 		this.Page = page;
 		switch (page){

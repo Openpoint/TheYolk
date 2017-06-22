@@ -31,13 +31,13 @@ angular.module('yolk').factory('playlist',[function() {
 			}
 		})
 	}
-	playlist.prototype.toggle=function(){
+	playlist.prototype.toggle=function(skip){
 		this.active ? this.active=false:this.active=true;
 		if($scope.pin.Page!=='title'){
 			$scope.pin.Page ='title'
 		}
 		if(!self.selected && this.active) self.selected = 1;
-		$scope.search.go(false,'playlist togggle');
+		if(!skip) $scope.search.go(false,'playlist togggle');
 	}
 	playlist.prototype.change = function(){
 		var self = this;
@@ -111,6 +111,7 @@ angular.module('yolk').factory('playlist',[function() {
 	}
 	playlist.prototype.updatePlaylist = function(id,tracks){
 		var self = this;
+		$scope.tracks.isInFocus();
 		if (id === 0){
 			var doc = {options:self.options,unique:self.unique}
 		}else{
@@ -137,18 +138,49 @@ angular.module('yolk').factory('playlist',[function() {
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
 		$scope.search.go(true);
 	}
+
 	playlist.prototype.handleDragStart=function(event,data){
 		if(this.active && this.selected!==1){
 			this.reorder = data.id;
 		}
 	}
+
 	playlist.prototype.onDrop = function(event,data){
+		console.log(data)
+		var self = this;
+		if(data.type === 'album'||data.type === 'artist'){
+			if(data.type==='album'){
+				$scope.drawers.drawerContent(data).then(function(){
+					var tracks = $scope.drawers.lib['album'][data.id].tracks;
+					Object.keys(tracks).forEach(function(key){
+						if(self.activelist[self.selected].indexOf(tracks[key].id) === -1) {
+							self.activelist[self.selected].push(tracks[key].id);
+						}
+					})
+					console.log(self.activelist[self.selected])
+					self.updatePlaylist(self.selected,self.activelist[self.selected]);
+				})
+			}
+			if(data.type === 'artist'){
+				$scope.drawers.drawerContent(data,true).then(function(data){
+					data.forEach(function(track){
+						if(self.activelist[self.selected].indexOf(tracks.id) === -1){
+							self.activelist[self.selected].push(track.id);
+						}
+					})
+					self.updatePlaylist(self.selected,self.activelist[self.selected]);
+				})
+			}
+			return;
+		}
+
 		if(this.activelist[this.selected].some(function(track){
 			return track === data.id;
 		})){
 			return;
 		}
 		this.activelist[this.selected].push(data.id);
+		console.log(self.activelist[self.selected])
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
 	}
 	playlist.prototype.onReorder = function(event,data,target){
@@ -157,7 +189,6 @@ angular.module('yolk').factory('playlist',[function() {
 			if(id===data.id) pos.old = index;
 			if(id===target) pos.new = index;
 		})
-		console.log(pos.old,pos.new)
 		if(typeof pos.old === 'undefined'){
 			this.activelist[this.selected].splice(pos.new+1,0,data.id)
 		}else if(pos.new > pos.old){
