@@ -146,7 +146,6 @@ angular.module('yolk').factory('playlist',[function() {
 	}
 
 	playlist.prototype.onDrop = function(event,data){
-		console.log(data)
 		var self = this;
 		if(data.type === 'album'||data.type === 'artist'){
 			if(data.type==='album'){
@@ -157,7 +156,6 @@ angular.module('yolk').factory('playlist',[function() {
 							self.activelist[self.selected].push(tracks[key].id);
 						}
 					})
-					console.log(self.activelist[self.selected])
 					self.updatePlaylist(self.selected,self.activelist[self.selected]);
 				})
 			}
@@ -189,6 +187,7 @@ angular.module('yolk').factory('playlist',[function() {
 			if(id===data.id) pos.old = index;
 			if(id===target) pos.new = index;
 		})
+		if(target.id === $scope.lib.playing.id) console.error('hit playing')
 		if(typeof pos.old === 'undefined'){
 			this.activelist[this.selected].splice(pos.new+1,0,data.id)
 		}else if(pos.new > pos.old){
@@ -199,6 +198,7 @@ angular.module('yolk').factory('playlist',[function() {
 			this.activelist[this.selected].splice(pos.new,0,data.id)
 		}
 		this.updatePlaylist(this.selected,this.activelist[this.selected])
+		console.log(data)
 		$scope.search.go(true);
 	}
 	return playlist;

@@ -281,7 +281,7 @@ youtubetools.prototype.fixTrack=function(track,Title,artists){
 	var self = this;
 	track.metadata.title = fixTitle(Title,artists);
 
-	if(!track.metadata.title){return false}
+	if(!track.metadata.title||!track.file){return false}
 	track.disambig=[];
 	function pf(title){
 		var postfix = tools.postfix(title);

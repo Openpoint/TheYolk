@@ -22,7 +22,6 @@ angular.module('yolk').factory('lazy',[function() {
 	//set the padding in the playwindow
 	lazy.prototype.fixChrome = function(){
 		$scope.drawers.drawerPos();
-
 		if($scope.lazy.chunk){
 			var padding = (($scope.lazy.Step*$scope.lazy.chunk*this.O)-($scope.lazy.Step*this.O))*$scope.lazy.trackHeight;
 		}else{
@@ -37,13 +36,14 @@ angular.module('yolk').factory('lazy',[function() {
 			paddingTop:padding,
 			height:height-padding+$scope.lazy.trackHeight
 		}
+
 		if($scope.drawers.dpos[$scope.pin.Page].pad){
 			$scope.drawers.dpos[$scope.pin.Page].spacer = $scope.drawers.dpos[$scope.pin.Page].height;
 		}else{
 			$scope.drawers.dpos[$scope.pin.Page].spacer = 0;
 		}
 
-		$('#tracks').css($scope.dims.dyn);
+		//$('#tracks').css($scope.dims.dyn);
 	}
 
 
@@ -52,17 +52,15 @@ angular.module('yolk').factory('lazy',[function() {
 		if($scope.drawers.dpos[$scope.pin.Page].fix){
 			scrolltop-=$scope.drawers.dpos[$scope.pin.Page].height;
 			this.chunk = Math.floor(scrolltop/(this.chunkHeight*this.O));
-			//console.error(this.chunk)
-			//if(newchunk > this.chunk||$scope.drawers.dpos[$scope.pin.Page].vis==='above') this.chunk = newchunk;
 		}else{
 			this.chunk = Math.floor(scrolltop/(this.chunkHeight*this.O));
-			//console.warn(this.chunk)
 		}
-
-		if(this.chunk >= $scope.drawers.dpos[$scope.pin.Page].inChunk){
+		if($scope.drawers.dpos[$scope.pin.Page].open && this.chunk >= $scope.drawers.dpos[$scope.pin.Page].inChunk){
 			$scope.drawers.dpos[$scope.pin.Page].pad = true;
+			//$scope.drawers.dpos[$scope.pin.Page].spacer = $scope.drawers.dpos[$scope.pin.Page].height;
 		}else{
 			$scope.drawers.dpos[$scope.pin.Page].pad = false;
+			//$scope.drawers.dpos[$scope.pin.Page].spacer = 0;
 		}
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step;

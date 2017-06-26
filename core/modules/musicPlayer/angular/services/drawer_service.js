@@ -20,90 +20,95 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 		if(!this.lib[$scope.pin.Page][row.id]){
 			this.lib[$scope.pin.Page][row.id]={}
 		}
-		if(this.lib[$scope.pin.Page][row.id].state){ //close the drawer
+		if(this.dpos[$scope.pin.Page].open === row.id){ //close the drawer
+
 			if(forceopen){
-				function go(loop,fil){
-					if(fil) $scope.search.go();
-					if(loop && !$('#drawer'+row.id).length){
-						setTimeout(function(){
-							go(true);
-						},100);
-						return;
-					}
-					if(scroll){
-						$('#playwindow').animate({scrollTop:(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
-						return;
-					}
+				self.lib[$scope.pin.Page][row.id].top = ($scope.tracks.all.indexOf(row.id)+1)*$scope.lazy.trackHeight;
+				if(!scroll){
 					$('#playwindow').scrollTop(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight);
-					self.drawerPos();
 					$scope.lazy.fixChrome();
+				}else{
+					$('#playwindow').animate({scrollTop:(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
 				}
-				if(!$('#drawer'+row.id).length && ($scope.searchTerm||$scope.pin.Filter!==this.dpos[$scope.pin.Page].filter) && $scope.pin.Page!=='title'){
-					console.error($scope.searchTerm)
-					$scope.searchTerm = '';
-					var fil = false;
-					if($scope.pin.Filter !== this.dpos[$scope.pin.Page].filter){
-						fil = true;
-						$scope.pin.Filter = this.dpos[$scope.pin.Page].filter
-					}
-					go(true,fil);
-					return;
-				};
-				go();
 				return;
 			}
-			this.lib[$scope.pin.Page][row.id].state = false;
 			this.dpos[$scope.pin.Page].open = false;
 			this.lib[$scope.pin.Page][row.id].height = 0;
-			this.dpos[$scope.pin.Page].spacer = 0;
 			$scope.lazy.fixChrome()
 		}else{ //open the drawer
 			if(this.dpos[$scope.pin.Page].open){ //close open drawers on page
 				var key = this.dpos[$scope.pin.Page].open;
-				this.lib[$scope.pin.Page][key].state = false;
-				this.lib[$scope.pin.Page][key].height = 0;
-				if(!$('#drawer'+key).length) this.dpos[$scope.pin.Page].spacer = 0
+				self.lib[$scope.pin.Page][key].height = 0;
+				$scope.drawers.dpos[$scope.pin.Page].pad = false;
+				if(!$scope.lib[$scope.pin.Page].some(function(track){
+					return track.id === key;
+				})){
+					if($scope.lazy.chunk){
+						var padding = (($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O))*$scope.lazy.trackHeight;
+					}else{
+						var padding = 0;
+					}
+					var height = $scope.lib.size*$scope.lazy.trackHeight;
+					self.dpos[$scope.pin.Page].open = false;
+					self.dpos[$scope.pin.Page].spacer = 0;
+					$scope.dims.dyn = {
+						paddingTop:padding,
+						height:height-padding+$scope.lazy.trackHeight
+					}
+				}
 			}
-			this.lib[$scope.pin.Page][row.id].top = (row.filter.pos+1)*$scope.lazy.trackHeight;
-			this.lib[$scope.pin.Page][row.id].state = true;
 			this.dpos[$scope.pin.Page].filter = $scope.pin.Filter;
+			this.dpos[$scope.pin.Page].open = row.id;
+			var index = $scope.tracks.all.indexOf(row.id);
+			self.lib[$scope.pin.Page][row.id].top = (index+1)*$scope.lazy.trackHeight;
+			function go(){
+				if($scope.lib[$scope.pin.Page].some(function(track){
+					return track.id === row.id;
+				})){
+					var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
+					$scope.$apply(function(){
+						console.error('height:'+height)
+						self.lib[$scope.pin.Page][row.id].height = height;
+						$scope.lazy.fixChrome();
+					})
+				}else{
+					setTimeout(function(){
+						go();
+					},100)
+				}
+			}
 
 			self.drawerContent(row).then(function(){
-				var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
-				self.dpos[$scope.pin.Page].open = row.id;
-				$scope.$apply(function(){
-					self.lib[$scope.pin.Page][row.id].height = height;
-				})
+				go();
+				if(forceopen && !scroll){
+					$('#playwindow').scrollTop(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight);
+					$scope.lazy.fixChrome();
+				}else{
+					$('#playwindow').stop().animate({scrollTop:(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
+				}
 
-				//$('#drawer'+row.id).height(height);
-				//self.dpos[$scope.pin.Page].open = true;
-				$scope.lazy.fixChrome();
-				$('#playwindow').animate({scrollTop:(self.lib[$scope.pin.Page][row.id].top-$scope.lazy.trackHeight)},1000,'swing');
 			})
 		}
-	}
-	function calc(ch,h){
-		var scrolltop = $('#playwindow').scrollTop();
-		if(h) scrolltop-=h;
-		return Math.floor(scrolltop/ch);
-		//return Math.floor(($('#playwindow').scrollTop()-(h||0))/chunkheight);
 	}
 
 	drawers.prototype.drawerPos = function(){
 
 		if(!this.lib[$scope.pin.Page]||!this.dpos[$scope.pin.Page].open){
+			this.dpos[$scope.pin.Page].inlist = false
+			this.dpos[$scope.pin.Page].fix = false;
+			this.dpos[$scope.pin.Page].height = 0;
 			$scope.lazy.scroll();
 			return;
 		}
 		var index = this.dpos[$scope.pin.Page].open;
 		var position = $scope.tracks.all.indexOf(index);
-		this.lib[$scope.pin.Page][index].top = (position+1)*$scope.lazy.trackHeight;
+		//this.lib[$scope.pin.Page][index].top = (position+1)*$scope.lazy.trackHeight;
 		var top = position*$scope.lazy.trackHeight;
 		if(position > -1){
 			this.dpos[$scope.pin.Page].inlist = true;
 			this.dpos[$scope.pin.Page].height = this.lib[$scope.pin.Page][index].height;
 		}else{
-			this.dpos[$scope.pin.Page].inlist = false
+			this.dpos[$scope.pin.Page].inlist = false;
 			this.dpos[$scope.pin.Page].fix = false;
 			this.dpos[$scope.pin.Page].height = 0;
 			$scope.lazy.scroll();
@@ -112,8 +117,6 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 		var chunkheight = $scope.lazy.chunkHeight*$scope.lazy.O;
 		this.dpos[$scope.pin.Page].inChunk = Math.floor(top/chunkheight)+$scope.lazy.O;
 		var h =(this.dpos[$scope.pin.Page].inChunk)*chunkheight;
-		//$('#tester').css({top:0,height:h,background:'green'});
-		//$('#tester .message').html(h-$('#playwindow').scrollTop())
 		if(h-$('#playwindow').scrollTop() < 0){
 			this.dpos[$scope.pin.Page].fix = true;
 		}else{
@@ -122,11 +125,11 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 		$scope.lazy.scroll();
 	}
 
-	drawers.prototype.drawerContent = function(row,plist){
+	drawers.prototype.drawerContent = function(row,plist,Page){
 		var self = this;
 		if(!self.lib[$scope.pin.Page]) self.lib[$scope.pin.Page]={}
 		if(!self.lib[$scope.pin.Page][row.id]) self.lib[$scope.pin.Page][row.id] ={}
-		switch($scope.pin.Page){
+		switch(Page||$scope.pin.Page){
 			case "artist":
 				return new Promise(function(resolve,reject){
 					if(self.lib[$scope.pin.Page][row.id].albums && !self.lib[$scope.pin.Page][row.id].refresh){
@@ -242,12 +245,41 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 		}
 	}
 
-	drawers.prototype.refreshDrawers = function(){
-		if($scope.drawers.lib.album) Object.keys($scope.drawers.lib.album).forEach(function(key){
-			$scope.drawers.lib.album[key].refresh = true;
+	drawers.prototype.refreshDrawers = function(deleted){
+		var self = this;
+		if(this.lib.album) Object.keys(this.lib.album).forEach(function(key){
+			if(!self.lib.album[key].hasOwnProperty('refresh')) return;
+			self.lib.album[key].refresh = true;
+			if(self.dpos.album.open && deleted!==self.dpos.album.open){
+				$scope.db.client.get({index:$scope.db_index,type:'album',id:self.dpos.album.open},function(err,data){
+					if(err){
+						console.error(err);
+						return;
+					}
+					self.drawerContent(data._source,false,'abum')
+				})
+			}else if(deleted===self.dpos.album.open){
+
+				delete self.lib.album[deleted];
+				self.dpos.album.open = false;
+			}
 		})
-		if($scope.drawers.lib.artist) Object.keys($scope.drawers.lib.artist).forEach(function(key){
-			$scope.drawers.lib.artist[key].refresh = true;
+		if(this.lib.artist) Object.keys(this.lib.artist).forEach(function(key){
+			if(!self.lib.artist[key].hasOwnProperty('refresh')) return;
+			self.lib.artist[key].refresh = true;
+			if(self.dpos.artist.open && deleted!==self.dpos.artist.open){
+				$scope.db.client.get({index:$scope.db_index,type:'artist',id:self.dpos.artist.open},function(err,data){
+					if(err){
+						console.error(err);
+						return;
+					}
+					console.log(data)
+					self.drawerContent(data._source,false,'artist')
+				})
+			}else if(deleted===self.dpos.artist.open){
+				delete self.lib.artist[deleted];
+				self.dpos.artist.open = false;
+			}
 		})
 	}
 

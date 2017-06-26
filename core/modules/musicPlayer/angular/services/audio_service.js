@@ -145,6 +145,7 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 				if($scope.playlist.active){
 					$scope.tracks.playlistAll = true;
 				}else if($scope.pin.Page === 'album'){
+					$scope.drawers.dpos[$scope.pin.Page].filter = $scope.pin.Filter;
 					var dr = $scope.drawers.lib['album'][$scope.drawers.dpos[$scope.pin.Page].open];
 					$scope.drawers.lib['album'].playing = $scope.drawers.dpos[$scope.pin.Page].open;
 					$scope.tracks.albumAll=[];
@@ -187,6 +188,7 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 			})
 			//Add playing track to the recently played playlist
 			if(!$scope.playlist.active || $scope.playlist.selected !== 1){
+				if($scope.tracks.source.type==='Playlist' && $scope.playlist.selected === 1) return;
 				var i = $scope.playlist.activelist[1].indexOf(track.id)
 				if(i!==-1){
 					$scope.playlist.activelist[1].splice(i,1);

@@ -40,9 +40,16 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		if(!this.memory[context][mem].chunks) this.memory[context][mem].chunks = {};
 		return this.memory;
 	}
-	search.prototype.prepare = function(refresh){
+	search.prototype.prepare = function(refresh,deleted){
 
 		var self = this;
+		if(refresh){
+			$scope.drawers.refreshDrawers(deleted);
+			this.all={};
+			this.memory={
+				Title:this.memory.Title
+			};
+		}
 		if(!$scope.lazy.Step) $scope.lazy.step();
 		this.memory = this.makemem()
 		flags = {size:$scope.lazy.Step*$scope.lazy.over}
@@ -80,11 +87,11 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 	var t =false
 	//var brake = false;
-	search.prototype.go = function(refresh,origin){
+	search.prototype.go = function(refresh,origin,deleted){
 
 		var self = this;
 		if(!oldChunk) setOldChunk();
-		this.prepare(refresh)
+		this.prepare(refresh,deleted)
 		setOldChunk();
 		if(typeof this.memory[context][mem].scrolltop === 'undefined'){
 			t = true
@@ -211,25 +218,32 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 		self.getMem(search,'artist',);
 	}
-	search.prototype.playlist = function(Flags){
+	search.prototype.playlist = function(Flags,retry){
 		var self = this;
+		$scope.playlist.activelist[$scope.playlist.selected] = $scope.playlist.activelist[$scope.playlist.selected].filter(function(id){
+			return id;
+		})
 		var tracks = $scope.playlist.activelist[$scope.playlist.selected];
 		if(!tracks) tracks = [];
 		var data = [];
-		if(tracks.some(function(id,index){
-			if(index>=Flags.from && index<Flags.size+Flags.from) data.push(self.all[id])
+		if(retry) tracks.forEach(function(id,index){
+			if(index>=Flags.from && index<Flags.size+Flags.from && self.all[id]) data.push(self.all[id])
+		})
+		if(!retry && tracks.some(function(id,index){
+			if(index>=Flags.from && index<Flags.size+Flags.from) data.push(self.all[id]);
 			return !self.all[id]
 		})){
 			var body = tracks.map(function(id){
 				return {match:{id:{query:id,type:'phrase'}}}
 			})
+
 			body = $scope.tools.wrap.bool([{should:body}]);
 			$scope.db.fetchAll({index:$scope.db_index,type:'internetarchive,local,youtube',body:{query:body}}).then(function(data){
 				data.forEach(function(track){
 					self.all[track.id] = track;
 				})
 				if(log) console.log('refreshing playlist')
-				self.playlist(Flags);
+				self.playlist(Flags,true);
 			},function(err){
 				console.error(err)
 			})
@@ -321,6 +335,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 	}
 	search.prototype.artistAlbums = function(artist){
+		console.error(artist)
 		return new Promise(function(resolve,reject){
 			var must = $scope.tools.wrap.bool([{must:[
 				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},

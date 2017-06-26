@@ -20,24 +20,55 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 			artist:0,
 			album:0
 		}
-		/*
-		$scope.pinned = {
-			sources:[],
-			oldSources:['local','online']
-		};
-		$scope.sources = [];
-		*/
 	}
 	pin.prototype.Source = function(data){
-		if(data.type==='Album'){
+		//console.log(data);
+		//return;
+		console.log($scope.drawers.dpos[$scope.pin.Page])
+		if(data.type === 'Album'){
+			function go(scroll){
+				if($scope.tracks.all.indexOf(data.id) > -1){
+					if($scope.search.all[data.id]){
+						$scope.drawers.drawer($scope.search.all[data.id],true,scroll)
+					}else{
+						$scope.db.client.get({index:$scope.db_index,type:$scope.pin.Page,id:data.id},function(err,dat){
+							if(err){
+								console.error(err);
+								return;
+							}
+							$scope.search.all[data.id] = dat._source;
+							$scope.drawers.drawer($scope.search.all[data.id],true,scroll)
+						})
+					}
+
+				}else{
+					console.error('NO')
+					setTimeout(function(){
+						go();
+					},100)
+				}
+			}
 			if($scope.pin.Page!=='album'){
 				if($scope.playlist.active) $scope.playlist.toggle(true);
+				$scope.searchTerm = '';
+				$scope.pin.Filter = $scope.drawers.dpos.album.filter;
 				this.page('album');
 				$timeout(function(){
-					$scope.drawers.drawer($scope.search.all[data.id],true)
+					go(false);
 				})
 			}else{
-				$scope.drawers.drawer($scope.search.all[data.id],true,true)
+				var scroll = true;
+				if($scope.tracks.all.indexOf(data.id) === -1){
+					$scope.searchTerm = '';
+					if($scope.pin.Filter !== $scope.drawers.dpos.album.filter){
+						$scope.pin.Filter = $scope.drawers.dpos.album.filter;
+						$scope.search.go(false,'scroll');
+						scroll = false;
+					}
+				}
+				$timeout(function(){
+					go(scroll);
+				})
 			}
 		}
 		if(data.type==='Playlist'){

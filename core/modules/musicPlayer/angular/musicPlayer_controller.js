@@ -11,8 +11,8 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,d
 
 	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
-	$scope.progress={};
-	$scope.Sortby={};
+	$scope.progress = {};
+	$scope.Sortby = {};
 	$scope.refresh = {};
 	$scope.utils = new utils();
 	$scope.db = $scope.utils.db;
@@ -119,13 +119,6 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,d
 			}
 			if(refresh_time) return;
 			refresh_time = setTimeout(function(){
-				Object.keys($scope.refresh).forEach(function(key){
-					if($scope.refresh[key]){
-						delete $scope.search.memory[key];
-						$scope.refresh[key] = 0;
-					}
-				})
-				$scope.drawers.refreshDrawers();
 				$scope.search.go(true);
 				refresh_time = false;
 			},3000)
@@ -145,8 +138,6 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,d
 	}
 	if(!ipcRenderer._events.albums){
 		ipcRenderer.on('albums',function(event,data){
-			console.log(data);
-			$scope.search.noscroll = true;
 			$scope.search.go(true);
 		});
 	}

@@ -88,7 +88,7 @@
 			<div ng-click='fileSelect()'>Select your music folder</div>
 		</div>
 
-		<div id='tracks' ng-show="settings.paths.musicDir">
+		<div id='tracks' ng-show="settings.paths.musicDir" ng-style = "dims.dyn">
 			<div id='trackspacer' ng-style = "{height:drawers.dpos[pin.Page].spacer}"></div>
 			<div id="artists" ng-if="pin.Page === 'artist'">
 				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
@@ -112,7 +112,7 @@
 									{{lib.bios[artist.id].title || artist.name}}
 								</div>
 								<div class='country' yolk-country>{{countries[artist.country]}}</div>
-								<div class='bio' ng-class="{open:drawers.lib[pin.Page][artist.id].state}">{{lib.bios[artist.id].bio}}</div>
+								<div class='bio' ng-class="{open:drawers.dpos[pin.Page]===artist.id}">{{lib.bios[artist.id].bio}}</div>
 
 							</div>
 							<div class='widgets'>
@@ -131,7 +131,7 @@
 						</div>
 
 						<div class='drawer' id="drawer{{artist.id}}"  ng-style="{height:drawers.lib[pin.Page][artist.id].height||0}">
-							<div class='drawerInner ani-fOut' ng-if="drawers.lib[pin.Page][artist.id].state">
+							<div class='drawerInner ani-fOut' ng-if="drawers.dpos[pin.Page].open===artist.id">
 								<div ng-repeat="album in drawers.lib[pin.Page][artist.id].albums" class="album_image" >
 										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
 										<span class='youtube' ng-include="settings.paths.root+'/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
@@ -187,7 +187,7 @@
 							<div class='pad'></div>
 						</div>
 						<div class='drawer' id="drawer{{album.id}}" ng-style="{height:drawers.lib[pin.Page][album.id].height||0}">
-							<div class='drawerInner ani-fOut'  ng-if="drawers.lib[pin.Page][album.id].state">
+							<div class='drawerInner ani-fOut'  ng-if="drawers.dpos[pin.Page].open===album.id">
 								<div class="disc" ng-repeat = "disc in drawers.lib[pin.Page][album.id].discs">
 									<div class='heading'>Disc {{$index+1}}</div>
 									<div class='songs'>

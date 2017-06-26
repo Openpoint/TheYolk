@@ -38,35 +38,29 @@ angular.module('yolk').factory('tracks',[function(){
 	tracks.prototype.next = function(){
 		if(!$scope.lib.playing) return;
 		var all = getAll(false,true);
-		if(!all||all.length){
+		if(!all||!all.length){
 			$scope.lib.next = false;
 			return;
 		}
 		var index = all.indexOf($scope.lib.playing.id);
 		var next = all[index+1] ? index+1:0;
 		var id = all[next];
-		var search = {
-			index:$scope.db_index,
-			type:$scope.pin.pinned.sources.toString(),
-			size:1,
-			body:{query:{bool:{must:[
-				{match:{
-					id:id
-				}}
-			]}}}
-		}
+		var search = {index:$scope.db_index,type:$scope.pin.pinned.sources.toString(),size:1,body:{query:{bool:{must:[
+				{match:{id:id}}
+		]}}}}
 		if(id) $scope.db.fetch(search).then(function(data){
 			data.items[0].filter.pos = next;
 			$scope.$apply(function(){
-				$scope.lib.next = data.items[0]
+				$scope.lib.next = data.items[0];
 			})
 		},function(err){
 			console.error(err);
 		})
 	}
 
-	//check if the playing track is contained in the visible list
+	//check if the playing track is contained in the active list
 	tracks.prototype.isInFocus = function(){
+
 		if(!$scope.lib.playing) return;
 		var self = this;
 		var all = getAll($scope.playlist.active);
@@ -86,32 +80,24 @@ angular.module('yolk').factory('tracks',[function(){
 		]}])
 		$scope.db.client.search({index:$scope.db_index,type:'youtube,local,internetarchive',body:{query:must}},function(err,data){
 			if(!data.hits.total){
-				$scope.db.client.update({index:$scope.db_index,type:'artist',id:artist,body:{doc:{deleted:'yes'}}},function(err,data){
-					console.log(err)
-					console.log(data)
+				$scope.db.client.update({index:$scope.db_index,type:'artist',id:artist,refresh:true,body:{doc:{deleted:'yes'}}},function(err,data){
+					if(err) console.err(err);
+					$scope.search.go(true,'track and artist deleted',artist);
 				})
 			}
 		})
 	}
 	//delete a track
 	tracks.prototype.delete = function(track,playing,bulk){
+		if(playing) $scope.audio.next();
+
 		if($scope.playlist.active){
 			$scope.playlist.remove(track.id)
 			return;
 		}
 		var id = track.id;
-		if(track.name) var type = 'artist';
-
-		if(!track.type && !type){
-			var type = 'album'
-		}else if(!type){
-			var type = track.type;
-		}
+		var type = track.type;
 		var self = this;
-		$scope.drawers.refreshDrawers();
-		if(playing){
-			$scope.audio.next();
-		}
 
 		if(bulk && (type === 'album'||type==='artist')){
 			if(type==='album'){
@@ -134,7 +120,6 @@ angular.module('yolk').factory('tracks',[function(){
 				var bulk=[];
 				var artists = []
 				data.forEach(function(track){
-					if(!track.type) track.type='album';
 					bulk.push({update:{_index:$scope.db_index,_type:track.type,_id:track.id}});
 					bulk.push({doc:{deleted:'yes',bulk:'yes'}});
 					if(type === 'album' && artists.indexOf(track.artist)===-1) artists.push(track.artist)
@@ -146,11 +131,15 @@ angular.module('yolk').factory('tracks',[function(){
 							self.deleteArtist(artist);
 						})
 					}
+					$scope.search.go(true,'artist or album deleted');
+
 				})
 			},function(err){
 				console.error(err)
 			})
 		}
+
+		if($scope.drawers.lib['album'] && track.type==="album" && track.id === $scope.drawers.lib['album'].playing) $scope.drawers.dpos.album.filter = 'deleted';
 		$scope.db.update({
 			index:$scope.db_index,
 			type:type,
@@ -161,10 +150,7 @@ angular.module('yolk').factory('tracks',[function(){
 			}}
 		}).then(function(data){
 			if(type!=='artist'&&type!=='album'){
-				delete $scope.search.memory['title'];
 				self.deleteArtist(track.artist);
-			}else{
-				delete $scope.search.memory[type];
 			}
 			$scope.search.go(true,'track deleted');
 		},function(err){
@@ -173,12 +159,9 @@ angular.module('yolk').factory('tracks',[function(){
 	}
 	//undelete a track
 	tracks.prototype.undelete = function(track,playing,bulk){
-		//this.refreshDrawers();
 		if(track.name) track.type = 'artist'
 		if(!track.type) track.type = 'album'
-		if(playing){
-			$scope.audio.next();
-		}
+
 		if(track.type !== 'artist' && track.type !== 'album'){
 			$scope.db.update({
 				index:$scope.db_index,
@@ -217,12 +200,12 @@ angular.module('yolk').factory('tracks',[function(){
 				{match:{artist:{query:track.id,type:'phrase'}}},
 				{match:{bulk:{query:'yes',type:'phrase'}}}
 			]}])
-			console.log('delete a track')
 			$scope.db.fetchAll({index:$scope.db_index,type:'local,youtube,internetarchive',body:{query:query}}).then(function(data){
 				if(!data.length) return;
 				var bulk=[]
 				var artist = [];
 				data.forEach(function(track){
+
 					bulk.push({update:{_index:$scope.db_index,_type:track.type,_id:track.id}});
 					bulk.push({doc:{deleted:'no',bulk:'no'}});
 					if(artist.indexOf(track.artist)===-1){
@@ -239,6 +222,7 @@ angular.module('yolk').factory('tracks',[function(){
 				console.error(err)
 			})
 		}
+		if($scope.drawers.lib['album'] && track.type==='album' && track.id === $scope.drawers.lib['album'].playing) $scope.drawers.dpos.album.filter = false;
 		$scope.db.update({
 			index:$scope.db_index,
 			type:track.type,

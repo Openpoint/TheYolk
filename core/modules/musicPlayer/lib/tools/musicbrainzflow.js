@@ -32,7 +32,7 @@ flow.prototype.resetq=function(){
 	};
 }
 
-flow.prototype.len = function(reset){
+flow.prototype.len = function(reset,nobulk){
 	var len = 0;
 	var self = this;
 
@@ -43,6 +43,7 @@ flow.prototype.len = function(reset){
 		}
 	});
 	if(reset) mbdb.bulk = [[]];
+	if(nobulk) return len;
 	return len+mbdb.bulk.length-1;
 }
 var opt = 'youtube';
