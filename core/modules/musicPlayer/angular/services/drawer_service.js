@@ -67,7 +67,6 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 				})){
 					var height = $('#drawer'+row.id+' .drawerInner').outerHeight();
 					$scope.$apply(function(){
-						console.error('height:'+height)
 						self.lib[$scope.pin.Page][row.id].height = height;
 						$scope.lazy.fixChrome();
 					})

@@ -22,9 +22,6 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		}
 	}
 	pin.prototype.Source = function(data){
-		//console.log(data);
-		//return;
-		console.log($scope.drawers.dpos[$scope.pin.Page])
 		if(data.type === 'Album'){
 			function go(scroll){
 				if($scope.tracks.all.indexOf(data.id) > -1){
@@ -42,7 +39,6 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 					}
 
 				}else{
-					console.error('NO')
 					setTimeout(function(){
 						go();
 					},100)

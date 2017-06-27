@@ -26,7 +26,7 @@ const os = require('os');
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
 const message = process.Yolk.message;
 const headers = process.Yolk.modules["musicPlayer"].config.headers;
-const log = true; //turn on detailed logging for music lookups
+const log = false; //turn on detailed logging for music lookups
 
 
 var musicbrainz = function(){

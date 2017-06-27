@@ -13,6 +13,7 @@ const {webContents,BrowserWindow,ipcMain} = require('electron');
 const ft = require(path.join(process.Yolk.root,'core/lib/filetools'));
 const cpu = require('../tools/cpu.js');
 const fs = require('fs');
+const message = process.Yolk.message;
 const homedir = process.Yolk.home;
 const elastic = process.Yolk.db;
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
@@ -22,7 +23,6 @@ var options = {};
 const headers = process.Yolk.modules["musicPlayer"].config.headers;
 const artwork = {};
 var kill = false;
-
 const log = false;
 
 //Keep track of submissions to avoid duplication and limit lookup rates
@@ -61,7 +61,6 @@ var googleItem = function(foo){
 google.webContents.on('dom-ready',function(){
 	var item = google_item;
 	google.webContents.executeJavaScript('firstClick('+item.google.index+')',true).then(function(data){
-		if(log) console.Yolk.log(data);
 		new downart(data,item,true);
 		googleBusy = false;
 	},function(err){
@@ -117,6 +116,7 @@ ipcMain.on('chrome', function(event, data) {
 
 //add an artist and album to the processing queue
 artwork.add = function(item){
+	if(log) console.Yolk.log(item)
 	switch (item.type){
 		case 'album':
 			if(item.coverart){
@@ -136,7 +136,6 @@ artwork.add = function(item){
 				go('wikimedia');
 				//new getart(images,item);
 			}else{
-
 				if(item.discogs){
 					queue.discogs.push(item)
 					go('discogs');
@@ -169,17 +168,14 @@ var timeout={
 };
 var action = {};
 var go = function(type){
-    if(timeout[type].to){
-        return;
-    }
-
+	if(log) console.Yolk.log('go:'+type)
+    if(timeout[type].to) return;
 	new action[type]();
-
     timeout[type].to = setTimeout(function(){
         this.delay = timeout[type].delay;
         timeout[type].to = false;
         if(queue[type].length > 0){
-            if(cpu.load < 50) go(type);
+            go(type);
         }
     },timeout[type].delay)
 }
@@ -187,7 +183,7 @@ var go = function(type){
 
 //find the artist image fom wikimedia API
 action.wikimedia = function(){
-
+	if(cpu.load > 50) return;
 	var item = queue.wikimedia.shift()
     this.options={
 		headers:headers
@@ -232,10 +228,7 @@ action.wikimedia = function(){
 }
 var discogsBusy;
 action.discogs = function(){
-	if(discogsBusy){
-        return;
-    }
-
+	if(discogsBusy || cpu.load > 50) return;
 	var item = queue.discogs.shift();
 	discogsBusy = true;
 	discogsItem(item)
@@ -245,11 +238,10 @@ action.discogs = function(){
 //all else failed, so look for an image on google
 var googleBusy;
 action.google = function(){
-    if(googleBusy){
-        return;
-    }
+    if(googleBusy || cpu.load > 50) return;
     googleBusy = true;
     var item = queue.google.shift();
+	if(log) console.Yolk.warn(item);
 	if(!item.google){
 		item.google={
 			index:0,
@@ -263,6 +255,7 @@ action.google = function(){
 		var search = encodeURI(item.name).replace(/%20/g,'+');
 		var url ='https://www.google.ie/search?q='+search+'&tbm=isch&tbs=isz:l,itp:photo';
 	}
+	if(log) console.Yolk.log(url);
 	googleItem(item);
 	google.loadURL(url);
 }
@@ -360,14 +353,14 @@ var applySmartCrop=function(src, dest, width, height,boost,item) {
 	}
 	try{
 		smartcrop.crop(src, options).then(function(result) {
-			if(kill){
-				return;
-			}
+			if(kill) return;
 			var crop = result.topCrop;
 			sharp(src)
 			.extract({width: crop.width, height: crop.height, left: crop.x, top: crop.y})
 			.resize(width, height)
-			.toFile(dest);
+			.toFile(dest,function(){
+				if(item.refresh) message.send('refreshart');
+			});
 
 			elastic.update({
 				index:db_index,
@@ -398,6 +391,9 @@ ipcMain.on('kill', function(event,data) {
     queue.discogs=[];
     queue.wikimedia=[];
 
+})
+ipcMain.on('refreshart', function(event,data) {
+	artwork.add(data)
 })
 
 module.exports = artwork;

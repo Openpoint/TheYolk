@@ -243,21 +243,23 @@ mbdbase.prototype.saveTrack = function(track,timer){
 //format and save album or artist to the database
 mbdbase.prototype.saveMeta = function(track,body){
     var p = new Promise(function(resolve,reject){
-    	var tosave = {}
+    	var tosave = {links:{}}
     	var artwork = {
     		type:track.type,
     		id:body.id.toString()
     	};
     	if(body.relations.length){
-    		tosave.links = {};
     		body.relations.forEach(function(link){
     			if (link.type === 'discogs'){
     				artwork.discogs = link.url.resource+'/images';
+					tosave.links.discogs = link.url.resource+'/images';
     			}
     			if(track.type === 'artist'){
     				artwork.images = [];
+					tosave.links.images = [];
     				if(link.type === 'image'){
     					artwork.images.push(link.url.resource);
+						tosave.links.images.push(link.url.resource);
     				}
     				if(link.type === 'official homepage'){
     					tosave.links.home = link.url.resource;
@@ -285,6 +287,7 @@ mbdbase.prototype.saveMeta = function(track,body){
 
     			if(body['cover-art-archive'] && body['cover-art-archive'].front){
     				artwork.coverart = body['cover-art-archive'].front;
+					tosave.links.coverart = body['cover-art-archive'].front;
     			};
                 tosave.youtube = track.youtube ? 'yes':'no';
     			tosave.metadata={

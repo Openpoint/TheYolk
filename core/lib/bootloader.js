@@ -215,10 +215,8 @@ bootloader.prototype.configs  = function(module){
 		//create data directories
 		if(module.config.data){
 			Object.keys(module.config.data).forEach(function(key){
-				var location = path.join('data/modules',module.name,module.config.data[key])
-				if(!ft.isThere('dir',path.join(self.home,location))){
-					ft.mkdir(self.home,location)
-				}
+				var location = 'data/modules/'+module.name+'/'+module.config.data[key]
+				ft.mkdir(self.home,location)
 			})
 		}
 	}else{

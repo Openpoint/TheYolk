@@ -1,13 +1,15 @@
 'use strict';
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$interval','dims','utils','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
-function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
+'$scope','$interval','$timeout','dims','utils','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
+function($scope,$interval,$timeout,dims,utils,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
 	const mod_name = 'musicPlayer';
 	//const {ipcRenderer} = require('electron');
 	const {dialog} = require('electron').remote
 	const defaults = require('../musicPlayer.js');
 	const path = require('path');
+
+	process.env.ELECTRON_ENV === 'development'?$scope.isdev = true:$scope.isdev = false;
 
 	ipcRenderer.send('kill','revive');
 	$scope.db_index = defaults.db_index.index;
@@ -141,6 +143,17 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,d
 			$scope.search.go(true);
 		});
 	}
+	if(!ipcRenderer._events.refreshart){
+		ipcRenderer.on('refreshart',function(event){
+			var p = $scope.pin.Page;
+			$scope.$apply(function(){
+				$scope.pin.Page = false;
+			})
+			$timeout(function(){
+				$scope.pin.Page = p;
+			})
+		});
+	}
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
@@ -208,7 +221,27 @@ function($scope,$interval,dims,utils,lazy,audio,internetarchive,youtube,tracks,d
 	$scope.albums = function(){
 		ipcRenderer.send('albums');
 	}
+	$scope.refreshart = function(data){
+		$scope.db.client.get({index:$scope.db_index,type:data.type,id:data.id},function(err,data){
+			if(err){
+				console.error(err);
+				return;
+			}
 
+			var track = data._source;
+			var data = {
+				id:track.id,
+				type:track.type,
+				name:track.type==='album'?track.metadata.title:track.name,
+				artist:track.type==='album'?track.metadata.artist:false,
+				coverart:track.links.coverart,
+				discogs:track.links.discogs,
+				images:track.links.images||[],
+				refresh:true
+			}
+			ipcRenderer.send('refreshart',data);
+		})
+	}
 	$scope.stop = function(){
 		$scope.internetarchive.kill();
 		$scope.youtube.kill();

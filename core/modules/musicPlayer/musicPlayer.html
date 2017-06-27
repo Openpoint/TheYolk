@@ -103,8 +103,9 @@
 						ng-class="artist.filter.zebra"
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
-							<div class='image' ng-click = 'drawers.drawer(artist)' ng-style="{height:lazy.trackHeight}" drag-container="true" drag-data="artist">
-								<img cat="artist" ng-src="{{artist.image}}" yolk-thumb />
+							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="artist">
+								<img cat="artist" ng-src="{{artist.image}}" yolk-thumb ng-click = 'drawers.drawer(artist)' />
+								<div class='refresh' ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
 								<div class='title' ng-click="pin.artist(artist.name)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === artist.name.toLowerCase()}">
@@ -116,7 +117,7 @@
 
 							</div>
 							<div class='widgets'>
-								<div class='widget' ng-click="dev(artist,'artist')">
+								<div class='widget' ng-click="dev(artist,'artist')" ng-if="isdev">
 									<div class='fa fa-cogs'></div>
 								</div>
 								<div class = "widget"  ng-if="artist.deleted === 'no'" ng-click="tracks.delete(artist,false,true)">
@@ -157,13 +158,14 @@
 						ng-class="album.filter.zebra"
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
-							<div class='image'  ng-click = 'drawers.drawer(album)' ng-style="{height:lazy.trackHeight}" drag-container="true" drag-data="album">
-								<img cat="album" ng-src="{{album.image}}" yolk-thumb onerror=""/>
+							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="album">
+								<img cat="album" ng-src="{{album.image}}" yolk-thumb onerror="" ng-click = 'drawers.drawer(album)'/>
+								<div class='refresh' ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
 								<div class='title' ng-click="pin.album(album.metadata.title)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === album.metadata.title.toLowerCase()}">
 									<span class='cancel fa fa-times-circle'></span>
-									{{album.filter.pos}} {{::album.metadata.title}} {{utils.date(album.release_date)}}
+									{{::album.metadata.title}} {{utils.date(album.release_date)}}
 								</div>
 								<div class='row artist' ng-click="pin.artist(album.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === album.metadata.artist.toLowerCase()}">
 									<span class='cancel fa fa-times-circle'></span>
@@ -173,7 +175,7 @@
 
 
 							<div class='widgets'>
-								<div class='widget' ng-click="dev(album,'album')">
+								<div class='widget' ng-click="dev(album,'album')" ng-if="isdev">
 									<div class='fa fa-cogs'></div>
 								</div>
 								<div class = "widget"  ng-if="album.deleted === 'no'" ng-click="tracks.delete(album,false,true)">
@@ -265,7 +267,7 @@
 									</div>
 								</div>
 								<div class='widgets'>
-									<div class='widget' ng-click="dev(track,track.type)">
+									<div class='widget' ng-click="dev(track,track.type)" ng-if="isdev">
 										<div class='fa fa-cogs'></div>
 									</div>
 									<div class = "widget"  ng-if="track.deleted === 'no' && (!playlist.active||(playlist.active && playlist.selected!==1))" ng-click="tracks.delete(track)">
@@ -316,11 +318,11 @@
 							</div>
 						</div>
 						<div ng-if="playlist.selected && playlist.selected!==1">
-							<div class='title grab' drag-container="true" drag-data="lib.playing" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
+							<div class='title grab' drag-container="true" drag-data="lib.playing" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{lib.playing.metadata.title || lib.playing.file}}</div>
 						</div>
 
 						<div ng-if="playlist.selected==1">
-							<div class='title'>{{lib.playing.filter.pos}} {{lib.playing.metadata.title || lib.playing.file}}</div>
+							<div class='title'>{{lib.playing.metadata.title || lib.playing.file}}</div>
 						</div>
 
 						<div id='seek'>
@@ -355,7 +357,7 @@
 							</div>
 						</div>
 						<div class='widgets'>
-							<div class='widget' ng-click="dev(lib.playing,lib.playing.type)">
+							<div class='widget' ng-click="dev(lib.playing,lib.playing.type)" ng-if="isdev">
 								<div class='fa fa-cogs'></div>
 							</div>
 							<div class='widget'  ng-show="lib.playing.deleted === 'no'" ng-class="{error:audio.error}" ng-click="tracks.delete(lib.playing,true) ">
@@ -461,7 +463,7 @@
 				</div>
 			</div>
 		</div>
-		<div class='temp'>
+		<div class='temp' ng-if="isdev">
 			<div ng-click = "albums()">Albums</div>
 			<div ng-click='nuke()'>NUKE!</div>
 			<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>

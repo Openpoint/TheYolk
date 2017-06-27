@@ -6,7 +6,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	const crypto = require('crypto');
 	const Q = require("bluebird");
 	const request = require('request');
-	const sizeof = require('object-sizeof');
 	const log = false;
 	var oldChunk = false;
 	var flags = {};
@@ -335,7 +334,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 	}
 	search.prototype.artistAlbums = function(artist){
-		console.error(artist)
 		return new Promise(function(resolve,reject){
 			var must = $scope.tools.wrap.bool([{must:[
 				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},
