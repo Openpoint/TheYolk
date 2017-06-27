@@ -74,6 +74,7 @@ const path=require('path');
 const Elastic = require('elasticsearch');
 const child = require('child_process');
 const os = require('os');
+const kill = require('tree-kill');
 Promise = require("bluebird");
 Promise.config({cancellation: true});
 
@@ -191,54 +192,11 @@ function createWindow () {
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
 		win = null;
-		if(os.platform()!=='win32'){
-			if(process.Yolk.elasticsearch){
-				process.Yolk.elasticsearch.stdin.pause();
-				process.Yolk.elasticsearch.kill();
-			}
-			app.quit();
-
-		}else{
-			//console.log('Shutting Down');
-			var shut=child.execSync('wmic process get Caption,ParentProcessId,ProcessId');
-
-			var toKill=[];
-			var stdout=shut.toString('utf8').split('\n');
-			stdout.forEach(function(line){
-				line = line.trim().replace(/\/r/g,'').split('  ');
-				var Line = [];
-				line.forEach(function(item){
-					if(item.trim().length > 0){
-						Line.push(item.trim());
-					}
-				});
-				toKill.push(Line);
-			});
-
-			toKill.forEach(function(line){
-				if(line[1]== process.Yolk.elasticsearch.pid||line[2]== process.Yolk.elasticsearch.pid){
-					tokill.push({
-						process:line[0],
-						pid:line[2]*1
-					});
-				}
-			});
-			var java;
-			tokill.forEach(function(task){
-				if(task.process === 'java.exe'){
-					java = task.pid;
-				}else{
-					process.kill(task.pid);
-					//console.log(task.process);
-				}
-			});
-			if(java){
-				//console.log('killing java');
-				process.kill(java);
-			}
-
-
+		if(pid){
+			process.Yolk.elasticsearch.stdin.pause
+			kill(pid);
 		}
+		app.quit();
 	})
 }
 
@@ -346,7 +304,7 @@ function install(){
 }
 
 //Start the elasticsearch server
-
+var pid;
 function elastic(home){
 	process.Yolk.storedMesssage = {
 		message:'Loading the database'
@@ -361,18 +319,13 @@ function elastic(home){
 		'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 	];
 
-
-	if(os.platform()!=='win32'){
-		process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args);
-
-	}else{
-		process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args,{shell:true});
-	}
-
+	process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args);
 	process.Yolk.elasticsearch.stdout.on('data', function(data){
 		var string = (`${data}`);
 		var trimmed = string.split('[yolk]')[1];
-		//console.log(string);
+		var p = string.match(/pid\[([^\]]+)\]/);
+		if(p) pid = p[1];
+
 		if(win && trimmed){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			process.Yolk.message.send('install',process.Yolk.storedMesssage);
