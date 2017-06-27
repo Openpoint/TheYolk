@@ -263,7 +263,7 @@ action.google = function(){
 //download the artist or album image
 var downart = function(src,item){
 
-	var dest = path.join(homedir,'data/modules/musicPlayer/images/'+item.type+'/'+item.id);
+	var dest = path.join(homedir,'data','modules','musicPlayer','images',item.type,item.id);
 	if(!ft.isThere('dir',dest)){
 		ft.mkdir(homedir,'data/modules/musicPlayer/images/'+item.type+'/'+item.id);
 	}
@@ -286,9 +286,7 @@ var downart = function(src,item){
 			}else{
 				if(item.google){
 					item.google.index++;
-					if(item.google.index > 4){
-						return;
-					}
+					if(item.google.index > 4) return;
 				}
 				queue.google.push(item)
 				go('google');
@@ -300,12 +298,11 @@ var downart = function(src,item){
 
 	function proceed(src,thumb,item){
 		//var track = item.track;
-		var face = "face('"+src+"')"
+		var face = "face('"+encodeURI(src)+"')"
 	    var foo = imageWindow.webContents.executeJavaScript(face,true);
 
 		foo.then(function(data){
 			var confidence;
-
 			if (data.length){
 				data.forEach(function(face){
 					if(!confidence){

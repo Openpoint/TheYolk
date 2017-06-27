@@ -14,6 +14,7 @@
         <script>
 
             var face = function(src,discoq){
+				src = decodeURI(src);
                 var promise = new Promise(function(resolve,reject){
                     var image = document.createElement('img');
                     $(image).attr('src',src);
