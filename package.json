@@ -28,29 +28,34 @@
     "yauzl": "^2.8.0"
   },
   "devDependencies": {
+    "cross-env": "^5.0.1",
     "devtron": "^1.4.0",
     "electron": "^1.7.1",
     "electron-builder": "^8.6.0",
     "electron-rebuild": "^1.5.11"
   },
-	"build": {
-		"appId": "com.theyolk.app",
-		"compression": "maximum",
-		"asar": false,
-		"linux": {
-			"target":["deb"],
-			"deb":{
-				"compression":"gz"
-			}
-		},
-		"win":{
-			"target":["nsis"]
-		}
-	},
+  "build": {
+    "appId": "com.theyolk.app",
+    "compression": "maximum",
+    "asar": false,
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "deb": {
+        "compression": "gz"
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  },
   "scripts": {
     "pack": "build --dir",
     "dist": "build -wl --x64",
-    "Yolk-dev": "ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
+    "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
   },
   "postinstall": "install-app-deps"
