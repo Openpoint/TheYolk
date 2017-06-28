@@ -55,7 +55,8 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "dist": "build -wl --x64",
+    "linux": "build -l --x64",
+    "windows": "build -w --x64",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
   },
