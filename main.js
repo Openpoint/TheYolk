@@ -91,6 +91,7 @@ var installer;
 var domReady;
 
 process.on('uncaughtException',function(err){
+	if(pid) kill(pid);
 	console.error(err);
 })
 
@@ -192,10 +193,7 @@ function createWindow () {
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
 		win = null;
-		if(pid){
-			process.Yolk.elasticsearch.stdin.pause
-			kill(pid);
-		}
+		if(pid) kill(pid);
 		app.quit();
 	})
 }

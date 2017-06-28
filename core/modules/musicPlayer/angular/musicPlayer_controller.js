@@ -20,6 +20,7 @@ function($scope,$interval,$timeout,dims,utils,lazy,audio,internetarchive,youtube
 	$scope.db = $scope.utils.db;
 	$scope.searchTerm = '';
 	$scope.root = Yolk.root;
+	$scope.ytpreload = path.join($scope.root,'/core/modules/musicPlayer/lib/tools/youtube.js')
 
 	$scope.audio = new audio($scope);
 	$scope.pin = new pin($scope);

@@ -1,4 +1,4 @@
-angular.module('yolk').factory('audio',['$sce',function($sce) {
+angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce) {
 	const path = require('path');
 	const {ipcRenderer} = require('electron');
 	var vidlength;
@@ -132,6 +132,7 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 			var source = track.path+track.file;
 		}
 		if(track.type !== 'youtube'){
+
 			//$scope.$apply(function(){
 				$scope.dims.vidheight = false;
 			//})
@@ -180,9 +181,9 @@ angular.module('yolk').factory('audio',['$sce',function($sce) {
 					self.player.src = source;
 				}else{
 					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
-					webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https:youtube.com'});
 					$scope.lib.playing.youtube = true;
 					$scope.lib.playing.state = 'playing';
+					webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https://youtube.com'});
 				}
 				self.progress(true);
 			})
