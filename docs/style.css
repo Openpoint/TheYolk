@@ -7,8 +7,8 @@ b, u, i, center,
 dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
 menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
 	margin: 0;
@@ -19,12 +19,14 @@ time, mark, audio, video {
 	vertical-align: baseline;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
+article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
 	display: block;
 }
 body {
 	line-height: 1;
+	font-family:'Open Sans',sans-serif;
+	color:#302B22;
 }
 ol, ul {
 	list-style: none;
@@ -40,4 +42,101 @@ q:before, q:after {
 table {
 	border-collapse: collapse;
 	border-spacing: 0;
+}
+h1 {
+	font-size:1.2em;
+	font-weight:600;
+	width:100%;
+	padding-bottom:15px;
+}
+a{
+	color:#302B22;
+}
+#header{
+	padding:10px 0;
+	background:#302B22;
+	color:white;
+	font-family:'Dosis',sans-serif
+}
+.inner{
+	margin:0 auto;
+	max-width:900px;
+	padding:0 20px;
+	position:relative;
+}
+.section{
+	padding:40px 0;
+	line-height:1.5em;
+}
+#platform .p{
+	display:flex;
+	margin:0 -20px;
+}
+#platform p{
+	flex:0 0 50%;
+}
+.section p{
+	padding:0 20px;
+}
+#header{
+	height:90px;
+	position:relative;
+	margin-bottom:40px;
+}
+#header .inner{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	height:100%;
+}
+#logo{
+	position:absolute;
+	left:20px;
+	top:0;
+}
+#logo img{
+	width:100px;
+	height:auto;
+}
+#slogan{
+	font-size:2.5em;
+	font-weight:200;
+	text-transform:capitalize;
+}
+
+.downloads{
+	padding-top:5px;
+}
+.downloads img{
+	height:25px;
+	width:auto;
+	padding:5px;
+}
+.downloads div{
+	border-bottom:1px solid white;
+	padding-bottom:2px;
+	margin-bottom:4px;
+}
+#player .p{
+	flex:0 0 40%;
+	margin-left:-20px;
+	line-height:1.2em;
+}
+#player p{
+	padding-bottom:1em;
+}
+#player img{
+	width:100%;
+	height:auto!important;
+	margin:10px 0;
+	-webkit-box-shadow: 2px 2px 9px 0px rgba(50, 50, 50, 0.52);
+	-moz-box-shadow:    2px 2px 9px 0px rgba(50, 50, 50, 0.52);
+	box-shadow:         2px 2px 9px 0px rgba(50, 50, 50, 0.52);
+}
+#player #intro{
+	width:100%;
+	display:flex;
+}
+#player #intro p{
+	font-size:.8em;
 }
