@@ -1,72 +1,8 @@
 'use strict'
 
-//log back to the renderer window
-console.process=function(mess,type){
-	if(type !== 'log' && mess.message){
-		mess = mess.message;
-	}
-	try {
-		throw new Error(mess)
-	}
-	catch(err){
-		err = err.stack.split('\n');
-		err.splice(1, 2);
-		err[0]='Main process: '+err[1].trim();
-		if(typeof mess ==='string' || typeof mess==='boolean' || typeof mess==='number'){
-			err[1]= mess+''.trim();
-		}else if(!mess){
-			err[1]=''+mess;
-		}else{
-			var object = mess;
-			err.splice(1, 1);
-		}
-		if(!object){
-			err=[err[0],err[1]];
-		}else{
-			err=[err[0]];
-		}
-		err = err.join('\n');
-		return {
-			log:err,
-			object:object
-		}
-	}
 
-}
-console.Yolk = {
-	log:function(mess){
-		if(process.env.ELECTRON_ENV !== 'development') return;
-		mess = console.process(mess,"log");
-		process.Yolk.message.send('log',{log:mess.log});
-		if(mess.object){
-			process.Yolk.message.send('log',{log:mess.object});
-		}
-	},
-	warn:function(mess){
-		if(process.env.ELECTRON_ENV !== 'development') return;
-		mess = console.process(mess,"warn");
-		process.Yolk.message.send('log',{warn:mess.log});
-		if(mess.object){
-			process.Yolk.message.send('log',{warn:mess.object});
-		}
-	},
-	error:function(mess){
-		if(process.env.ELECTRON_ENV !== 'development') return;
-		mess = console.process(mess,"error");
-		process.Yolk.message.send('log',{error:mess.log});
-		if(mess.object){
-			process.Yolk.message.send('log',{error:mess.object});
-		}
-	},
-	say:function(mess){
-		if(process.env.ELECTRON_ENV !== 'development') return;
-		process.Yolk.message.send('log',{log:mess});
-	}
-};
-
-//if(require('electron-squirrel-startup')) return;
 process.Yolk = {};
-const {app, BrowserWindow, webContents, ipcMain} = require('electron');
+const {app, BrowserWindow, webContents, ipcMain, session} = require('electron');
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 const fs=require('fs');
 const http = require('http');
@@ -90,10 +26,7 @@ const javaversion = 'jre1.8.0_131';
 var installer;
 var domReady;
 
-process.on('uncaughtException',function(err){
-	if(pid) kill(pid);
-	console.error(err);
-})
+
 
 process.Yolk.modules = boot.modules;
 process.Yolk.resolver = {};
@@ -106,6 +39,8 @@ process.Yolk.root = boot.root;
 process.Yolk.home = boot.home;
 process.Yolk.message = false;
 process.Yolk.storedMesssage = {};
+process.Yolk.BrowserWindow = BrowserWindow;
+process.Yolk.session = session;
 
 //signals that the renderer client is ready
 process.Yolk.clientReady = function(){
@@ -114,7 +49,9 @@ process.Yolk.clientReady = function(){
 		install();
 		process.Yolk.installed = true;
 	}
-	return boot.modules;
+}
+process.Yolk.set  = function(module,data){
+	process.Yolk.modules[module].config.settings = data;
 }
 //tell the renderer that the database is ready
 process.Yolk.dbReady = new Promise(function(resolve,reject){
@@ -131,7 +68,6 @@ process.Yolk.coreprocess = function(module){
 				require(file);
 			}
 			catch(err){
-
 				console.error(err);
 				console.Yolk.error(file+'\nSee the main process console');
 			}
@@ -148,6 +84,12 @@ process.Yolk.chrome = function(action){
 			win.minimize();
 		break;
 		case 'max':
+			if(win.isMaximized()){
+				win.unmaximize();
+			}else{
+				win.maximize();
+			}
+		/*
 			if(win.isFullScreen()){
 				win.setFullScreen(false);
 				if(win.isMaximized()){
@@ -156,16 +98,17 @@ process.Yolk.chrome = function(action){
 			}else{
 				win.setFullScreen(true)
 			}
-
+			*/
 		break;
 		case 'devtools':
 			win.webContents.openDevTools();
 		break;
 	}
 }
-process.Yolk.db = require(path.join(boot.root,'core/lib/elasticsearch.js'));
 
-
+process.on('uncaughtException',function(err){
+	console.error(err);
+})
 //Create the main browser window
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -181,7 +124,9 @@ function createWindow () {
 	})
 	if(process.env.ELECTRON_ENV === 'development') win.webContents.openDevTools();
 	win.webContents.on('crashed',function(){
-		console.log('Browser window crashed')
+		console.log('Browser window crashed');
+		if(pid) kill(pid);
+		app.quit();
 	})
 	win.on('unresponsive',function(){
 		console.log('Browser window unresponsive')
@@ -328,8 +273,75 @@ function elastic(home){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			process.Yolk.message.send('install',process.Yolk.storedMesssage);
 		}
-		if(string.indexOf('[RED] to [YELLOW]') > -1 || string.indexOf('[RED] to [GREEN]') > -1 || string.indexOf('[yolk] recovered [0] indices into cluster_state') > -1){
+		if(string.indexOf('[RED] to [YELLOW]') > -1 ||
+			string.indexOf('[RED] to [GREEN]') > -1 ||
+			string.indexOf('[YELLOW] to [GREEN]') > -1 ||
+			string.indexOf('recovered [0] indices into cluster_state') > -1){
 			process.Yolk.resolver.dbReady();
 		}
 	});
 }
+
+//log back to the renderer window
+console.process=function(mess,type){
+	if(type !== 'log' && mess.message){
+		mess = mess.message;
+	}
+	try {
+		throw new Error(mess)
+	}
+	catch(err){
+		err = err.stack.split('\n');
+		err.splice(1, 2);
+		err[0]='Main process: '+err[1].trim();
+		if(typeof mess ==='string' || typeof mess==='boolean' || typeof mess==='number'){
+			err[1]= mess+''.trim();
+		}else if(!mess){
+			err[1]=''+mess;
+		}else{
+			var object = mess;
+			err.splice(1, 1);
+		}
+		if(!object){
+			err=[err[0],err[1]];
+		}else{
+			err=[err[0]];
+		}
+		err = err.join('\n');
+		return {
+			log:err,
+			object:object
+		}
+	}
+
+}
+console.Yolk = {
+	log:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
+		mess = console.process(mess,"log");
+		process.Yolk.message.send('log',{log:mess.log});
+		if(mess.object){
+			process.Yolk.message.send('log',{log:mess.object});
+		}
+	},
+	warn:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
+		mess = console.process(mess,"warn");
+		process.Yolk.message.send('log',{warn:mess.log});
+		if(mess.object){
+			process.Yolk.message.send('log',{warn:mess.object});
+		}
+	},
+	error:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
+		mess = console.process(mess,"error");
+		process.Yolk.message.send('log',{error:mess.log});
+		if(mess.object){
+			process.Yolk.message.send('log',{error:mess.object});
+		}
+	},
+	say:function(mess){
+		if(process.env.ELECTRON_ENV !== 'development') return;
+		process.Yolk.message.send('log',{log:mess});
+	}
+};

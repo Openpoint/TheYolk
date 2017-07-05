@@ -131,7 +131,8 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		$('#search input').focus();
 	}
 	pin.prototype.page = function(page,skip){
-		if($scope.playlist.active) return;
+		if($scope.playlist.active) skip = true;
+		if($scope.playlist.active) $scope.playlist.toggle(true);
 		var newterm = '';
 		var terms = $scope.tools.terms($scope.searchTerm);
 

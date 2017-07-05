@@ -3,20 +3,24 @@ html {
 	box-sizing:border-box;
 	font-family:'Open Sans', sans-serif;
 }
-
 #chrome{
+	display:none;
+}
+.Chrome{
 	position:absolute;
 	right:0;
 	top:0;
 	z-index:10000;
 	color:white;
 	display:flex;
+	flex-basis:content;
 	flex-direction:row;
 	align-items:center;
 	height:35px;
-
+	-webkit-app-region: drag;
+	-webkit-user-select: none;
 }
-#chrome div{
+.Chrome div{
 	cursor:pointer;
 	padding:0 10px;
 	-webkit-app-region: no-drag;
@@ -25,22 +29,36 @@ html {
 	align-items:center;
 
 }
-#chrome div:hover{
+.Chrome div:hover{
 	background:rgba(255,255,255,.2);
 }
-#chrome div.close:hover{
+.Chrome div.close:hover{
 	background:tomato;
 }
-#yolk_header{
-	padding-bottom:40px;
-	text-align:center;
+
+#topmen{
+	width:100%;
+	background:#302B22;
+	position:relative;
+	-webkit-app-region: drag;
 }
-#yolk_header #yolk_icon{
-	width:50px;
-	height:auto;
-	padding-bottom:2px;
+#topmen *{
+	-webkit-app-region: no-drag;
 }
-#yolk_header h1{
-	font-family:'Roboto';
-	text-transform:uppercase;
+#topmen .icon{
+	position:absolute;
+	left:0;
+	cursor:pointer;
+	font-size:30px;
+}
+#yolk_icon{
+	width:auto;
+	height:30px!important;
+	margin-left:10px;
+}
+#yolk_icon .white{
+	fill:white!important;
+}
+#yolk_icon .yellow{
+	fill:DarkOrange!important;
 }

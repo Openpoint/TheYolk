@@ -2,48 +2,33 @@
 
 var define = {
 	extends:false,
-	require:[
-		//load services from external modules
-		'utils'
-	],
-	core_process:[
-		//starts with the core process in a Node scope, put corresponding file in modules 'lib/process' folder
-		'fileTools',
-		'musicbrainz'
-	],
+	home:{
+		label:'Music Player',
+		icon:{
+			fontawesome:'fa-music',
+			svg:false,
+			png:false
+		}
+	},
+	require:[], //load services from external modules
+	core_process:['fileTools','musicbrainz'], //starts with the core process in a Node scope, put corresponding file in modules 'lib/process' folder
 	db_index:{
 		index:"music_player",
-		settings:{
-			analysis: {
-			   analyzer: {
-				  case_insensitive: {
-					 tokenizer: "keyword",
-					 filter: [
-						"lowercase"
-					 ]
-				  }
-			   }
-		   },
-		   "index.mapping.total_fields.limit": 5000
+		settings:{analysis:{analyzer: {case_insensitive: {
+			tokenizer: "keyword",
+			filter: ["lowercase"]
+			}}},
+			"index.mapping.total_fields.limit": 5000
 		},
 		types:Types()
 	},
 	module_name:"musicPlayer",
 	settings:{
 		paths:{},
-		state:{
-			state1:"",
-			state2:""
-		},
 		fileTypes:["mp3","ogg","wav"]
 	},
-	data:{
-		artist_images:"images/artist",
-		album_images:"images/album"
-	},
-	headers:{
-	    'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )' //todo - automatically update version in UA
-	}
+	data:{artist_images:"images/artist",album_images:"images/album"},
+	headers:{'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )'}//todo - automatically update version in UA
 }
 
 function Mapping(){

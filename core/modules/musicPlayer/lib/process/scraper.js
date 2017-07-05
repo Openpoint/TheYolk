@@ -6,7 +6,8 @@ document.addEventListener("DOMNodeInserted", function(event) {
     }
 })
 
-window.q = require("bluebird");
+window.Promise  = require("bluebird");
+
 window.scrape = function(){
     var promise = new Promise(function(resolve,reject){
         var paths = []

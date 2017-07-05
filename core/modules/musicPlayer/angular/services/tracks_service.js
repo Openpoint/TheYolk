@@ -38,7 +38,7 @@ angular.module('yolk').factory('tracks',[function(){
 	tracks.prototype.next = function(){
 		if(!$scope.lib.playing) return;
 		var all = getAll(false,true);
-		if(!all||!all.length){
+		if(!all||all.length < 2){
 			$scope.lib.next = false;
 			return;
 		}
@@ -237,52 +237,6 @@ angular.module('yolk').factory('tracks',[function(){
 		},function(err){
 			console.error(err);
 		})
-	}
-	//Send database tracks to be verified against local file system
-	tracks.prototype.checkLocal = function(index){
-		console.log(index)
-		if($scope.settings.paths.musicDir){
-			var query = {
-				index:$scope.db_index,
-				type:[index],
-			}
-			console.log('checklocal')
-			$scope.db.fetchAll(query).then(function(data){
-				console.log(data)
-				ipcRenderer.send('verify', {
-					dir:$scope.settings.paths.musicDir,
-					tracks:data
-				});
-			})
-		}
-	}
-
-	//Sync filesystem file removals to database
-	tracks.prototype.verify = function(data){
-		console.log('verify')
-		if(data.remove.length){
-			var body = [];
-			data.remove.forEach(function(track){
-				body.push({
-					delete:{
-						_index:$scope.db_index,
-						 _type:'local',
-						 _id:track.id
-					}
-				});
-				$scope.lib.tracks = $scope.lib.tracks.filter(function(ltrack){
-					if(ltrack.id !== track.id){
-						return true;
-					}
-				});
-			});
-
-			$scope.db.client.bulk({
-				body:body
-			},function(err,data){
-				console.log(data);
-			})
-		}
 	}
 
 	return tracks;

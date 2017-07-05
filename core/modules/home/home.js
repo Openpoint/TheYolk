@@ -2,18 +2,13 @@
 
 var define = {
 	extends:false,
-	require:[
-		//load services from external modules
-		'utils'
-	], 
-	core_process:[ 
-		//starts with the core process in a Node scope
-	],
-	//db_index:"music_player",
+	require:['link'],
+	core_process:[], //starts with the core process in a Node scope
+	db_index:{
+		index:"home",
+	},
 	module_name:"home",
-	settings:{
-		
-	}
+	settings:{}
 }
 
 module.exports = define

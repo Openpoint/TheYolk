@@ -78,6 +78,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 		if(!state.sortby && self.memory[context][mem].all){
 			if(log) console.log('reverse')
+			console.log('reverse')
 			self.memory[context][mem].all = self.memory[context][mem].all.reverse();
 			this.memory[context][mem].chunks={};
 		}
@@ -152,7 +153,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		var search = {index:$scope.db_index,type:'local,internetarchive,youtube',body:{_source:scs,query:{bool:{must:[{bool:{should:[]}}]}}}};
 		search.sort=$scope.pin.sortby;
 		search.type = $scope.pin.pinned.sources.toString();
-		search.body.query.bool.must.push({match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}})
+		search.body.query.bool.must.push({match:{'deleted':$scope.pin.Filter === 'deleted' ? 'yes':'no'}});
+		search.body.query.bool.must.push({match:{'musicbrainzed':'yes'}});
 		Object.keys(flags).forEach(function(key){
 			search[key]=flags[key];
 		})

@@ -4,7 +4,8 @@ const {ipcMain} = require('electron');
 const message = process.Yolk.message;
 const tools = require('./searchtools.js');
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
-const elastic = process.Yolk.db;
+const path = require('path');
+const elastic = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
 const log = false //turn on detailed logging
 const kill = require('./killer.js');
 

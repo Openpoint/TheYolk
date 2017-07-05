@@ -4,40 +4,43 @@
 </script>
 
 <div ng-controller="musicPlayer" id='playframe'>
-	<div id='topmen' ng-style="{height:dims.menHeight}">
-		<div class='inner' ng-style="{width:dims.playwindowWidth}">
-			<div class='left'>
-					<div class='icon'><a ng-if="settings.paths.root" ng-include="settings.paths.root+'/core/lib/css/icons/yolk.svg'" href='#!/home'></a></div>
-					<div class='item' ng-class="{active:pin.Page==='title'&&!playlist.active}" ng-click="pin.page('title')">
-						<span>Track</span>
-						<span class='dir' ng-show="!playlist.active">
-							<span class='fa fa-angle-up' ng-if="pin.direction.title === 'asc' && pin.Page==='title'"></span>
-							<span class='fa fa-angle-down' ng-if="pin.direction.title === 'desc' && pin.Page==='title'"></span>
-						</span>
-					</div>
-					<div class='item' ng-class="{active:pin.Page==='artist'}" ng-click="pin.page('artist')"  ng-show="!playlist.active">
-						<span>Artist</span>
-						<span class='dir'>
-							<span class='fa fa-angle-up' ng-if="pin.direction.artist === 'asc' && pin.Page==='artist'"></span>
-							<span class='fa fa-angle-down' ng-if="pin.direction.artist === 'desc' && pin.Page==='artist'"></span>
-						</span>
-					</div>
-					<div class='item' ng-class="{active:pin.Page==='album'}" ng-click="pin.page('album')"  ng-show="!playlist.active">
-						<span>Album</span>
-						<span class='dir'>
-							<span class='fa fa-angle-up' ng-if="pin.direction.album === 'asc' && pin.Page==='album'"></span>
-							<span class='fa fa-angle-down' ng-if="pin.direction.album === 'desc' && pin.Page==='album'"></span>
-						</span>
-					</div>
-				</div>
-
+	<div id='topmen'>
+		<div class='icon'><a ng-include="icon" href='#!/home'></a></div>
+		<div id='menitems' ng-style="{left:dims.sidebarWidth+15}">
+			<div class='item' ng-class="{active:pin.Page==='title'&&!playlist.active}" ng-click="pin.page('title')">
+				<span>Track</span>
+				<span class='dir' ng-show="playlist.active"></span>
+				<span class='dir' ng-show="!playlist.active">
+					<span class='fa fa-angle-up' ng-if="pin.direction.title === 'asc' && pin.Page==='title'"></span>
+					<span class='fa fa-angle-down' ng-if="pin.direction.title === 'desc' && pin.Page==='title'"></span>
+				</span>
 			</div>
-	</div>
-	<div id='search' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth}">
-		<div ng-show = 'playlist.active' class='left'>
-			<div class='leftspace'></div>
-			Playlist: {{playlist.name}}
+			<div class='item' ng-class="{active:pin.Page==='artist'}" ng-click="pin.page('artist')">
+				<span>Artist</span>
+				<span class='dir' ng-show="playlist.active"></span>
+				<span class='dir' ng-show="!playlist.active">
+					<span class='fa fa-angle-up' ng-if="pin.direction.artist === 'asc' && pin.Page==='artist'"></span>
+					<span class='fa fa-angle-down' ng-if="pin.direction.artist === 'desc' && pin.Page==='artist'"></span>
+				</span>
+			</div>
+			<div class='item' ng-class="{active:pin.Page==='album'}" ng-click="pin.page('album')">
+				<span>Album</span>
+				<span class='dir' ng-show="playlist.active"></span>
+				<span class='dir' ng-show="!playlist.active">
+					<span class='fa fa-angle-up' ng-if="pin.direction.album === 'asc' && pin.Page==='album'"></span>
+					<span class='fa fa-angle-down' ng-if="pin.direction.album === 'desc' && pin.Page==='album'"></span>
+				</span>
+			</div>
+			<div class='item' ng-show="!playlist.active" ng-click="playlist.toggle()">
+				<span>Playlists</span>
+			</div>
+			<div class='item playlist' ng-show="playlist.active">
+				<span>Playlist: {{playlist.name}}</span>
+			</div>
 		</div>
+	</div>
+	<div id='search' ng-style="{height:dims.searchHeight,width:dims.playwindowWidth,left:dims.sidebarWidth}" ng-show = '!playlist.active'>
+
 		<div ng-show = '!playlist.active' class='left'>
 			<div class='leftspace'>
 				<div class="icon search" ng-click='search.remoteSearch(searchTerm)' ng-class={active:goSearch}>
@@ -53,42 +56,140 @@
 				<div class ='hide'></div>
 			</div>
 		</div>
-		<div class='right'>
-			<div class='item stop' ng-if="progress.youtube||progress.internetarchive||progress.musicbrainz" ng-click="stop()">
-				<div class='inner'>
-					<div class='fa fa-hand-paper-o'></div>
+
+	</div>
+	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">
+		<div class='wrap'>
+			<div class='right section' ng-style="{height:dims.searchHeight}">
+				<div class='item stop' ng-if="progress.youtube||progress.internetarchive||progress.musicbrainz" ng-click="stop()">
+					<div class='inner'>
+						<div class='fa fa-hand-paper-o'></div>
+					</div>
+				</div>
+				<div class='item' ng-class='{active:progress.youtube}'>
+					<div class='inner'>
+						<div ng-class='{throbber:progress.youtube}'></div>
+						<div class='icon-youtube'></div>
+					</div>
+					<div  class='progress' ng-if="progress.youtube">Youtube:{{progress.youtube}}</div>
+				</div>
+				<div class='item' ng-class='{active:progress.internetarchive}'>
+					<div class='inner'>
+						<div ng-class='{throbber:progress.internetarchive}'></div>
+						<div class='icon-internetarchive'></div>
+					</div>
+					<div  class='progress' ng-if="progress.internetarchive">Internet Archive:{{progress.internetarchive}}</div>
+				</div>
+				<div class='item' ng-class='{active:progress.musicbrainz}'>
+					<div class='inner'>
+						<div ng-class='{throbber:progress.musicbrainz}'></div>
+						<div class='icon-musicbrainz'></div>
+					</div>
+					<div  class='progress' ng-if="progress.musicbrainz">Musicbrainz:{{progress.musicbrainz}}</div>
+				</div>
+
+			</div>
+			<div class='section'>
+				<div id='filters' ng-show='!playlist.active'>
+					<div class='inner'>
+						<div class='item button' ng-class="{active:pin.Filter==='recent'}" ng-click="pin.filter('recent')"  ng-show="!playlist.active">Recent</div>
+						<div class='item button' ng-class="{active:pin.Filter==='deleted'}" ng-click="pin.filter('deleted')"  ng-show="!playlist.active">Deleted</div>
+					</div>
 				</div>
 			</div>
-			<div class='item' ng-class='{active:progress.youtube}'>
-				<div class='inner'>
-					<div ng-class='{throbber:progress.youtube}'></div>
-					<div class='icon-youtube'></div>
+			<div id='sources' ng-show="pin.Page==='title'">
+				<div class='section'>
+					<div class='control' ng-click="playlist.toggle()" ng-show="pin.Page === 'title'">
+						<div class='title'>Playlists</div>
+						<div class='fa fa-lg' ng-class = "{'fa-toggle-on':playlist.active,'fa-toggle-off':!playlist.active}"></div>
+					</div>
+
+					<div id = "playlist" ng-show="playlist.active">
+						<div class='form'>
+							<select name='playlist' id='playlists' ng-model="playlist.selected"  ng-if="playlist.active" ng-change="playlist.change()">
+								<option ng-repeat="option in playlist.options track by option.id"  ng-value="option.id">{{option.name}}</option>
+							</select>
+							<button class='delete' ng-show = "playlist.selected > 1 && playlist.active" ng-click="playlist.deletePlaylist()">Delete active playlist</button>
+							<div class='input' ng-if="playlist.active">
+								<input ng-model="playlist.new" type='text' placeholder="Create or rename a playlist" ng-keypress="playlist.addPlaylist(playlist.new,$event)" />
+							</div>
+							<div class='modify' ng-show='playlist.new'>
+								<button ng-click="playlist.addPlaylist(playlist.new,'add')">Create</button>
+								<div class='spacer' ng-if="playlist.selected > 1"></div>
+								<button ng-show="playlist.selected > 1" ng-click="playlist.renamePlaylist()">Rename</button>
+							</div>
+						</div>
+					</div>
+					<div class='control' ng-click="pin.source('local')" ng-show="!playlist.active && pin.Page === 'title'">
+						<div class='title'>Local</div>
+						<div class='fa fa-lg' ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('local') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('local') === -1}"></div>
+					</div>
+					<div class='control' ng-click="pin.source('internetarchive')" ng-show="!playlist.active && pin.Page === 'title'">
+						<div class='title'>Internet Archive</div>
+						<div class='fa fa-lg' ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('internetarchive') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('internetarchive')===-1}"></div>
+					</div>
+					<div class='control' ng-click="pin.source('youtube')" ng-show="!playlist.active && pin.Page === 'title'">
+						<div class='title'>Youtube</div>
+						<div class='fa fa-lg' ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('youtube') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('youtube')===-1}"></div>
+					</div>
+					<div class='control' ng-click='fileSelect()' ng-show="!playlist.active && pin.Page === 'title'">
+						<div class='title'><span ng-if='!settings.paths.musicDir'>Select</span><span ng-if='settings.paths.musicDir'>Change</span> music folder</div>
+						<div class='fa fa-lg' ng-class = "{'fa-folder-open-o':!settings.paths.musicDir,'fa-folder-o':settings.paths.musicDir}"></div>
+					</div>
 				</div>
-				<div  class='progress' ng-if="progress.youtube">Youtube:{{progress.youtube}}</div>
 			</div>
-			<div class='item' ng-class='{active:progress.internetarchive}'>
+			<div id='drop' class='section' drop-container on-drop="playlist.onDrop($event, $dragData)" ng-if="playlist.selected > 1">
 				<div class='inner'>
-					<div ng-class='{throbber:progress.internetarchive}'></div>
-					<div class='icon-internetarchive'></div>
+					<div>
+						<div class='text'>Drag and Drop to playlist:</div>
+						<div class='text'>{{playlist.name}}</div>
+					</div>
 				</div>
-				<div  class='progress' ng-if="progress.internetarchive">Internet Archive:{{progress.internetarchive}}</div>
-			</div>
-			<div class='item' ng-class='{active:progress.musicbrainz}'>
-				<div class='inner'>
-					<div ng-class='{throbber:progress.musicbrainz}'></div>
-					<div class='icon-musicbrainz'></div>
-				</div>
-				<div  class='progress' ng-if="progress.musicbrainz">Musicbrainz:{{progress.musicbrainz}}</div>
 			</div>
 
+
+
+			<div class='bottom'>
+				<div ng-if="isdev">
+					<div ng-click = "albums()">Albums</div>
+					<div ng-click='nuke()'>NUKE!</div>
+					<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
+				</div>
+
+				<div ng-if='tracks.source.type' id='source' class='section'>
+					<div class='title'>Playing from {{tracks.source.type}}:</div>
+					<div class='source button' ng-click='pin.Source(tracks.source)'>{{tracks.source.name}}</div>
+				</div>
+				<div id='youtube-wrap' ng-mousemove="fader()" ng-style="{height:dims.vidheight||'auto'}"
+					ng-class="{
+						novid:!lib.playing.youtube,
+						vid:lib.playing.youtube
+					}">
+					<div ng-style="{
+						width:dims.sidebarWidth-1,
+						height:dims.sidebarWidth/2,
+
+					}" ng-show="lib.playing && !lib.playing.youtube" class='meta'>
+						<img ng-src="{{imagePath('artist',lib.playing.artist)}}" />
+						<img ng-src="{{imagePath('album',lib.playing.album)}}" />
+						<div class='shadow'></div>
+						<div class='shadow right'></div>
+					</div>
+					<div id='youtube2' class='small'>
+						<!-- ng-src="{{lib.playing.embed}}"  ng-show="lib.playing.youtube"-->
+						<webview style="width:100%; height:100%;" id="youtube" src="data:text/plain," preload="{{ytpreload}}"></webview>
+						<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
+							<div class='icon-fullscreen_out'></div>
+						</div>
+						<div id='shadow'></div>
+					</div>
+				</div>
+			</div>
 		</div>
+
 	</div>
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
-		<div id = 'loading' class='ani-fOut' ng-if="!settings.paths.musicDir">
-			<div ng-click='fileSelect()'>Select your music folder</div>
-		</div>
-
-		<div id='tracks' ng-show="settings.paths.musicDir" ng-style = "dims.dyn">
+		<div id='tracks' ng-style = "dims.dyn">
 			<div id='trackspacer' ng-style = "{height:drawers.dpos[pin.Page].spacer}"></div>
 			<div id="artists" ng-if="pin.Page === 'artist'">
 				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
@@ -113,7 +214,7 @@
 									{{lib.bios[artist.id].title || artist.name}}
 								</div>
 								<div class='country' yolk-country>{{countries[artist.country]}}</div>
-								<div class='bio' ng-class="{open:drawers.dpos[pin.Page]===artist.id}">{{lib.bios[artist.id].bio}}</div>
+								<div class='bio' ng-class="{open:drawers.dpos[pin.Page].open===artist.id}">{{lib.bios[artist.id].bio}}</div>
 
 							</div>
 							<div class='widgets'>
@@ -289,7 +390,6 @@
 
 			</div>
 			<div id='playing' class='track row'
-
 				ng-if = "lib.playing"
 				ng-style="{
 					top:lib.playing.top,
@@ -301,9 +401,7 @@
 			>
 
 				<div class='inner'
-					ng-style="{
-						width:dims.playwindowWidth - dims.scroller
-					}"
+					ng-style="{width:dims.playwindowWidth - dims.scroller,left:dims.sidebarWidth+1}"
 				>
 				<div ng-if='playlist.active && playlist.selected!==1' class='reorder'>
 					<div ng-show='playlist.reorder && playlist.reorder!==lib.playing.id' drop-container on-drop="playlist.onReorder($event, $dragData, lib.playing.id)" class='pad'></div>
@@ -378,95 +476,5 @@
 			</div>
 		</div>
 	</div>
-	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">
-		<div class='wrap'>
-			<div id='youtube-wrap' ng-mousemove="fader()" ng-style="{
-					height:dims.vidheight||'auto',
-					minHeight:dims.menHeight
-				}" ng-class="{
-					novid:!lib.playing.youtube,
-					vid:lib.playing.youtube
-				}">
-				<div ng-style="{
-					width:dims.sidebarWidth,
-					height:dims.sidebarWidth/2
-				}" ng-show="lib.playing && !lib.playing.youtube" class='meta'>
-					<img ng-src="{{imagePath('artist',lib.playing.artist)}}" />
-					<img ng-src="{{imagePath('album',lib.playing.album)}}" />
-					<div class='shadow'></div>
-					<div class='shadow right'></div>
-				</div>
-				<div id='youtube2' class='small'>
-					<!-- ng-src="{{lib.playing.embed}}"  ng-show="lib.playing.youtube"-->
-					<webview style="width:100%; height:100%;" id="youtube" src="data:text/plain," preload="{{ytpreload}}"></webview>
-					<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
-						<div class='icon-fullscreen_out'></div>
-					</div>
-					<div id='shadow'></div>
-				</div>
-			</div>
-			<div id='filters'>
-				<div class='inner' ng-show='!playlist.active'>
-					<div class='item sort' ng-class="{active:pin.Filter==='recent'}" ng-click="pin.filter('recent')"  ng-show="!playlist.active">Recent</div>
-					<div class='item sort' ng-class="{active:pin.Filter==='deleted'}" ng-click="pin.filter('deleted')"  ng-show="!playlist.active">Deleted</div>
-				</div>
-			</div>
-			<div class='control' ng-click="playlist.toggle()">
-				<div class='title'>Playlists</div>
-				<div class='fa fa-lg' ng-class = "{'fa-toggle-on':playlist.active,'fa-toggle-off':!playlist.active}"></div>
-			</div>
 
-			<div id = playlist ng-style="{width:dims.sidebarWidth}" ng-if="playlist.active">
-				<div class='form'>
-					<select name='playlist' id='playlists' ng-model="playlist.selected"  ng-if="playlist.active" ng-change="playlist.change()">
-						<option ng-repeat="option in playlist.options track by option.id"  ng-value="option.id">{{option.name}}</option>
-					</select>
-					<button class='delete' ng-show = "playlist.selected > 1 && playlist.active" ng-click="playlist.deletePlaylist()">Delete active playlist</button>
-					<div class='input' ng-if="playlist.active">
-						<input ng-model="playlist.new" type='text' placeholder="Create or rename a playlist" ng-keypress="playlist.addPlaylist(playlist.new,$event)" />
-					</div>
-					<div class='modify' ng-show='playlist.new'>
-						<button ng-click="playlist.addPlaylist(playlist.new,'add')">Create</button>
-						<div class='spacer' ng-if="playlist.selected > 1"></div>
-						<button ng-show="playlist.selected > 1" ng-click="playlist.renamePlaylist()">Rename</button>
-					</div>
-				</div>
-			</div>
-
-
-			<div id='sources' ng-show="!playlist.active && pin.Page === 'title'">
-				<div class='control' ng-click="pin.source('local')">
-					<div class='title'>Local</div>
-					<div class='fa fa-lg'	ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('local') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('local') === -1}"></div>
-				</div>
-				<div class='control' ng-click="pin.source('internetarchive')">
-					<div class='title'>Internet Archive</div>
-					<div class='fa fa-lg'	ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('internetarchive') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('internetarchive')===-1}"></div>
-				</div>
-				<div class='control' ng-click="pin.source('youtube')">
-					<div class='title'>Youtube</div>
-					<div class='fa fa-lg'	ng-class = "{'fa-toggle-on':pin.pinned.sources.indexOf('youtube') > -1,'fa-toggle-off':pin.pinned.sources.indexOf('youtube')===-1}"></div>
-				</div>
-
-			</div>
-			<div ng-if='tracks.source.type' id='source'>
-				<div class='title'>Playing from {{tracks.source.type}}:</div>
-				<div class='source' ng-click='pin.Source(tracks.source)'>{{tracks.source.name}}</div>
-			</div>
-
-			<div id='drop' drop-container on-drop="playlist.onDrop($event, $dragData)" ng-if="playlist.selected > 1">
-				<div class='inner'>
-					<div>
-						<div class='text'>Drag and Drop to playlist:</div>
-						<div class='text'>{{playlist.name}}</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class='temp' ng-if="isdev">
-			<div ng-click = "albums()">Albums</div>
-			<div ng-click='nuke()'>NUKE!</div>
-			<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
-		</div>
-	</div>
 </div>

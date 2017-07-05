@@ -1,42 +1,41 @@
 'use strict';
 
-angular.module('yolk').controller('boot', [
-'$scope','$location','utils',
-function($scope,$location,utils) {
-	$('#logo .yellow').addClass('throbber');
+angular.module('yolk').controller('boot', ['$scope','$location',function($scope,$location) {
+
 	const mod_name = 'boot';
+	Yolk.prepare($scope,mod_name);
+
 	$scope.installed = {};
 	$scope.installed.message = "";
 	$scope.installed.progress = "";
 	$scope.root = Yolk.root;
 
 	Yolk.remote('dbReady').then(function(){
+
 		var length = 0;
 		for (var property in Yolk.modules) {
-
 			if (Yolk.modules.hasOwnProperty(property)) {
 				if(Yolk.modules[property].config.db_index){
 					length ++;
-
 					var db_index = Yolk.modules[property].config.db_index;
 					//var types = Yolk.modules[property].config.db_index.types;
-					$scope.utils = new utils(Yolk.modules[property].name);
+					//$scope.utils = new utils(Yolk.modules[property].name);
 					$scope.utils.boot(db_index).then(function(db){
 						length --;
 						if(length === 0){
 							getSettings();
 						}
-					},function(err){
-						console.log(err);
 					})
 				}
 			}
 		}
+
 	})
 	function getSettings(){
+
 		$scope.installed.message = 'Loading settings';
-		$scope.utils = new utils('boot');
-		$scope.utils.boot('global').then(function(db){
+		//$scope.utils = new utils('boot');
+		$scope.utils.boot('global').then(function(){
 			var length = 0;
 			var types = [];
 			for (var property in Yolk.modules) {
@@ -46,22 +45,22 @@ function($scope,$location,utils) {
 				}
 			}
 			types.forEach(function(type){
+				if(!Yolk.modules[type].config.settings.paths) Yolk.modules[type].config.settings.paths = {};
+				Yolk.modules[type].config.settings.paths.home = Yolk.home;
+				Yolk.modules[type].config.settings.paths.root = Yolk.root;
+
 				$scope.utils.settings(type).then(function(data){
 					length --;
-					if(data){
-						Yolk.modules[type].config.settings = data;
-					}
+					//Yolk.modules[type].config.settings = data;
+					Yolk.remote('set')(type,data);
 					if(length === 0){
-						$location.path('/home');
+						$scope.$apply(function(){
+							$location.path('/home');
+						})
 					}
-				},function(err){
-					console.log(err);
 				});
 			})
-		},function(err){
-			console.log(err);
 		});
-
 	};
 
 	function audit(module){

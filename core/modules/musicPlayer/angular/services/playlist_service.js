@@ -33,7 +33,8 @@ angular.module('yolk').factory('playlist',[function() {
 	}
 	playlist.prototype.toggle=function(skip){
 		this.active ? this.active=false:this.active=true;
-		if($scope.pin.Page!=='title'){
+		$scope.dims.update();
+		if(this.active && $scope.pin.Page!=='title'){
 			$scope.pin.Page ='title'
 		}
 		if(!self.selected && this.active) self.selected = 1;

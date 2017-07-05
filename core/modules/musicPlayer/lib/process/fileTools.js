@@ -9,7 +9,7 @@ var mm = require('musicmetadata');
 const root = process.Yolk.root;
 //const classical = require('../tools/musicbrainzclassical.js');
 const flow = require('../tools/musicbrainzflow.js');
-const db = process.Yolk.db;
+const db = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const message = process.Yolk.message;
 const types = require('../../musicPlayer.js').settings.fileTypes;
@@ -54,7 +54,7 @@ function watcher(){
 				},1000)
 				watchtime2=setTimeout(function(){
 					message.send('log','refresh triggered');
-					ft.verify(ft.tracks, ft.rootDir);
+					ft.verify(ft.rootDir);
 				},2000)
 				return true;
 			}
@@ -68,7 +68,7 @@ function watcher(){
 			},1000)
 			watchtime2=setTimeout(function(){
 				message.send('log','refresh triggered');
-				ft.verify(ft.tracks, ft.rootDir);
+				ft.verify(ft.rootDir);
 			},2000);
 		}
 
@@ -80,7 +80,7 @@ function watcher(){
 ft.getDir=function(dir){
 
 	if(!ft.rootDir)ft.rootDir = dir;
-	//ft.watch(dir);
+	ft.watch(dir);
 	var self = this;
 	if(!fs.statSync(dir).isDirectory()) return;
 
@@ -110,26 +110,54 @@ ft.getDir=function(dir){
 		if(self.q.length > 0){
 			self.getDir(self.q.shift());
 		}else{
-			//watcher();
+			watcher();
 			if(self.init){
 				self.loaded=self.tracks.length;
 				self.getTags();
 				self.init = false;
 			}else{
 				var include = self.tracks.filter(function(current){
-					return self.verifyTracks.filter(function(current_b){
-						return current_b.id == current.id
-					}).length == 0
+					return !self.verifyTracks.some(function(current_b){
+						return current_b.id === current.id;
+					})
 				});
 				var remove = self.verifyTracks.filter(function(current){
-					return self.tracks.filter(function(current_b){
-						return current_b.id == current.id
-					}).length == 0
+					return !self.tracks.some(function(current_b){
+						return current_b.id == current.id;
+					})
 				});
-				message.send('verify',{
-					remove:remove,
-					include:include
-				});
+
+				if(remove.length){
+					var body = [];
+					remove.forEach(function(track){
+						body.push({
+							delete:{
+								_index:db_index,
+								 _type:'local',
+								 _id:track.id
+							}
+						});
+					});
+					db.client.bulk({
+						body:body,
+						refresh:true
+					},function(err,data){
+						if(err) console.Yolk.error(err)
+						message.send('verify',{
+							remove:remove,
+							include:include
+						});
+					})
+
+					self.verifyTracks = self.verifyTracks.filter(function(track){
+						return !remove.some(function(track2){
+							return track.id === track2.id
+						})
+					})
+				}
+				self.verifyTracks.forEach(function(track){
+					if(!track.musicbrainzed && track.tagged) flow.add(track);
+				})
 				if(include.length){
 					self.tracks = include;
 					self.loaded = include.length;
@@ -144,14 +172,7 @@ ft.getDir=function(dir){
 ft.getTags=function(){
 
 	var self = this;
-	/*
-	var send = function(data){
-		self.sender.send('track', data);
-	}
-	* */
-
 	if(self.tracks.length > 0){
-
 		var track = self.tracks.shift();
 		var src = path.join(track.path,track.file);
 
@@ -214,14 +235,23 @@ ft.getTags=function(){
 
 }
 
-ft.verify = function(tracks, dir){
-	this.verifyTracks = tracks;
-	this.init = false;
-	//this.active = tracks;
-	this.q=[];
-	this.tracks=[];
-	this.loaded=0;
-	this.getDir(dir);
+ft.verify = function(dir){
+	if(dir){
+		var self = this;
+		var query = {
+			index:db_index,
+			type:'local',
+		}
+		db.fetchAll(query).then(function(data){
+			self.watchers={}
+			self.init = false;
+			self.q=[];
+			self.tracks=[];
+			self.loaded=0;
+			self.verifyTracks = data;
+			self.getDir(dir);
+		})
+	}
 }
 
 //event listeners
@@ -233,10 +263,11 @@ ipcMain.on('getDir', (event, dir) => {
 	ft.getDir(dir);
 })
 
-ipcMain.on('verify', function(event, data){
-	ft.rootDir = data.dir;
-	ft.verify(data.tracks, data.dir);
+ipcMain.on('verify', function(event,dir){
+	ft.rootDir = dir;
+	ft.verify(dir);
 })
+/*
 ipcMain.on('kill', function(event,data) {
 	if(data === 'revive'){
 		delete ft.rootDir;
@@ -252,3 +283,4 @@ ipcMain.on('kill', function(event,data) {
 	ft.count=0,
 	ft.watchers={}
 })
+*/

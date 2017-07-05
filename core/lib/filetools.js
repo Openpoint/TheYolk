@@ -15,9 +15,8 @@ if(process.Yolk){
 function getMessage(){
 	return process.Yolk.message;
 }
-var filetools = function(){
+var filetools = function(){};
 
-}
 filetools.prototype.download = function(urls,destination){
 	var self = this;
 

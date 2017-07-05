@@ -11,7 +11,7 @@ angular.module('yolk').factory('lazy',[function() {
 	var lazy = function(scope){
 		$scope = scope;
 		this.Top = 0;
-		this.trackHeight = 130;
+		this.trackHeight = $scope.dims.trackHeight;
 		this.progressHeight = 10;
 		this.playingHeight = this.trackHeight+this.progressHeight;
 		this.chunk = 0;
@@ -110,7 +110,7 @@ angular.module('yolk').factory('lazy',[function() {
 			//console.log('top')
 			$('#playing .inner').css({
 				position:'fixed',
-				top:$scope.dims.menHeight+$scope.dims.searchHeight,
+				top:$scope.playlist.active?$scope.dims.menHeight+1:$scope.dims.menHeight+$scope.dims.searchHeight+2,
 				bottom:'auto'
 			}).addClass('Top').removeClass('Bottom');
 			$scope.lib.playing.Bottom = false;

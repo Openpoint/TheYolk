@@ -15,7 +15,7 @@ const cpu = require('../tools/cpu.js');
 const fs = require('fs');
 const message = process.Yolk.message;
 const homedir = process.Yolk.home;
-const elastic = process.Yolk.db;
+const elastic = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
 const db_index = process.Yolk.modules['musicPlayer'].config.db_index.index;
 const mb_url="https://musicbrainz.org/ws/2/";
 const mb_query="?fmt=json";

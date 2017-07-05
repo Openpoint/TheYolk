@@ -3,9 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'));
 
-
 angular.module('yolk').directive('yolkThumb', function() {
-
     return function(scope, element, attrs) {
         var parent = scope.$parent;
         if(parent.$parent){

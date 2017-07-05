@@ -2,7 +2,8 @@
 
 const {ipcMain} = require('electron');
 const tools = require('./searchtools.js');
-const elastic = process.Yolk.db;
+const path = require('path');
+const elastic = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
 const request = require('request');
 const headers = process.Yolk.modules["musicPlayer"].config.headers;

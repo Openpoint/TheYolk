@@ -1,0 +1,16 @@
+<script>
+	Yolk.getModule();
+	Yolk.fixChrome();
+</script>
+
+<div ng-controller="link" id='main'>
+	<div id='topmen'>
+		<div class='icon'><a ng-include="icon" href='#!/home'></a></div>
+		<div class = 'controls'>
+			<div class='fa fa-arrow-circle-o-left' ng-class="{active:history.back}" ng-click='go("back",history.back)'></div>
+			<div class='home fa fa-home'  ng-class="{active:history.home}" ng-click='go("home",history.home)'></div>
+			<div class='fa fa-arrow-circle-o-right' ng-class="{active:history.forward}" ng-click='go("forward",history.forward)'></div>
+		</div>
+	</div>
+	<webview style="width:100%; height:100%;" id="webview" src="data:text/plain,"></webview>
+</div>
