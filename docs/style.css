@@ -159,7 +159,7 @@ a{
 	width:100%;
 	display:flex;
 }
-#player #intro p, .idea .info{
+#player #intro p, .trip .info{
 	font-size:.85em;
 	opacity:.75;
 	padding-bottom:1em;
@@ -180,16 +180,63 @@ a{
 }
 #footer{
 	border-top:1px solid #302B22;
-	padding:10px 0;
+	padding:60px 0;
 	background:#E7E7E7;
 	min-height:500px;
+	text-align:center;
+	opacity:.75;
 }
-#alpha .ideas{
+
+#footer img{
+	height:1.25em;
+	margin-right:.25em;
+}
+#footer h2 a{
+
+	padding:0 10px;
+	border-bottom:1px solid #302B22;
+}
+#footer a{
+	text-decoration:none;
+}
+#footer a:hover{
+	opacity:1!important;
+}
+#footer p{
+	line-height:1.5em;
+	padding:20px 0;
+}
+.trips{
 	display:flex;
 	flex-wrap:wrap;
 	justify-content: space-between;
 	padding-top:20px;
 }
-#alpha .idea{
+.trip{
 	flex:0 0 30%;
+}
+.os{
+	text-align:center;
+	margin-bottom:10px;
+}
+.os img{
+	height:40px;
+	opacity:.75;
+	width:auto;
+}
+#downloads .downloads a{
+	display:block;
+	padding:5px 0;
+	text-align:center;
+	text-decoration:none;
+	color:#302B22;
+}
+#downloads h1{
+	text-align:center;
+	border-bottom:1px solid #302B22;
+	margin-bottom:10px;
+}
+#downloads h2{
+	text-align:center;
+	margin-top:40px;
 }

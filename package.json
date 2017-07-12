@@ -1,6 +1,6 @@
 {
   "name": "Yolk",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "main": "main.js",
   "author": {
     "name": "Michael Jonker",
@@ -22,7 +22,6 @@
     "jquery.facedetection": "^2.0.2",
     "musicmetadata": "^2.0.5",
     "request": "^2.75.0",
-    "sharp": "^0.17.3",
     "smartcrop-sharp": "^1.0.5",
     "tar.gz": "^1.0.5",
     "tree-kill": "^1.1.0",
@@ -55,10 +54,12 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "linux": "build -l --x64",
-    "windows": "build -w --x64",
+    "linux32": "build -l --ia32",
+	"linux64": "build -l --x64",
+	"windows32": "build -w --x64",
+    "windows64": "build -w --x64",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
   },
-  "postinstall": "install-app-deps"
+  "postinstall": "install-app-deps && ./node_modules/.bin/electron-rebuild"
 }
