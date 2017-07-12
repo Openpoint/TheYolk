@@ -1,5 +1,5 @@
 {
-  "name": "Yolk",
+  "name": "TheYolk",
   "version": "0.0.0",
   "main": "main.js",
   "author": {
@@ -7,7 +7,7 @@
     "email": "michael@openpoint.ie",
     "url": "http://openpoint.ie/"
   },
-  "description": "Alpha yolk for playing music",
+  "description": "A modular browser for data driven applications",
   "dependencies": {
     "angular": "^1.5.8",
     "angular-animate": "^1.5.8",
