@@ -39,9 +39,7 @@
     "compression": "maximum",
     "asar": false,
     "linux": {
-      "target": [
-        "deb"
-      ],
+      "target": ["deb"],
       "deb": {
         "compression": "gz"
       }
