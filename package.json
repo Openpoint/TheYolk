@@ -9,11 +9,11 @@
   },
   "homepage":"http://theyolk.openpoint.ie/",
   "bugs":"https://github.com/Openpoint/Yolk/issues",
-  "description": "A modular browser for data driven applications",
-  "repository":{
-	  "type":"git",
-	  "url":"https://github.com/Openpoint/Yolk.git"
+  "repository" :{
+	  "type" : "git",
+	  "url" : "https://github.com/Openpoint/Yolk"
   },
+  "description": "A modular browser for data driven applications",
   "license" : "GPL-3.0",
   "engines" : { "node" : ">=7.0.0" },
   "dependencies": {
@@ -51,11 +51,11 @@
     "copyright": "Copyright © 2017 Michael Jonker",
 	"publish":{
 		"provider":"github",
-		"owner":"citkane",
+		"owner":"Openpoint",
 		"host":"github.com",
-		"protocol":"https"
+		"protocol":"https",
+		"private":false
 	},
-	"detectUpdateChannel":true,
     "linux": {
       "target": [
         "deb","rpm"
