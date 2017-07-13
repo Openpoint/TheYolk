@@ -11,7 +11,7 @@
   "bugs":"https://github.com/Openpoint/Yolk/issues",
   "repository" :{
 	  "type" : "git",
-	  "url" : "https://github.com/Openpoint/Yolk"
+	  "url" : "https://github.com/Openpoint/Yolk.git"
   },
   "description": "A modular browser for data driven applications",
   "license" : "GPL-3.0",
@@ -50,6 +50,7 @@
     "asar": true,
     "copyright": "Copyright © 2017 Michael Jonker",
 	"publish":{
+		"repo":"https://github.com",
 		"provider":"github",
 		"owner":"Openpoint",
 		"host":"github.com",
