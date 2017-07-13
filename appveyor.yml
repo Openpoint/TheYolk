@@ -14,7 +14,3 @@ build_script:
   - npm run windows
 
 test: off
-
-environment:
-  GH_TOKEN:
-    secure: b067585d24000d65bf0ca9a62f9492c77d257bcd
