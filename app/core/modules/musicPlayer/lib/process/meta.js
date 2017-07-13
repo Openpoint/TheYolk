@@ -272,14 +272,12 @@ var downart = function(src,item){
 	var thumb = path.join(dest,'thumb.jpg');
 
 	if(!ft.isThere('file',reduced)){
-		console.Yolk.log(reduced)
 		var options = {
 			url:src,
 			encoding:null,
 			headers:headers
 		}
 		request(options, function process(error, response, body) {
-			console.Yolk.log(body)
 			if(!error && response.statusCode == 200){
 				Jimp.read(body, function (err,image) {
 
@@ -314,11 +312,9 @@ var downart = function(src,item){
 	}
 
 	function proceed(src,dest,item){
-		console.Yolk.warn(item)
 		var face = "face('"+encodeURI(src)+"')"
 	    var foo = imageWindow.webContents.executeJavaScript(face,true);
 		foo.then(function(boost){
-			console.Yolk.log(boost)
 			Jimp.read(src).then(function(image){
 				image.crop(boost.x,boost.y,boost.width,boost.height).resize(250,250).write(thumb).write(dest,function(err,data){
 					if(err){
