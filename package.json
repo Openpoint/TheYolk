@@ -44,11 +44,11 @@
     "electron-builder": "^19.4.0"
   },
   "build": {
-    "appId": "ie.openpoint.${name}",
+    "appId": "ie.openpoint.theyolk",
 	"productName":"The Yolk",
     "compression": "maximum",
     "asar": true,
-    "copyright": "Copyright © 2017 ${author.name}",
+    "copyright": "Copyright © 2017 Michael Jonker",
 	"publish":{
 		"provider":"github",
 		"owner":"Openpoint",
