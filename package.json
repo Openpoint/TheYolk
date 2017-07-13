@@ -42,7 +42,7 @@
     "copyright": "Copyright © year ${author}",
     "linux": {
       "target": [
-        "rpm"
+        "deb","rpm"
       ]
     },
     "win": {
@@ -52,13 +52,14 @@
     },
     "mac": {
       "target": [
-        "pkg"
+        "dmg"
       ]
     }
   },
   "scripts": {
     "pack": "build --dir",
     "build": "build -l --ia32 --x64",
+	"release":"build && build --publish onTagOrDraft",
     "mac": "build -m",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
