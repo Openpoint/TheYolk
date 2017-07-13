@@ -13,6 +13,7 @@ env:
 
 os:
   - linux
+  - osx
 
 cache:
   directories:
@@ -38,7 +39,8 @@ install:
 - yarn
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn release  --ia32 --x64; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn linux; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then yarn mac; fi
 
 
 before_cache:

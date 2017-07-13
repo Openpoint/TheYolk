@@ -44,13 +44,23 @@
       "target": [
         "deb","rpm"
       ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
     }
   },
   "scripts": {
     "pack": "build --dir",
-    "linux": "build -l --ia32 --x64",
-	"release":"build && build --publish onTagOrDraft",
-    "mac": "build -m",
+	"linux":"build -l --ia32 --x64 && build --publish onTagOrDraft",
+	"windows":"build -w --ia32 --x64 && build --publish onTagOrDraft",
+    "mac": "build -m && build --publish onTagOrDraf",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
   }

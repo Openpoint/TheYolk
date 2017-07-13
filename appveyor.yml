@@ -11,10 +11,10 @@ install:
   - npm install
 
 build_script:
-  - npm run release
+  - npm run windows
 
 test: off
 
 environment:
   GH_TOKEN:
-    secure: ca943220a647951dcb26800323281a5ce970b7d8
+    secure: b067585d24000d65bf0ca9a62f9492c77d257bcd
