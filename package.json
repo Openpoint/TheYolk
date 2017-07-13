@@ -51,7 +51,7 @@
     "copyright": "Copyright © 2017 Michael Jonker",
 	"publish":{
 		"provider":"github",
-		"owner":"Openpoint",
+		"owner":"citkane",
 		"host":"github.com",
 		"protocol":"https"
 	},
