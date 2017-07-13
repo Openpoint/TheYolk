@@ -44,16 +44,6 @@
       "target": [
         "deb","rpm"
       ]
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
     }
   },
   "scripts": {
