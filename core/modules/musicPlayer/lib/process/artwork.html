@@ -4,15 +4,14 @@
         <meta charset="UTF-8">
         <script>
             window.$ = window.jQuery = require('jquery');
-            const q = require("bluebird");
+            window.Promise = require("bluebird");
             const {ipcRenderer} = require('electron');
+			const smartcrop = require('smartcrop');
             require('jquery.facedetection');
         </script>
     </head>
     <body>
-
         <script>
-
             var face = function(src,discoq){
 				src = decodeURI(src);
                 var promise = new Promise(function(resolve,reject){
@@ -22,14 +21,45 @@
                     image.onload = function(){
                         try{
                             $(image).faceDetection({
-                                complete: function (faces) {
-                                    $(image).remove();
-
-                                    if(faces.length){
-                                        resolve(faces);
-                                    }else{
-                                        resolve(false)
-                                    }
+                                complete: function (data) {
+									var confidence;
+									var options = {
+										width: 250,
+										height:250
+									}
+									if (data.length){
+										data.forEach(function(face){
+											if(!confidence){
+												confidence = face.confidence;
+											}else if(face.confidence > confidence){
+												confidence = face.confidence;
+											}
+										})
+										data = data.filter(function(face){
+											if(face.confidence === confidence){
+												return true;
+											}
+										})
+										var boost = data.map(function(face){
+											return {
+												x:face.x,
+												y:face.y,
+												width:face.width,
+												height:face.height,
+												weight:1
+											}
+										})
+										options.boost = boost;
+										smartcrop.crop(image,options).then(function(result){
+											$(image).remove();
+											resolve(result.topCrop)
+										})
+									}else{
+										smartcrop.crop(image,options).then(function(result){
+											$(image).remove();
+											resolve(result.topCrop)
+										})
+									}
                                 }
                             });
                         }
@@ -40,16 +70,6 @@
                 })
                 return promise;
             }
-            ipcRenderer.on('log',function(event,data){
-    			console.log(data);
-    		})
-            ipcRenderer.on('json',function(event,data){
-                data = JSON.parse(data);
-    			console.log(data);
-    		})
-    		ipcRenderer.on('error',function(event,data){
-    			console.error(data);
-    		})
         </script>
     </body>
 </html>

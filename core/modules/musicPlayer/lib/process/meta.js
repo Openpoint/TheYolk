@@ -7,8 +7,9 @@ const path=require('path');
 const q = require("bluebird");
 const os = require('os');
 const request = require('request');
-const sharp = require('sharp');
-const smartcrop = require('smartcrop-sharp');
+//const sharp = require('sharp');
+
+const Jimp = require("jimp");
 const {webContents,BrowserWindow,ipcMain} = require('electron');
 const ft = require(path.join(process.Yolk.root,'core/lib/filetools'));
 const cpu = require('../tools/cpu.js');
@@ -43,6 +44,7 @@ let imageWindow = new BrowserWindow({
     parent:process.Yolk.win,
     show:false
 });
+//imageWindow.webContents.openDevTools();
 var webPreferences = {
   nodeIntegration: true,
   webSecurity: true,
@@ -262,27 +264,42 @@ action.google = function(){
 
 //download the artist or album image
 var downart = function(src,item){
-
 	var dest = path.join(homedir,'data','modules','musicPlayer','images',item.type,item.id);
 	if(!ft.isThere('dir',dest)){
 		ft.mkdir(homedir,'data/modules/musicPlayer/images/'+item.type+'/'+item.id);
 	}
 	var reduced = path.join(dest,'reduced.jpg');
+	var thumb = path.join(dest,'thumb.jpg');
+
 	if(!ft.isThere('file',reduced)){
+		console.Yolk.log(reduced)
 		var options = {
 			url:src,
 			encoding:null,
 			headers:headers
 		}
 		request(options, function process(error, response, body) {
+			console.Yolk.log(body)
 			if(!error && response.statusCode == 200){
-				sharp(body).resize(600).toFile(reduced,function(err,info){
-					if(!err){
-						new proceed(reduced,dest,item)
-					}else{
-						console.Yolk.error(err);
+				Jimp.read(body, function (err,image) {
+
+					if(err){
+						if(item.google){
+							item.google.index++;
+							if(item.google.index > 4) return;
+						}
+						queue.google.push(item)
+						go('google');
+						return;
 					}
-				});
+					image.resize(600,Jimp.AUTO).write(reduced,function(err,data){
+						if(!err){
+							new proceed(reduced,thumb,item)
+						}else{
+							console.Yolk.error(err);
+						}
+					})
+				})
 			}else{
 				if(item.google){
 					item.google.index++;
@@ -293,86 +310,40 @@ var downart = function(src,item){
 			}
 		})
 	}else{
-		new proceed(reduced,dest,item)
+		new proceed(reduced,thumb,item)
 	}
 
-	function proceed(src,thumb,item){
-		//var track = item.track;
+	function proceed(src,dest,item){
+		console.Yolk.warn(item)
 		var face = "face('"+encodeURI(src)+"')"
 	    var foo = imageWindow.webContents.executeJavaScript(face,true);
-
-		foo.then(function(data){
-			var confidence;
-			if (data.length){
-				data.forEach(function(face){
-					if(!confidence){
-						confidence = face.confidence;
-					}else if(face.confidence > confidence){
-						confidence = face.confidence;
+		foo.then(function(boost){
+			console.Yolk.log(boost)
+			Jimp.read(src).then(function(image){
+				image.crop(boost.x,boost.y,boost.width,boost.height).resize(250,250).write(thumb).write(dest,function(err,data){
+					if(err){
+						console.Yolk.error(err)
+					}else{
+						if(item.refresh) message.send('refreshart');
+						elastic.update({
+							index:db_index,
+							type:item.type,
+							id:item.id,
+							body:{doc:{
+								artwork:true
+							}}
+						}).then(function(data){},function(err){
+							if(err) console.Yolk.error(err);
+						})
 					}
 				})
-				data = data.filter(function(face){
-					if(face.confidence === confidence){
-						return true;
-					}
-				})
-	            var data2 = data.map(function(face){
-	                return {
-	                    x:face.x,
-	                    y:face.y,
-	                    width:face.width,
-	                    height:face.height,
-						weight:1
-	                }
-	            })
-				crop(data2);
-	        }else{
-				crop(false);
-			}
-			function crop(boost){
-	            dest = path.join(thumb,'thumb.jpg');
-				new applySmartCrop(src,dest,250,250,boost,item);
-			}
-		},function(err){
-			messsage.send('err',err)
-		})
-	}
-}
 
-var applySmartCrop=function(src, dest, width, height,boost,item) {
-
-	var options = {
-		width: width,
-		height: height
-	}
-	if(boost){
-		options.boost = boost;
-	}
-	try{
-		smartcrop.crop(src, options).then(function(result) {
-			if(kill) return;
-			var crop = result.topCrop;
-			sharp(src)
-			.extract({width: crop.width, height: crop.height, left: crop.x, top: crop.y})
-			.resize(width, height)
-			.toFile(dest,function(){
-				if(item.refresh) message.send('refreshart');
-			});
-
-			elastic.update({
-				index:db_index,
-				type:item.type,
-				id:item.id,
-				body:{doc:{
-					artwork:true
-				}}
-			}).then(function(data){},function(err){
-				console.Yolk.error(err);
+			}).catch(function(err){
+				console.Yolk.error(err.message)
 			})
-		});
-	}
-	catch(err){
-		console.Yolk.err(err)
+		},function(err){
+			console.Yolk.error(err)
+		})
 	}
 }
 
