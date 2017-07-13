@@ -7,15 +7,14 @@
     "email": "michael@openpoint.ie",
     "url": "http://openpoint.ie/"
   },
-  "homepage":"http://theyolk.openpoint.ie/",
-  "bugs":"https://github.com/Openpoint/Yolk/issues",
-  "repository" :{
-	  "type" : "git",
-	  "url" : "https://api.github.com/Openpoint/Yolk.git"
-  },
+  "homepage": "http://theyolk.openpoint.ie/",
+  "bugs": "https://github.com/Openpoint/Yolk/issues",
+  "repository":"Openpoint/Yolk",
   "description": "A modular browser for data driven applications",
-  "license" : "GPL-3.0",
-  "engines" : { "node" : ">=7.0.0" },
+  "license": "GPL-3.0",
+  "engines": {
+    "node": ">=7.0.0"
+  },
   "dependencies": {
     "ajv": "^5.2.2",
     "angular": "^1.5.8",
@@ -45,20 +44,15 @@
   },
   "build": {
     "appId": "ie.openpoint.theyolk",
-	"productName":"The Yolk",
+    "productName": "The Yolk",
     "compression": "maximum",
     "asar": true,
     "copyright": "Copyright © 2017 Michael Jonker",
-	"publish":{
-		"provider":"github",
-		"owner":"Openpoint",
-		"host":"github.com",
-		"protocol":"https",
-		"private":false
-	},
+    "publish":["github"],
     "linux": {
       "target": [
-        "deb","rpm"
+        "deb",
+        "rpm"
       ]
     },
     "win": {
@@ -74,8 +68,8 @@
   },
   "scripts": {
     "pack": "build --dir",
-	"linux":"build -l --ia32 && build --publish onTagOrDraft",
-	"windows":"build -w --ia32 && build --publish onTagOrDraft",
+    "linux": "build -l --ia32 && build --publish onTagOrDraft",
+    "windows": "build -w --ia32 && build --publish onTagOrDraft",
     "mac": "build -m && build --publish onTagOrDraft",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "Yolk": "./node_modules/.bin/electron ./"
