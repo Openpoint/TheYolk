@@ -58,7 +58,7 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "build": "build -l --ia32 --x64",
+    "linux": "build -l --ia32 --x64",
 	"release":"build && build --publish onTagOrDraft",
     "mac": "build -m",
     "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",

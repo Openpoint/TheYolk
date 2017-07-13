@@ -39,7 +39,7 @@ install:
 - yarn
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn release; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn release  --ia32 --x64; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then yarn release -- --mac --win; fi
 
 before_cache:
