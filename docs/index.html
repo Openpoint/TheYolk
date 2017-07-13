@@ -117,23 +117,15 @@
 				<div class='trips'>
 					<div class='trip'>
 						<div class='os'><img src = "linux_dark.png" /></div>
-						<div class='downloads'>
-							<a class='download'>0.0.0 64bit - Debian/Ubuntu</a>
-							<a class='download'>0.0.0 32bit - Debian/Ubuntu</a>
-						</div>
+						<div class='downloads' id="linux"></div>
 					</div>
 					<div class='trip'>
 						<div class='os'><img src = "windows_dark.png" /></div>
-						<div class='downloads'>
-							<a class='download'>0.0.0 64bit</a>
-							<a class='download'>0.0.0 32bit</a>
-						</div>
+						<div class='downloads' id="windows"></div>
 					</div>
 					<div class='trip'>
 						<div class='os'><img src = "apple_dark.png" /></div>
-						<div class='downloads'>
-							<a class='download'>0.0.0</a>
-						</div>
+						<div class='downloads' id="apple"></div>
 					</div>
 				</div>
 				<h2><a href='https://github.com/Openpoint/Yolk/releases' target='_blank'>Older Releases</a></h2>
@@ -151,5 +143,25 @@
 		</div>
 		<script>smoothScroll.init()</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.9.0/js/lightbox.min.js"></script>
+		<script>
+			$.get('https://api.github.com/repos/Openpoint/Yolk/releases/latest',function(data){
+				data.assets.forEach(function(asset){
+					console.log(asset)
+					var split = asset.name.split(".")
+					var ext = split[split.length-1]
+					var html = "<a class='download' href='"+asset.browser_download_url+"'>"+asset.name+"</a>";
+					if(ext==='exe'){
+						$('#windows').append(html)
+					}
+					if(ext==='dmg'){
+						$('#apple').append(html)
+					}
+					if(ext==='deb'||ext==='rpm'){
+						$('#linux').append(html)
+					}
+
+				})
+			})
+		</script>
 	</body>
 </html>
