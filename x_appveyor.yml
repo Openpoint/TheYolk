@@ -17,4 +17,4 @@ test: off
 
 environment:
   GH_TOKEN:
-    secure: 56f475bbc0341858c2e1e1ec5eda9619cec523aa
+    secure: ca943220a647951dcb26800323281a5ce970b7d8
