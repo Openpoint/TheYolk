@@ -6,7 +6,9 @@ Combining Electron, Elasticsearch and AngularJS affords developers a familiar en
 
 This makes it easy to scrape and consume microservices, store and analyse results locally and present rich applications with a beautiful user interface.
 
-### Markdown
+### Required: Node >= 7
+
+Clone the repository and
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
