@@ -1,4 +1,4 @@
-# Better Stuff for the internet
+# THE YOLK - Better Stuff for the internet
 
 THE YOLK is a modular browser for data driven applications.
 
@@ -14,36 +14,20 @@ npm run theyolk OR
 
 npm run theyolk-dev
 
-### Building
+### Packaging
 
 The Yolk uses [electron-builder](https://github.com/electron-userland/electron-builder). Read the documentation and configure package.json in the root to suite your build environment. 
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### Documentation
 
-```markdown
-Syntax highlighted code block
+Not done yet - THE YOLK is very much in early ALPHA.
 
-# Header 1
-## Header 2
-### Header 3
+In summary, THE YOLK sets up an electron environment with a boot routine which detects modules by folder structure. The boot routine provides an Elasticsearch instance and the API allows for applications to create and access databasing and analytics by settings file.
 
-- Bulleted
-- List
+### Applications
 
-1. Numbered
-2. List
+Player is The Yolk's first default application and a seriously fun music player.
 
-**Bold** and _Italic_ and `Code` text
+It searches for music sources locally, on Youtube and the Internet Archive and then does it's magic by constructing rich metadata from Musicbrainz, Wikipedia, Discogs and other sources.
 
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Openpoint/Yolk/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+This is an endless, free, legal jukebox that provides an unique experience exploring and enjoying your musical taste.
