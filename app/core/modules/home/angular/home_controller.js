@@ -1,5 +1,6 @@
 'use strict';
 angular.module('yolk').controller('home', ['$scope','link',function($scope,link) {
+
 	const path = require('path');
 	const mod_name = 'home';
 	Yolk.prepare($scope,mod_name);
@@ -7,6 +8,7 @@ angular.module('yolk').controller('home', ['$scope','link',function($scope,link)
 	$scope.widgets = {
 		core:[]
 	}
+	$scope.version = Yolk.remote('version');
 	Object.keys(Yolk.modules).forEach(function(key){
 		if(Yolk.modules.hasOwnProperty(key) && Yolk.modules[key].config.home){
 			var widget = {

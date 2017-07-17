@@ -160,24 +160,20 @@
 					<div class='title'>Playing from {{tracks.source.type}}:</div>
 					<div class='source button' ng-click='pin.Source(tracks.source)'>{{tracks.source.name}}</div>
 				</div>
-				<div id='youtube-wrap' ng-mousemove="fader()" ng-style="{height:dims.vidheight||'auto'}"
-					ng-class="{
-						novid:!lib.playing.youtube,
-						vid:lib.playing.youtube
-					}">
-					<div ng-style="{
-						width:dims.sidebarWidth-1,
-						height:dims.sidebarWidth/2,
-
-					}" ng-show="lib.playing && !lib.playing.youtube" class='meta'>
+				<div id='youtube-wrap' ng-mousemove="fader()"
+					ng-class="{novid:!lib.playing.youtube,vid:lib.playing.youtube}">
+					<div ng-style="{width:dims.sidebarWidth-1,height:dims.sidebarWidth/2}"
+						ng-show="lib.playing && !lib.playing.youtube" class='meta'>
 						<img ng-src="{{imagePath('artist',lib.playing.artist)}}" />
 						<img ng-src="{{imagePath('album',lib.playing.album)}}" />
 						<div class='shadow'></div>
 						<div class='shadow right'></div>
 					</div>
 					<div id='youtube2' class='small'>
-						<!-- ng-src="{{lib.playing.embed}}"  ng-show="lib.playing.youtube"-->
-						<webview style="width:100%; height:100%;" id="youtube" src="data:text/plain," preload="{{ytpreload}}"></webview>
+						<webview ng-style="{width:isfullscreen?'100%':dims.sidebarWidth-1,height:isfullscreen?'100%':dims.vidheight}" 
+							id="youtube" src="data:text/plain,"
+							preload="{{ytpreload}}"
+						></webview>
 						<div id='fullscreen_out' ng-click="fullscreen()" ng-if="isfullscreen">
 							<div class='icon-fullscreen_out'></div>
 						</div>
@@ -236,7 +232,7 @@
 							<div class='drawerInner ani-fOut' ng-if="drawers.dpos[pin.Page].open===artist.id">
 								<div ng-repeat="album in drawers.lib[pin.Page][artist.id].albums" class="album_image" >
 										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
-										<span class='youtube' ng-include="settings.paths.root+'/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
+										<span class='youtube' ng-include="settings.paths.root+'/app/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
 								</div>
 							</div>
 						</div>

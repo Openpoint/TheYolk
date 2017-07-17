@@ -273,6 +273,7 @@ body,html{
 	display:flex;
 	flex-direction:column;
 	justify-content:flex-end;
+	position:relative;
 }
 #folder{
 	margin-bottom:15px;
@@ -901,7 +902,9 @@ body,html{
 	left:50%;
 }
 #youtube-wrap{
+	position:relative;
 	width:100%;
+	overflow:hidden;
 }
 #fullscreen_out{
 	cursor:pointer;

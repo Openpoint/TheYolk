@@ -58,6 +58,7 @@ angular.module('yolk').factory('link',[function() {
 				win.webContents.executeJavaScript('Yolk_scrape()').then(function(data){
 					win.destroy();
 					$scope.$apply(function(){
+						data.title = $("<textarea/>").html(data.title).text();
 						self.widgets.push({title:data.title,icon:data.icon,url:url});
 						self.save();
 					});

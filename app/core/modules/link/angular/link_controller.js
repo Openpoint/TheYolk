@@ -46,7 +46,6 @@ angular.module('yolk').controller('link', ['$scope','$location',function($scope,
 		if(!loaded){
 			webView.loadURL(location);
 			webview.clearHistory();
-			console.log('dom-ready');
 		}
 
 		$scope.his(webview.getURL());

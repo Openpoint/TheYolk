@@ -7,11 +7,14 @@
 	<div id='main'>
 		<div id='sidebar'>
 			<div id='yolk_header'>
-				<div id='logo' ng-include="root+'/core/lib/css/icons/yolk2.svg'"></div>
+				<a href="#!/link?loc=http://theyolk.openpoint.ie" id='logo' ng-include="root+'/core/lib/css/icons/yolk2.svg'"></a>
 			</div>
-			<h2>ALPHA</h2>
-			<p>The Yolk is a modular framework that consumes microservices and make sense of data to humans</p>
-			<p>It is built on top of the Electron framework and Elasticsearch NOSQL database.</p>
+			<div id="appinfo">
+				<h2>{{version}}</h2>
+				<p>The Yolk is a modular framework that consumes microservices and make sense of data to humans</p>
+				<p>It is built on top of the Electron framework and Elasticsearch NOSQL database.</p>
+				<p>The Yolk is an <a href='#!/link?loc=http://openpoint.ie'>Openpoint</a> project.</p>
+			</div>
 		</div>
 		<div id='window'>
 			<div id='applications'>
@@ -27,7 +30,7 @@
 				<h1>Links:</h1>
 				<div class='submit'>
 					<div class='fa fa-plus add' ng-class="{active:url}" ng-click = "get(url)"></div>
-					<input ng-model="url" ng-class='{error:error}' type='text' placeholder="Enter a URL" ng-keypress="get(url,$event)" />
+					<input ng-model="url" ng-class='{error:error}' type='text' placeholder="Add a URL" ng-keypress="get(url,$event)" />
 				</div>
 				<div class='section' ng-if='link && link.widgets.length'>
 					<div ng-repeat="widget in link.widgets track by widget.url" class='Widget'>

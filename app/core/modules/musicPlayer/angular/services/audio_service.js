@@ -1,6 +1,7 @@
 angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce) {
 	const path = require('path');
 	const {ipcRenderer} = require('electron');
+	const Url = require('url');
 	var vidlength;
 	var vidprogress;
 	var vidratio;
@@ -73,14 +74,20 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		webView.addEventListener('dom-ready', function(e) {
 			//webView.openDevTools();
 		})
-
+		webView.addEventListener('new-window', function(e){
+			var protocol = Url.parse(e.url).protocol
+			if (protocol === 'http:' || protocol === 'https:') {
+				e.url = encodeURIComponent(e.url);
+				window.location = '#!/link?loc='+e.url;
+			}
+		});
 		webView.addEventListener('ipc-message',function(event){
 			if(event.channel === 'media'){
 				switch (event.args[0]) {
 					case 'ratio':
 						vidratio = event.args[1];
 						$scope.$apply(function(){
-							$scope.dims.vidheight = $scope.dims.sidebarWidth*vidratio;
+							$scope.dims.vidheight = ($scope.dims.sidebarWidth-1)*vidratio;
 						})
 					break;
 					case 'vidready':
