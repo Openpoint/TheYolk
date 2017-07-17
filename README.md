@@ -11,9 +11,12 @@ Required: Node >= 7
 Clone the repository and:
 
 npm run theyolk OR
+
 npm run theyolk-dev
 
 ### Building
+
+The Yolk uses [electron-builder](https://github.com/electron-userland/electron-builder). Read the documentation and configure package.json in the root to suite your build environment. 
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
