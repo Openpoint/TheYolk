@@ -41,7 +41,7 @@ process.Yolk.message = false;
 process.Yolk.storedMesssage = {};
 process.Yolk.BrowserWindow = BrowserWindow;
 process.Yolk.session = session;
-process.Yolk.version = process.env.npm_package_version;
+process.Yolk.version = require('../package.json').version;
 
 //signals that the renderer client is ready
 process.Yolk.clientReady = function(){

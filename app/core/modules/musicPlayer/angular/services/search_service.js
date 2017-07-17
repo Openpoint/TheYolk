@@ -334,6 +334,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		if(type === 'artist'){
 			items.forEach(function(row){wiki(row)});
 		}
+		$scope.loading = false;
 	}
 	search.prototype.artistAlbums = function(artist){
 		return new Promise(function(resolve,reject){

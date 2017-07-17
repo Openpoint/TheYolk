@@ -47,7 +47,7 @@ function($scope,$interval,$timeout,dims,lazy,audio,internetarchive,youtube,track
 	};
 	$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
 
-
+	$scope.loading = true;
 	$scope.search.go(true,'init');
 
 	$scope.$on('$locationChangeSuccess', function( event ) {

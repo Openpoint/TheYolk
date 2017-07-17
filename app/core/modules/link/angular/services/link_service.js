@@ -14,6 +14,7 @@ angular.module('yolk').factory('link',[function() {
 			if(!data.found){
 				$scope.db.client.create({index:$scope.db_index,type:'links',id:0,body:{links:[]}},function(err,data){
 					if(err) console.error(err);
+					self.populate();
 				})
 				return;
 			}
@@ -29,6 +30,7 @@ angular.module('yolk').factory('link',[function() {
 					})
 					return i === index;
 				});
+				self.populate();
 			})
 		})
 
@@ -77,9 +79,18 @@ angular.module('yolk').factory('link',[function() {
 		this.save()
 	}
 	link.prototype.save = function(){
+		this.populate();
 		$scope.db.client.update({index:$scope.db_index,type:'links',id:0,body:{doc:{links:this.widgets}},refresh:true},function(err,data){
 			if(err) console.error(err);
 		})
+	}
+	link.prototype.populate = function(){
+		var self = this;
+		if(!this.widgets.length){
+			['http://openpoint.ie','http://pasture.openpoint.ie','http://imager.buzz','http://story.openpoint.ie'].forEach(function(url){
+				self.get(url)
+			})
+		}
 	}
 	return link;
 }])

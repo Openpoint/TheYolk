@@ -170,7 +170,7 @@
 						<div class='shadow right'></div>
 					</div>
 					<div id='youtube2' class='small'>
-						<webview ng-style="{width:isfullscreen?'100%':dims.sidebarWidth-1,height:isfullscreen?'100%':dims.vidheight}" 
+						<webview ng-style="{width:isfullscreen?'100%':dims.sidebarWidth-1,height:isfullscreen?'100%':dims.vidheight}"
 							id="youtube" src="data:text/plain,"
 							preload="{{ytpreload}}"
 						></webview>
@@ -187,8 +187,11 @@
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
 		<div id='tracks' ng-style = "dims.dyn">
 			<div id='trackspacer' ng-style = "{height:drawers.dpos[pin.Page].spacer}"></div>
+			<div ng-style="{height:lazy.trackHeight}" class='spin nothing row' ng-if='loading'>
+				<i class='fa fa-spinner fa-3x fa-pulse'></i>
+			</div>
 			<div id="artists" ng-if="pin.Page === 'artist'">
-				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length && !loading">
 					<div class='title'>
 						No artists found
 						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).prefix}}</span>
@@ -241,7 +244,7 @@
 			</div>
 
 			<div id="albums" ng-if="pin.Page === 'album'">
-				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length && !loading">
 					<div class='title'>
 						No albums found
 						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).prefix}}</span>
@@ -309,7 +312,7 @@
 				</div>
 			</div>
 			<div id='titles' ng-if="pin.Page==='title'">
-				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length">
+				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length && !loading">
 					<div class='title'>
 						No tracks found
 						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).prefix}}</span>
@@ -317,6 +320,7 @@
 						<span  ng-if="tools.terms(searchTerm).album" class='pinned' ng-click="pin.album(tools.terms(searchTerm).album)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).album}}</span>
 						<span  ng-if="tools.terms(searchTerm).title" class='pinned' ng-click="pin.album(tools.terms(searchTerm).title)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).title}}</span>
 					</div>
+					<div class='info'>You can search online from the search bar above</div>
 				</div>
 				<div ng-repeat="track in lib[pin.Page] track by track.id" class='row'>
 					<div class='track'
@@ -383,7 +387,6 @@
 						<div class='bottom'></div>
 					</div>
 				</div>
-
 			</div>
 			<div id='playing' class='track row'
 				ng-if = "lib.playing"

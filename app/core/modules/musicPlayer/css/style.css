@@ -444,6 +444,9 @@ body,html{
 	background:url('../images/playBack.png');
 	background-attachment:local;
 }
+#tracks .spin i{
+	margin:0 auto;
+}
 #trackspacer {
 	width:100%;
 }
@@ -478,9 +481,7 @@ body,html{
 	font-weight:700;
 	position:relative;
 }
-.nothing .title{
-	margin-left:85px;
-}
+
 .nothing .pinned{
 	margin-left:10px;
 	cursor:pointer;
@@ -524,10 +525,19 @@ body,html{
 	background:tomato;
 	color:black;
 }
+.nothing .title{
+	margin-bottom:5px;
+}
+.nothing .info{
+	font-size:.8em;
+	line-height:1.5em;
+	text-transform:none;
+}
 .nothing{
 	display:flex;
-	flex-direction:row;
-	align-items:center;
+	flex-direction:column;
+	justify-content:center;
+	padding-left:85px;
 }
 #playing .play{
 	color:Tomato;

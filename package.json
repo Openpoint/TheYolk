@@ -68,6 +68,7 @@
   },
   "scripts": {
     "pack": "build --dir",
+	"testbuild":"build -l",
     "linux": "build -l --ia32 && build --publish onTagOrDraft",
     "windows": "build -w --ia32 && build --publish onTagOrDraft",
     "mac": "build -m && build --publish onTagOrDraft",
