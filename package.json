@@ -1,6 +1,6 @@
 {
   "name": "TheYolk",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.2-alpha.1",
   "main": "app/main.js",
   "author": {
     "name": "Michael Jonker",
@@ -72,7 +72,7 @@
     "linux": "build -l --ia32 && build --publish onTagOrDraft",
     "windows": "build -w --ia32 && build --publish onTagOrDraft",
     "mac": "build -m && build --publish onTagOrDraft",
-    "Yolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
-    "Yolk": "./node_modules/.bin/electron ./"
+    "theyolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
+    "theyolk": "./node_modules/.bin/electron ./"
   }
 }
