@@ -1,4 +1,4 @@
-## Better Stuff for the internet
+# Better Stuff for the internet
 
 THE YOLK is a modular browser for data driven applications.
 
@@ -6,9 +6,14 @@ Combining Electron, Elasticsearch and AngularJS affords developers a familiar en
 
 This makes it easy to scrape and consume microservices, store and analyse results locally and present rich applications with a beautiful user interface.
 
-### Required: Node >= 7
+Required: Node >= 7
 
-Clone the repository and
+Clone the repository and:
+
+npm run theyolk OR
+npm run theyolk-dev
+
+### Building
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
