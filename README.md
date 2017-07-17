@@ -31,3 +31,5 @@ Player is The Yolk's first default application and a seriously fun music player.
 It searches for music sources locally, on Youtube and the Internet Archive and then does it's magic by constructing rich metadata from Musicbrainz, Wikipedia, Discogs and other sources.
 
 This is an endless, free, legal jukebox that provides an unique experience exploring and enjoying your musical taste.
+
+![Image of Music PLayer](https://octodex.github.com/images/yaktocat.png)
