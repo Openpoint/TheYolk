@@ -32,4 +32,4 @@ It searches for music sources locally, on Youtube and the Internet Archive and t
 
 This is an endless, free, legal jukebox that provides an unique experience exploring and enjoying your musical taste.
 
-![Image of Music PLayer](https://octodex.github.com/images/yaktocat.png)
+![Image of Music PLayer](https://github.com/Openpoint/Yolk/blob/master/docs/resources/player.png)
