@@ -1,8 +1,10 @@
-## Welcome to GitHub Pages Yolk
+## Better Stuff for the internet
 
-You can use the [editor on GitHub](https://github.com/Openpoint/Yolk/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+THE YOLK is a modular browser for data driven applications.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Combining Electron, Elasticsearch and AngularJS affords developers a familiar environment and a framework which accepts modular, drop-in applications. 
+
+This makes it easy to scrape and consume microservices, store and analyse results locally and present rich applications with a beautiful user interface.
 
 ### Markdown
 
