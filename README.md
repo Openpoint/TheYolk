@@ -22,7 +22,7 @@ The Yolk uses [electron-builder](https://github.com/electron-userland/electron-b
 
 Not done yet - THE YOLK is very much in early ALPHA.
 
-In summary, THE YOLK sets up an electron environment with a boot routine which detects modules by folder structure. The boot routine provides an Elasticsearch instance and the API allows for applications to create and access databasing and analytics by settings file.
+In summary, THE YOLK sets up an electron environment with a boot routine which detects modules by folder structure. The boot routine provides an Elasticsearch instance and Angular environment. The API allows for applications to create and access databasing and analytics by the modules settings file.
 
 ### Applications
 
