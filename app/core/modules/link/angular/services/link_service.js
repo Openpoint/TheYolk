@@ -87,7 +87,7 @@ angular.module('yolk').factory('link',[function() {
 	link.prototype.populate = function(){
 		var self = this;
 		if(!this.widgets.length){
-			['http://openpoint.ie','http://pasture.openpoint.ie','http://imager.buzz','http://story.openpoint.ie'].forEach(function(url){
+			['http://openpoint.ie','http://pasture.openpoint.ie','http://imager.buzz'].forEach(function(url){
 				self.get(url)
 			})
 		}

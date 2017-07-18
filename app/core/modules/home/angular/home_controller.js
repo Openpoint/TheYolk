@@ -4,7 +4,7 @@ angular.module('yolk').controller('home', ['$scope','link',function($scope,link)
 	const path = require('path');
 	const mod_name = 'home';
 	Yolk.prepare($scope,mod_name);
-	$scope.noicon = path.join($scope.root,'core/lib/css/noicon.png')
+	$scope.noicon = path.join(Yolk.root,'core/lib/css/noicon.png')
 	$scope.widgets = {
 		core:[]
 	}

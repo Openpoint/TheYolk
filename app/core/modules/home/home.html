@@ -6,8 +6,8 @@
 	<div id='topmen'></div>
 	<div id='main'>
 		<div id='sidebar'>
-			<div id='yolk_header'>
-				<a href="#!/link?loc=http://theyolk.openpoint.ie" id='logo' ng-include="root+'/core/lib/css/icons/yolk2.svg'"></a>
+			<div id='yolk_header' ng-if="settings.paths.root">
+				<a href="#!/link?loc=http://theyolk.openpoint.ie" id='logo' ng-include="settings.paths.root+'/core/lib/css/icons/yolk2.svg'"></a>
 			</div>
 			<div id="appinfo">
 				<h2>{{version}}</h2>

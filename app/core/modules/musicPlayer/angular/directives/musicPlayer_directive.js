@@ -9,7 +9,7 @@ angular.module('yolk').directive('yolkThumb', function() {
         if(parent.$parent){
             parent = parent.$parent;
         }
-        var paths=parent.settings.paths
+        var paths=parent.settings.paths;
         var thisPath = path.join(paths[attrs.cat],scope[attrs.cat].id,'thumb.jpg');
         if(filetools.isThere('file',thisPath)){
             scope[attrs.cat].image = thisPath

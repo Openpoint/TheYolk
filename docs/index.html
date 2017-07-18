@@ -15,21 +15,6 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
 		<![endif]-->
 
-		<!-- Piwik -->
-		<script type="text/javascript">
-			var _paq = _paq || [];
-			/* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-			_paq.push(['trackPageView']);
-			_paq.push(['enableLinkTracking']);
-			(function() {
-				var u="//webstats.openpoint.ie/";
-				_paq.push(['setTrackerUrl', u+'piwik.php']);
-				_paq.push(['setSiteId', '2']);
-				var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-				g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-			})();
-		</script>
-		<!-- End Piwik Code -->
 	</head>
 
 	<body>
@@ -72,16 +57,16 @@
 						<p>It searches for music sources locally, on Youtube and the Internet Archive and then does it's magic by constructing rich metadata from Musicbrainz, Wikipedia, Discogs and other sources.</p>
 						<p>This is an endless, free, legal jukebox that provides an unique experience exploring and enjoying your musical taste.</p>
 						<div class='buttons'>
-							<a class='button' href="resources/player.png" data-lightbox="features" data-title="My caption">Features</a>
-							<a href="resources/player_artists.png" data-lightbox="features" data-title="My caption"></a>
-							<a href="resources/player_albums.png" data-lightbox="features" data-title="My caption"></a>
+							<a class='button' href="resources/player.png" data-lightbox="features" data-title="Track View">Features</a>
+							<a href="resources/player_artists.png" data-lightbox="features" data-title="Artist View"></a>
+							<a href="resources/player_albums.png" data-lightbox="features" data-title="Album View"></a>
 							<a data-scroll href='#downloads' class='button'>Download</a>
 						</div>
 					</div>
 					<div class='image'>
-						<a href="resources/player.png" data-lightbox="player" data-title="My caption"><img src='resources/player.png' /></a>
-						<a href="resources/player_artists.png" data-lightbox="player" data-title="My caption"></a>
-						<a href="resources/player_albums.png" data-lightbox="player" data-title="My caption"></a>
+						<a href="resources/player.png" data-lightbox="player" data-title="Track View"><img src='resources/player.png' /></a>
+						<a href="resources/player_artists.png" data-lightbox="player" data-title="Artist View"></a>
+						<a href="resources/player_albums.png" data-lightbox="player" data-title="Album View"></a>
 					</div>
 
 				</div>
@@ -144,6 +129,9 @@
 						<div class='downloads' id="apple"></div>
 					</div>
 				</div>
+				<div class='innote'>* RPM installations may need "sudo yum install libXScrnSaver"</div>
+				<div class='innote'>* DEB on Debian (not Ubuntu) wont resolve dependencies from default GUI package manager. Use "sudo gdebi install &lt;filename&gt; instead."</div>
+				<div class='innote'>* Apple binary is not tested yet - may not work!</div>
 				<h2><a href='https://github.com/Openpoint/Yolk/releases' target='_blank'>Older Releases</a></h2>
 			</div>
 		</div>
@@ -159,7 +147,7 @@
 		</div>
 		<script>smoothScroll.init()</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.9.0/js/lightbox.min.js"></script>
-		<script>
+		<script type="text/javascript">
 			$.get('https://api.github.com/repos/Openpoint/Yolk/releases/latest',function(data){
 				data.assets.forEach(function(asset){
 					var split = asset.name.split(".")
@@ -176,7 +164,22 @@
 					}
 
 				})
+
+				//<!-- Piwik -->
+				var _paq = _paq || [];
+				/* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+				_paq.push(['trackPageView']);
+				_paq.push(['enableLinkTracking']);
+				(function() {
+					var u="//webstats.openpoint.ie/";
+					_paq.push(['setTrackerUrl', u+'piwik.php']);
+					_paq.push(['setSiteId', '2']);
+					var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+					g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+				})();
+				//<!-- End Piwik Code -->
 			})
 		</script>
+
 	</body>
 </html>

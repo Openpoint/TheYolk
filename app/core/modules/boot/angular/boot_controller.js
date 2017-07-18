@@ -45,9 +45,9 @@ angular.module('yolk').controller('boot', ['$scope','$location',function($scope,
 				}
 			}
 			types.forEach(function(type){
-				if(!Yolk.modules[type].config.settings.paths) Yolk.modules[type].config.settings.paths = {};
-				Yolk.modules[type].config.settings.paths.home = Yolk.home;
-				Yolk.modules[type].config.settings.paths.root = Yolk.root;
+				//if(!Yolk.modules[type].config.settings.paths) Yolk.modules[type].config.settings.paths = {};
+				//Yolk.modules[type].config.settings.paths.home = Yolk.home;
+				//Yolk.modules[type].config.settings.paths.root = Yolk.root;
 
 				$scope.utils.settings(type).then(function(data){
 					length --;

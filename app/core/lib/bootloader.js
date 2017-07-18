@@ -16,7 +16,7 @@ var checkEnd = function(end,file){
 
 var bootloader = function(root){
 	this.root = root;
-	this.home = path.join(os.homedir(),'.yolk');
+	this.home = path.join(os.homedir(),'.theyolk');
 	this.modules={};
 	this.coreProcesses={};
 	this.modulePaths=[

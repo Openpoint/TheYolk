@@ -164,6 +164,9 @@ a{
 	opacity:.75;
 	padding-bottom:1em;
 }
+.innote{
+	font-size:.7em;
+}
 .buttons{
 	display:flex;
 	padding:0 15px;
@@ -210,10 +213,11 @@ a{
 	display:flex;
 	flex-wrap:wrap;
 	justify-content: space-between;
-	padding-top:20px;
+	padding:20px 0;
 }
 .trip{
 	flex:0 0 30%;
+
 }
 .os{
 	text-align:center;
@@ -227,7 +231,6 @@ a{
 #downloads .downloads a{
 	display:block;
 	padding:10px 0;
-	text-align:center;
 	text-decoration:none;
 	color:#302B22;
 }

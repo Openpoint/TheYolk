@@ -235,7 +235,7 @@
 							<div class='drawerInner ani-fOut' ng-if="drawers.dpos[pin.Page].open===artist.id">
 								<div ng-repeat="album in drawers.lib[pin.Page][artist.id].albums" class="album_image" >
 										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
-										<span class='youtube' ng-include="settings.paths.root+'/app/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
+										<span class='youtube' ng-include="settings.paths.root+'/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
 								</div>
 							</div>
 						</div>

@@ -6,7 +6,7 @@
 <div ng-controller="boot" id='outer'>
 	<div id='topmen'></div>
 	<div id='main'>
-		<div id='yolk_header'>
+		<div id='yolk_header' ng-if="root">
 			<div id='logo' class='throb' ng-include="root+'/core/lib/css/icons/yolk2.svg'"></div>
 		</div>
 		<div class='message'>

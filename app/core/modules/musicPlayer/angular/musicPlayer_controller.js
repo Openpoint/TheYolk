@@ -22,7 +22,7 @@ function($scope,$interval,$timeout,dims,lazy,audio,internetarchive,youtube,track
 
 	$scope.searchTerm = '';
 
-	$scope.ytpreload = path.join($scope.root,'/core/modules/musicPlayer/lib/tools/youtube.js');
+	$scope.ytpreload = path.join(Yolk.root,'/core/modules/musicPlayer/lib/tools/youtube.js');
 
 
 	$scope.audio = new audio($scope);

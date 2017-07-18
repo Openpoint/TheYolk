@@ -108,8 +108,8 @@ Yolk.getModule=function(){
 Yolk.prepare=function($scope,mod_name){
 	if(Yolk.modules[mod_name].config.db_index && Yolk.modules[mod_name].config.db_index.index) $scope.db_index = Yolk.modules[mod_name].config.db_index.index;
 	process.env.ELECTRON_ENV === 'development'?$scope.isdev = true:$scope.isdev = false;
-	$scope.root = Yolk.root;
-	$scope.icon = path.join($scope.root,'/core/lib/css/icons/yolk.svg');
+	//$scope.root = Yolk.root;
+	$scope.icon = path.join(Yolk.root,'/core/lib/css/icons/yolk.svg');
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.db = require(path.join(Yolk.root,'core/lib/elasticsearch.js'));
 	$scope.utils = new utils();
@@ -134,6 +134,11 @@ Yolk.prepare=function($scope,mod_name){
 		$scope.db.client.get({index:'global',type:'settings',id:mod_name},function(err,data){
 			$scope.$apply(function(){
 				$scope.settings = data._source;
+				if(!$scope.settings.paths) $scope.settings.paths = {};
+				$scope.settings.paths={
+					root:Yolk.root,
+					home:Yolk.home
+				}
 				resolve(true);
 			})
 		})
