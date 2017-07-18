@@ -8,8 +8,8 @@
     "url": "http://openpoint.ie/"
   },
   "homepage": "http://theyolk.openpoint.ie/",
-  "bugs": "https://github.com/Openpoint/Yolk/issues",
-  "repository":"Openpoint/Yolk",
+  "bugs": "https://github.com/Openpoint/TheYolk/issues",
+  "repository":"Openpoint/TheYolk",
   "description": "A modular browser for data driven applications",
   "license": "GPL-3.0",
   "engines": {
