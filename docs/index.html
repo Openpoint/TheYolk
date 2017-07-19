@@ -168,7 +168,7 @@
 				data.assets.forEach(function(asset){
 					var split = asset.name.split(".")
 					var ext = split[split.length-1]
-					var html = "<a class='download' onclick="javascript:_paq.push(['trackEvent', 'Download', asset.name])" href='"+asset.browser_download_url+"'>"+asset.name+"</a>";
+					var html = "<a class='download' onclick='javascript:_paq.push(["+"'trackEvent','Download',"+asset.name+"])' href='"+asset.browser_download_url+"'>"+asset.name+"</a>";
 					if(ext==='exe'){
 						$('#windows').append(html)
 					}
