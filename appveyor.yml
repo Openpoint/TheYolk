@@ -1,6 +1,5 @@
 platform:
   - x64
-  - ia32
 
 cache:
   - node_modules
