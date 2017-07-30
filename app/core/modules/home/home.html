@@ -1,4 +1,18 @@
 <script>
+	/*
+	Copyright 2017 Michael Jonker (http://openpoint.ie)
+	This file is part of The Yolk.
+	The Yolk is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	any later version.
+	The Yolk is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 	Yolk.getModule();
 	Yolk.fixChrome();
 </script>
@@ -10,7 +24,8 @@
 				<a href="#!/link?loc=http://theyolk.openpoint.ie" id='logo' ng-include="settings.paths.root+'/core/lib/css/icons/yolk2.svg'"></a>
 			</div>
 			<div id="appinfo">
-				<h2>{{version}}</h2>
+				<h2>Release {{version}}</h2>
+				<div id='update' ng-if="newversion"><a href="#!/link?loc=http://theyolk.openpoint.ie%2F%23downloads">{{newversion}} is available.<br /><strong>Download</strong></a></div>
 				<p>The Yolk is a modular framework that consumes microservices and make sense of data to humans</p>
 				<p>It is built on top of the Electron framework and Elasticsearch NOSQL database.</p>
 				<p>The Yolk is an <a href='#!/link?loc=http://openpoint.ie'>Openpoint</a> project.</p>
@@ -26,7 +41,7 @@
 					</a>
 				</div>
 			</div>
-			<div id='links'>
+			<div id='links' class='links'>
 				<h1>Links:</h1>
 				<div class='submit'>
 					<div class='fa fa-plus add' ng-class="{active:url}" ng-click = "get(url)"></div>
@@ -41,6 +56,17 @@
 						<div class='delete' ng-click="event.stopPropagation();link.delete(widget.url)">
 							<div class='inner fa fa-times-circle-o'></div>
 						</div>
+					</div>
+				</div>
+			</div>
+			<div id='support' class='links'>
+				<h1><span class='appeal'>Please view my portfolio below and <a href='#!/link?loc=http://openpoint.ie'>contact me</a> for contract or commissioned work</span></h1>
+				<div class='section' ng-if='link && link.port.length'>
+					<div ng-repeat="widget in link.port track by widget.url" class='Widget'>
+						<a link-widget class='widget' ng-href="#!/link?loc={{widget.url}}">
+							<img ng-src="{{widget.icon||noicon}}" on-error-src/>
+							<span class='label'>{{widget.title}}</span>
+						</a>
 					</div>
 				</div>
 			</div>

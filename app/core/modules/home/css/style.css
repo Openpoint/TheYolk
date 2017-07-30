@@ -1,3 +1,18 @@
+/*
+Copyright 2017 Michael Jonker (http://openpoint.ie)
+This file is part of The Yolk.
+The Yolk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+The Yolk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 body,html{
 	position:relative;
 	width:100%;
@@ -67,13 +82,14 @@ a{
 	width:100%;
 	flex-direction:column;
 	padding:20px;
+	padding-bottom:0;
 }
-#applications,#links{
+#applications,.links{
 	flex-grow:1;
 	width:100%;
 }
 
-#links .open, #links .close{
+.links .open, .links .close{
 	position:absolute;
 	right:0;
 }
@@ -102,6 +118,12 @@ a{
 #links input:focus{
 	outline: none;
 }
+#support{
+	flex:1;
+	display:flex;
+	flex-direction:column;
+	justify-content:flex-end;
+}
 h1{
 	border-bottom:1px solid #302B22;
 	padding-bottom:5px;
@@ -112,6 +134,8 @@ h1{
 	display:flex;
 	align-self:flex-start;
 	flex-wrap:wrap;
+	align-items:center;
+	padding:10px 0;
 }
 .widget{
 	display:flex;
@@ -121,9 +145,13 @@ h1{
 	align-items:center;
 	color:#302B22;
 	text-decoration:none;
-	padding:20px;
-}
+	padding:5px 18px;
 
+}
+#support .widget, #links .widget{
+	border-right:1px solid lightgrey;
+	font-size:.75em;
+}
 .widget .icon{
 	background:#302B22;
 	color:white;
@@ -151,16 +179,41 @@ h1{
 	flex-direction:column;
 	justify-content:center;
 }
-#links .widget{
+.links .widget{
 	flex-direction:row;
 	text-align:left;
 }
-#links .widget img{
+.links .widget img{
 	width:25px;
 	height:auto;
 }
-#links .widget .label{
+.links .widget .label{
 	padding-left:8px;
 	max-width:150px;
 	line-height:1.2em;
+}
+.appeal{
+	font-weight:200;
+	font-size:.7em;
+	color:grey;
+}
+.appeal a{
+	color:#302B22;
+	text-decoration:none;
+}
+#update{
+	margin-bottom:10px;
+}
+#update strong{
+	text-transform:uppercase;
+	font-weight:900;
+}
+#update a{
+	color:white;
+	display:block;
+	padding:5px;
+	text-decoration:none;
+	font-size:.75em;
+	line-height:1.8em;
+	background:#FF8C00;
 }

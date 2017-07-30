@@ -1,23 +1,41 @@
 "use strict";
 
+/*
+Copyright 2017 Michael Jonker (http://openpoint.ie)
+This file is part of The Yolk.
+The Yolk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+The Yolk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 const q = require("bluebird");
 const fs=require('fs');
 const path=require('path');
 const ft=require('./filetools');
 const child = require('child_process');
 const os = require('os');
-var message = process.Yolk.message
-function getMessage(){
-	return process.Yolk.message;
+
+var message = function(type,message){
+	if(process.Yolk.message){
+		process.Yolk.message.send(type,message);
+	}
 }
+
 var installer = function(){
 	this.home = process.Yolk.home;
-	message = process.Yolk.message;
 };
 
 installer.prototype.hasJava=function(Path){
 	var self = this;
 	var promise = new Promise(function(resolve,reject){
+
 		if(Path){
 			var jpath = path.join(Path,'bin','java');
 		}else{
@@ -27,10 +45,12 @@ installer.prototype.hasJava=function(Path){
 		var jre = child.spawnSync(jpath, ['-version']);
 		if(jre.error){
 			if(Path){
-				message.send('log','No Local Java Installed');
+				process.Yolk.storedMesssage.log='No Local Java Installed';
+				message('install',process.Yolk.storedMesssage);
 				reject(true);
 			}else{
-				message.send('log','No System Java Installed');
+				process.Yolk.storedMesssage.log='No System Java Installed';
+				message('install',process.Yolk.storedMesssage);
 				reject(false);
 			}
 		}else{
@@ -39,7 +59,8 @@ installer.prototype.hasJava=function(Path){
 			if(version[0]==1 && version[1]>=8){
 				resolve(true);
 			}else{
-				message.send('log','System Java too old');
+				process.Yolk.storedMesssage.log='System Java too old';
+				message('install',process.Yolk.storedMesssage);
 				reject(false);
 			}
 		}
@@ -49,11 +70,10 @@ installer.prototype.hasJava=function(Path){
 installer.prototype.getJava = function(){
 	var self = this;
 	var promise = new Promise(function(resolve,reject){
-		process.Yolk.storedMesssage = {
-			message:'Getting Java'
-		}
-		message = getMessage();
-		message.send('install',process.Yolk.storedMesssage);
+
+		process.Yolk.storedMesssage.message='Getting Java';
+		message('install',process.Yolk.storedMesssage);
+
 		var versions = {
 			linuxx64:{
 				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-linux-x64.tar.gz",
@@ -88,37 +108,42 @@ installer.prototype.getJava = function(){
 		var target = path.join(self.home,'.temp',filename);
 
 
-		function download(){
-			ft.download(paths,path.join(self.home,'.temp'),self.win).then(function(errors){
-				if(errors){
-					message.send('log','error fetching java');
-					message.send('error',errors);
+		function download(type){
+			ft.download(paths,path.join(self.home,'.temp')).then(function(errors){
+				if(errors.length){
+					reject(errors);
 				}else{
-					message.send('install','got java');
+					process.Yolk.storedMesssage.log='got java';
+					message('install',process.Yolk.storedMesssage);
 					extract();
-
 				}
 			});
 		};
-		function extract(){
 
+		function extract(){
 			ft.extract(target,path.join(self.home,'.bin'),'tar.gz').then(function(){
-				message.send('install','extracted: '+target);
+				process.Yolk.storedMesssage.log='extracted: '+target;
+				message('install',process.Yolk.storedMesssage);
 				resolve();
 			},function(err){
-				message.send('install',err);
+				process.Yolk.storedMesssage.log=err;
+				message('install',process.Yolk.storedMesssage);
 				reject(err);
 			});
 		}
+
+
 		if(ft.isThere('file',target)){
 			ft.checksum(target,paths[0].checksum).then(function(){
 				extract()
 			},function(){
 				fs.unlinkSync(target);
-				download();
+				process.Yolk.storedMesssage.log='Download was corrupt, trying again';
+				message('install',process.Yolk.storedMesssage);
+				download('java');
 			});
 		}else{
-			download();
+			download('java');
 		}
 	})
 	return promise;
@@ -134,7 +159,6 @@ installer.prototype.hasElastic=function(Path){
 			resolve(true);
 		}
 	})
-
 	return promise;
 }
 installer.prototype.getElastic = function(elasticversion,hash){
@@ -144,8 +168,8 @@ installer.prototype.getElastic = function(elasticversion,hash){
 		process.Yolk.storedMesssage = {
 			message:'Getting Elastic'
 		}
-		message = getMessage();
-		message.send('install',process.Yolk.storedMesssage);
+
+		message('install',process.Yolk.storedMesssage);
 		var filename = 'elasticsearch-'+elasticversion+'.tar.gz';
 		var target = path.join(self.home,'.temp',filename);
 
@@ -157,8 +181,9 @@ installer.prototype.getElastic = function(elasticversion,hash){
 		];
 
 		function extract(){
+
 			ft.extract(target,path.join(self.home,'.bin'),'tar.gz').then(function(){
-				message.send('log','finished extraction');
+				message('log','finished extraction');
 				resolve();
 			},function(err){
 				reject(err);
@@ -166,13 +191,19 @@ installer.prototype.getElastic = function(elasticversion,hash){
 		};
 		function download(){
 			ft.download(paths,path.join(self.home,'.temp'),self.win).then(function(errors){
-				if(errors){
-					message.send('error','error fetching elastic');
+				if(errors.length){
 					reject(errors);
 				}else{
-					message.send('log','got elastic');
-					extract();
-
+					process.Yolk.storedMesssage.log='got elastic';
+					message('install',process.Yolk.storedMesssage);
+					ft.checksum(target,paths[0].checksum).then(function(){
+						extract()
+					},function(){
+						fs.unlinkSync(target);
+						process.Yolk.storedMesssage.log='Download was corrupt, trying again';
+						message('install',process.Yolk.storedMesssage);
+						download();
+					});
 				}
 			});
 		};
@@ -181,6 +212,8 @@ installer.prototype.getElastic = function(elasticversion,hash){
 				extract()
 			},function(){
 				fs.unlinkSync(target);
+				process.Yolk.storedMesssage.log='Download was corrupt, trying again';
+				message('install',process.Yolk.storedMesssage);
 				download();
 			});
 		}else{

@@ -1,5 +1,20 @@
 'use strict';
 
+/*
+Copyright 2017 Michael Jonker (http://openpoint.ie)
+This file is part of The Yolk.
+The Yolk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+The Yolk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 angular.module('yolk').controller('boot', ['$scope','$location',function($scope,$location) {
 
 	const mod_name = 'boot';
@@ -83,6 +98,13 @@ angular.module('yolk').controller('boot', ['$scope','$location',function($scope,
 	if(!ipcRenderer._events.install){
 		ipcRenderer.on('install',function(event,data){
 			$scope.$apply(function(){
+				if(data.java){
+					$scope.installed.java = true;
+				}
+				if(data.elastic){
+					$scope.installed.elastic = data.elastic;
+					$scope.installed.home = Yolk.home;
+				}
 				if(data.message){
 					$scope.installed.message = data.message;
 				}

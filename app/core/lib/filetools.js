@@ -1,5 +1,20 @@
 "use strict";
 
+/*
+Copyright 2017 Michael Jonker (http://openpoint.ie)
+This file is part of The Yolk.
+The Yolk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+The Yolk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 const https = require('http');
 const URL = require('url');
 const fs=require('fs');
@@ -8,13 +23,12 @@ var q = require("bluebird");
 var request = require('request');
 
 const os = require("os");
-if(process.Yolk){
-	var message = process.Yolk.message;
+var message = function(type,message){
+	if(process.Yolk.message){
+		process.Yolk.message.send(type,message);
+	}
 }
 
-function getMessage(){
-	return process.Yolk.message;
-}
 var filetools = function(){};
 
 filetools.prototype.download = function(urls,destination){
@@ -37,8 +51,6 @@ filetools.prototype.download = function(urls,destination){
 				if(self.isThere('file',file)){
 					fs.unlinkSync(file);
 				}
-				//console.log(file);
-				//console.log(err);
 			}
 			prom.count ++;
 			if(prom.count === prom.urls.length){
@@ -71,50 +83,23 @@ filetools.prototype.download = function(urls,destination){
 
 							File.write(data);
 							prog = prog+data.byteLength;
+							process.Yolk.storedMesssage.log = false;
 							process.Yolk.storedMesssage.message = 'Downloading '+filename;
 							process.Yolk.storedMesssage.percent = Math.round((prog/size)*100);
-							message = getMessage();
-							if(message){
-								message.send('install',process.Yolk.storedMesssage);
-							}
+							message('install',process.Yolk.storedMesssage);
 						}).on('end', function() {
 
 							File.end();
-							if(src.checksum){
-								self.checksum(file,src.checksum).then(function(data){
-									done();
-								},function(err){
-									console.log('checksum-reject1');
-									done(err.file,err.err,err.val);
-								});
-
-							}else{
-								done();
-							}
-
+							done();
 						});
 					}else{
-						done(file,"statuscode: "+res.statusCode,src.checksum);
+						done(file,"statuscode: "+res.statusCode);
 					}
 				}).on('error',function(e){
-					done(file,e.message,src.checksum);
+					done(file,e.message);
 				});
 			}else{
-				console.log('already there');
-				if(src.checksum){
-					self.checksum(file,src.checksum).then(function(data){
-						done();
-					},function(err){
-						console.log('checksum-reject2');
-						console.log(err.err);
-						console.log(err.file);
-						console.log(err.val);
-						done(err.file,err.err,err.val);
-					});
-
-				}else{
-					done();
-				}
+				done();
 			}
 		});
 	});
@@ -151,31 +136,26 @@ filetools.prototype.extract = function(src,dest,type){
 			percent:'',
 			message:'Extracting '+path.basename(src)
 		}
-		message = getMessage();
-		if(message){
-			message.send('install',process.Yolk.storedMesssage);
-		}
+		message('install',process.Yolk.storedMesssage);
 		if(type==='tar.gz'){
-			console.log('extracting tar.gz');
 			const targz = require('tar.gz');
 
 			var parse = targz().createParseStream();
 
 			parse.on('entry', function(entry){
-
+				var p = path.join(destination,entry.path);
 				if(entry.type==='Directory'){
-					self.mkdir(destination,entry.path);
+					if(!self.isThere('directory',p)) self.mkdir(destination,entry.path);
 				}else{
-					var file=path.join(destination,entry.path);
-					var options = {
-						mode:entry.props.mode
-					}
-					var File = fs.createWriteStream(file,options);
+					if(self.isThere('file',p)) fs.unlinkSync(p);
+					var options = {mode:entry.props.mode};
+					var File = fs.createWriteStream(p,options);
 					entry.pipe(File);
 
 				}
 			});
 			parse.on('end',function(){
+				fs.unlink(src);
 				resolve(true);
 			});
 			fs.createReadStream(src).pipe(parse);
@@ -188,22 +168,22 @@ filetools.prototype.extract = function(src,dest,type){
 				}
 				zipfile.readEntry();
 				zipfile.on("entry", function(entry) {
+					var p = path.join(destination,entry.fileName);
 					if (/\/$/.test(entry.fileName)) {
 						// directory file names end with '/'
-						self.mkdir(dest,entry.fileName);
+						if(!self.isThere('directory',p)) self.mkdir(destination,entry.fileName);
 						zipfile.readEntry();
 					} else {
-						// file entry
-						console.log('file');
+						if(self.isThere('file',p)) fs.unlinkSync(p);
 						zipfile.openReadStream(entry, function(err, readStream) {
 							if(err){
 								throw err;
 							}
 							// ensure parent directory exists
 
-							self.mkdir(dest,path.dirname(entry.fileName));
+							//self.mkdir(dest,path.dirname(entry.fileName));
 
-							readStream.pipe(fs.createWriteStream(path.join(dest,entry.fileName)));
+							readStream.pipe(fs.createWriteStream(p));
 							readStream.on("end", function() {
 								zipfile.readEntry();
 							});
@@ -211,6 +191,7 @@ filetools.prototype.extract = function(src,dest,type){
 					}
 				})
 				zipfile.on("end",function(){
+					fs.unlink(src);
 					resolve(true);
 				})
 		})
@@ -257,7 +238,7 @@ filetools.prototype.checksum = function(file,val){
 		var type = false;
 	}
 	const checksum = require('checksum');
-	console.log('checksum');
+
 	var options;
 	if(type){
 		options={
@@ -277,12 +258,9 @@ filetools.prototype.checksum = function(file,val){
 				});
 				return;
 			}
-			//console.log(cs);
-			//console.log(sum);
 			if(sum == cs){
 				resolve(true);
 			}else{
-				console.log('rejected');
 				reject({
 					file:file,
 					err:'checksum mismatch',

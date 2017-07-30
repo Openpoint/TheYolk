@@ -1,5 +1,19 @@
 'use strict'
 
+/*
+Copyright 2017 Michael Jonker (http://openpoint.ie)
+This file is part of The Yolk.
+The Yolk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+The Yolk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 process.Yolk = {};
 const {app, BrowserWindow, webContents, ipcMain, session} = require('electron');
@@ -25,7 +39,11 @@ const elasticchecksum = '9273fdecb2251755887f1234d6cfcc91e44a384d';
 const javaversion = 'jre1.8.0_131';
 var installer;
 var domReady;
-
+var message = function(type,message){
+	if(process.Yolk.message){
+		process.Yolk.message.send(type,message);
+	}
+}
 
 
 process.Yolk.modules = boot.modules;
@@ -196,47 +214,39 @@ app.on('activate', function() {
   }
 })
 
-ipcMain.on('track_relay', function(event, data) {
-	event.sender.send('track',data);
-})
-
 ipcMain.on('domReady', function() {
-	process.Yolk.message.send('install',process.Yolk.storedMesssage);
+	message('install',process.Yolk.storedMesssage);
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
 
 var getJava = function(){
 	installer.getJava().then(function(home){
 		hasElastic(process.Yolk.javahome);
-	},function(){
-		console.log('Getting Java failed');
+	},function(errors){
+		process.Yolk.storedMesssage.java='error';
+		message('install',process.Yolk.storedMesssage.message);
 	});
 }
 var hasElastic = function(home){
 
 	installer.hasElastic(process.Yolk.elasticpath).then(function(res){
 		if(res){
-			//console.log('Elasticsearch is installed');
 			elastic(home);
 		}else{
-			console.log('Getting Elasticsearch');
 			installer.getElastic(elasticversion,elasticchecksum).then(function(){
 				elastic(home);
+			},function(errors){
+				process.Yolk.storedMesssage.elastic=elasticversion;
+				message('install',process.Yolk.storedMesssage);
 			});
 		}
 	});
 }
 function install(){
 	installer.hasJava().then(function(res){
-		//console.log('Java installed');
 		hasElastic();
 	},function(res){
-		//console.log('Java not installed');
 		if(!res){
 			installer.hasJava(process.Yolk.javahome).then(function(res){
-				//console.log('Java installed');
 				hasElastic(process.Yolk.javahome);
 			},function(){
 				getJava();
@@ -272,7 +282,7 @@ function elastic(home){
 
 		if(win && trimmed){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
-			process.Yolk.message.send('install',process.Yolk.storedMesssage);
+			message('install',process.Yolk.storedMesssage);
 		}
 		if(string.indexOf('[RED] to [YELLOW]') > -1 ||
 			string.indexOf('[RED] to [GREEN]') > -1 ||
@@ -320,29 +330,29 @@ console.Yolk = {
 	log:function(mess){
 		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"log");
-		process.Yolk.message.send('log',{log:mess.log});
+		message('log',{log:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('log',{log:mess.object});
+			message('log',{log:mess.object});
 		}
 	},
 	warn:function(mess){
 		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"warn");
-		process.Yolk.message.send('log',{warn:mess.log});
+		message('log',{warn:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('log',{warn:mess.object});
+			message('log',{warn:mess.object});
 		}
 	},
 	error:function(mess){
 		if(process.env.ELECTRON_ENV !== 'development') return;
 		mess = console.process(mess,"error");
-		process.Yolk.message.send('log',{error:mess.log});
+		message('log',{error:mess.log});
 		if(mess.object){
-			process.Yolk.message.send('log',{error:mess.object});
+			message('log',{error:mess.object});
 		}
 	},
 	say:function(mess){
 		if(process.env.ELECTRON_ENV !== 'development') return;
-		process.Yolk.message.send('log',{log:mess});
+		message('log',{log:mess});
 	}
 };

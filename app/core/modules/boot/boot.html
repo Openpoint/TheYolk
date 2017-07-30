@@ -1,4 +1,18 @@
 <script>
+	/*
+	Copyright 2017 Michael Jonker (http://openpoint.ie)
+	This file is part of The Yolk.
+	The Yolk is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	any later version.
+	The Yolk is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 	Yolk.getModule();
 	Yolk.fixChrome();
 </script>
@@ -14,6 +28,17 @@
 			<div class = 'float'>
 				<div ng-if="installed.progress">{{installed.progress}}</div>
 				<div class="log" ng-if="installed.log">{{installed.log}}</div>
+				<div class='nojava' ng-if="installed.java">
+					<p>The Yolk was unable to download and install JAVA.</p>
+					<p>Please visit <strong>www.java.com/download</strong> and do a manual install.</p>
+					<p>This is a bug. Please report it to www.github.com/openpoint/theyolk/issues</p>
+				</div>
+				<div class='nojava' ng-if="installed.elastic">
+					<p>The Yolk was unable to download and install ELASTICSEARCH.</p>
+					<p>Please download <strong>https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{installed.elastic}}.zip</strong> and unzip the file into:</p>
+					<p><strong>{{installed.home}}/.bin/</strong></p>
+					<p><br />This is a bug. Please report it to www.github.com/openpoint/theyolk/issues</p>
+				</div>
 			</div>
 		</div>
 
