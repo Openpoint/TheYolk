@@ -1,6 +1,6 @@
 osx_image: xcode8.3
 
-sudo: true
+sudo: false
 dist: trusty
 
 language: node_js
@@ -12,7 +12,7 @@ env:
     - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
 
 os:
-  - linux
+  #- linux
   - osx
 
 cache:
@@ -31,7 +31,7 @@ addons:
       - rpm
 
 before_install:
-  - mkdir -p /tmp/git-lfs && curl -L https://github.com/github/git-lfs/releases/v2.2.1/git-lfs-$([ "$TRAVIS_OS_NAME" == "linux" ] && echo "linux" || echo "darwin")-amd64-2.2.0.tar.gz | tar -xz -C /tmp/git-lfs --strip-components 1 && /tmp/git-lfs/git-lfs pull
+  - mkdir -p /tmp/git-lfs && curl -L https://github.com/github/git-lfs/releases/download/v2.2.1/git-lfs-$([ "$TRAVIS_OS_NAME" == "linux" ] && echo "linux" || echo "darwin")-amd64-2.2.0.tar.gz | tar -xz -C /tmp/git-lfs --strip-components 1 && /tmp/git-lfs/git-lfs pull
   - curl -L https://yarnpkg.com/latest.tar.gz | tar xvz && mv dist $HOME/.yarn
   - export PATH="$HOME/.yarn/bin:$PATH"
 
@@ -39,7 +39,7 @@ install:
 - yarn
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn linux; fi
+  #- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then yarn linux; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then yarn mac; fi
 
 
