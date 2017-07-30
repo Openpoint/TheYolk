@@ -1,5 +1,6 @@
 platform:
   - x64
+  - ia32
 
 cache:
   - node_modules
@@ -8,6 +9,7 @@ cache:
 
 install:
   - ps: Install-Product node 8 x64
+  - ps: Install-Product node 8 ia32
   - npm install
 
 build_script:

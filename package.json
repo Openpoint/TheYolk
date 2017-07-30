@@ -69,8 +69,8 @@
   "scripts": {
     "pack": "build --dir",
 	"testbuild":"build -l",
-    "linux": "build -l --ia32 && build --publish onTagOrDraft",
-    "windows": "build -w --ia32 && build --publish onTagOrDraft",
+    "linux": "build -l --ia32 --publish onTagOrDraft",
+    "windows": "build -w --ia32 --publish onTagOrDraft",
     "mac": "build -m --publish onTagOrDraft",
     "theyolk-dev": "cross-env ELECTRON_ENV='development' ./node_modules/.bin/electron ./",
     "theyolk": "./node_modules/.bin/electron ./"
