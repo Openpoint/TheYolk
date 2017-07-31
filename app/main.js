@@ -280,16 +280,25 @@ function elastic(home){
 		var p = string.match(/pid\[([^\]]+)\]/);
 		if(p) pid = p[1];
 
-		if(win && trimmed){
+		if(trimmed){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			message('install',process.Yolk.storedMesssage);
 		}
-		if(string.indexOf('[RED] to [YELLOW]') > -1 ||
+		console.log(string);
+		if(string.indexOf('indices into cluster_state') > -1){
+			process.Yolk.storedMesssage.log = 'The database is being audited - this could take a few minutes';
+			message('install',process.Yolk.storedMesssage);
+		}
+		if(
+			string.indexOf('[RED] to [YELLOW]') > -1 ||
 			string.indexOf('[RED] to [GREEN]') > -1 ||
 			string.indexOf('[YELLOW] to [GREEN]') > -1 ||
-			string.indexOf('recovered [0] indices into cluster_state') > -1){
+			string.indexOf('recovered [0] indices into cluster_state') > -1 //||
+			//string.indexOf('[yolk] started') > -1
+		){
 			process.Yolk.resolver.dbReady();
 		}
+
 	});
 }
 

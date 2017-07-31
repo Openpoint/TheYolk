@@ -1,6 +1,6 @@
 {
   "name": "TheYolk",
-  "version": "0.0.2-alpha.1",
+  "version": "0.0.3-alpha.1",
   "main": "app/main.js",
   "author": {
     "name": "Michael Jonker",
@@ -9,7 +9,7 @@
   },
   "homepage": "http://theyolk.openpoint.ie/",
   "bugs": "https://github.com/Openpoint/TheYolk/issues",
-  "repository":"Openpoint/TheYolk",
+  "repository": "Openpoint/TheYolk",
   "description": "A modular browser for data driven applications",
   "license": "GPL-3.0",
   "engines": {
@@ -48,7 +48,9 @@
     "compression": "maximum",
     "asar": true,
     "copyright": "Copyright © 2017 Michael Jonker",
-    "publish":["github"],
+    "publish": [
+      "github"
+    ],
     "linux": {
       "target": [
         "deb",
@@ -68,7 +70,7 @@
   },
   "scripts": {
     "pack": "build --dir",
-	"testbuild":"build -l",
+    "testbuild": "build -l",
     "linux": "build -l --ia32 --x64 --publish onTagOrDraft",
     "windows": "build -w --ia32 --x64 --publish onTagOrDraft",
     "mac": "build -m --publish onTagOrDraft",
