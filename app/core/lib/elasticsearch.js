@@ -199,8 +199,10 @@ dbase.prototype.fetchAll = function(query){
 		var all = [];
 		var len = 0;
 		self.client.search(query,function getMore(err,data){
+
 			if(!err){
 				data.hits.hits.forEach(function(hit){
+
 					if(!hit.inner_hits){
 						all.push(hit._source);
 					}else{
@@ -209,9 +211,11 @@ dbase.prototype.fetchAll = function(query){
 							result[key]=hit.inner_hits[key].hits.hits;
 						})
 						all.push(result)
+
 					}
 					len++;
 				});
+
 				if(data.hits.total!==len){
 					self.client.scroll({
 						scrollId:data._scroll_id,

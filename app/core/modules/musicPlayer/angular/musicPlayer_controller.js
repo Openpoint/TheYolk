@@ -16,58 +16,89 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 angular.module('yolk').controller('musicPlayer', [
-'$scope','$interval','$timeout','dims','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
-function($scope,$interval,$timeout,dims,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
+'$scope','$interval','$timeout','$rootScope','dims','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
+function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
 	const {dialog} = require('electron').remote
 	const path = require('path');
 	const mod_name = 'musicPlayer';
-
-	Yolk.prepare($scope,mod_name).then(function(){
+	$('#search').click(function(){
+		$('#search input').focus();
+	})
+	delete Yolk.controls.html.musicPlayer;
+	Yolk.prepare($rootScope[mod_name]||$scope,mod_name).then(function(){
+		if($rootScope[mod_name]) return;
 		$scope.$apply(function(){
 			$scope.settings.paths.artist = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 			$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
+			if($scope.settings.paths.musicDir) ipcRenderer.send('verify', $scope.settings.paths.musicDir);
 		})
 	});
 
-	ipcRenderer.send('kill','revive');
-
-	$scope.progress = {};
-	$scope.Sortby = {};
-	$scope.refresh = {};
-
-	$scope.searchTerm = '';
-
 	$scope.ytpreload = path.join(Yolk.root,'/core/modules/musicPlayer/lib/tools/youtube.js');
-
-
-	$scope.audio = new audio($scope);
-	$scope.pin = new pin($scope);
-	$scope.playlist = new playlist($scope);
-	$scope.dims = new dims($scope);
-	$scope.lazy = new lazy($scope);
-	$scope.tracks = new tracks($scope);
-	$scope.drawers = new drawers($scope);
-	$scope.internetarchive = new internetarchive($scope);
-	$scope.youtube = new youtube($scope);
-	$scope.search = new search($scope);
-
 	$scope.countries = require('../lib/tools/countries.json');
 	$scope.tools = require('../lib/tools/searchtools.js');
-	$scope.Sort = {};
-	$scope.dims.update();
-	$scope.lib={
+
+	if(!$rootScope[mod_name]){
+		ipcRenderer.send('kill','revive');
+		$scope.progress={};
+		$scope.Sortby={};
+		$scope.refresh={};
+		$scope.searchTerm='';
+		$scope.audio=new audio($scope);
+		$scope.pin=new pin($scope);
+		$scope.playlist=new playlist($scope);
+		$scope.dims=new dims($scope);
+		$scope.lazy=new lazy($scope);
+		$scope.tracks=new tracks($scope);
+		$scope.drawers=new drawers($scope);
+		$scope.internetarchive=new internetarchive($scope);
+		$scope.youtube=new youtube($scope);
+		$scope.search=new search($scope);
+
+	}else{
+		Object.keys($rootScope[mod_name]).forEach(function(key){
+			if($rootScope[mod_name].hasOwnProperty(key)&&key.indexOf('$')===-1){
+				$scope[key]=$rootScope[mod_name][key];
+				if($scope[key].resume) $scope[key].resume($scope);
+			}
+		})
+	}
+
+	$scope.Sort = !$rootScope[mod_name]?{}:$rootScope[mod_name].Sort;
+	$scope.lib=!$rootScope[mod_name]?{
 		bios:{},
 		tracks:[],
 		padding:0
-	};
+	}:$rootScope[mod_name].lib;
+
 	$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
+	$scope.dims.update();
 
-	$scope.loading = true;
-	$scope.search.go(true,'init');
 
-	$scope.$on('$locationChangeSuccess', function( event ) {
-		$scope.audio.player.pause()
-		delete $scope.audio.player;
+	if(!$rootScope[mod_name]){
+		$scope.loading = true;
+		$scope.search.go(true,'init');
+		$interval(function(){
+			if($scope.progress.internetarchive !== $scope.internetarchive.progress||$scope.progress.youtube !== $scope.youtube.progress||$scope.progress.musicbrainz !== $scope.musicbrainz){
+				$scope.progress.internetarchive = $scope.internetarchive.progress;
+				$scope.progress.youtube = $scope.youtube.progress;
+				$scope.progress.musicbrainz = $scope.musicbrainz;
+			}
+		},1000)
+	}else{
+		//$scope.audio.player.play();
+		$('#playwindow').ready(function(){
+			setTimeout(function(){
+				$('#playwindow').scrollTop($scope.search.fetchmem().scrolltop);
+			})
+
+		})
+	}
+
+	$rootScope[mod_name] = $scope;
+
+	$scope.$on('$locationChangeSuccess', function(event) {
+		$scope.audio.background();
 	});
 
 	//stop scanning the local filesystem if window dies
@@ -76,19 +107,43 @@ function($scope,$interval,$timeout,dims,lazy,audio,internetarchive,youtube,track
 		//ipcRenderer.send('dBase', false);
 	};
 
-	$scope.imagePath=function(type,id){
-		if(type && id){
-			var Path = path.join($scope.settings.paths[type],id,'thumb.jpg');
-			if($scope.ft.isThere('file',Path)){
-				return Path;
-			}else{
-				return 'core/modules/musicPlayer/images/noImage.svg';
-			}
+	var searchTime;
+	$scope.$watch('searchTerm',function(oldVal,newVal){
+		if($scope.searchTerm && $scope.searchTerm.length){
+			//$('#search .hide').html($scope.searchTerm);
+			//$('#search input').width($('#search .hide').width()+10+'px');
 		}else{
-			return 'core/modules/musicPlayer/images/noImage.svg';
+			//$('#search input').width('100px')
 		}
 
-	}
+		if(oldVal!==newVal){
+			if($scope.searchTerm && $scope.searchTerm.length > 1){
+				$scope.goSearch = true;
+				var terms = $scope.tools.terms($scope.searchTerm);
+				$scope.pin.pinned.prefix = terms.prefix;
+				$scope.pin.pinned.album = terms.album;
+				$scope.pin.pinned.artist = terms.artist;
+				$scope.pin.pinned.title = terms.title;
+			}else{
+				$scope.pin.pinned.prefix = false;
+				$scope.pin.pinned.album = false;
+				$scope.pin.pinned.artist = false;
+				$scope.pin.pinned.title = false;
+				$scope.goSearch = false;
+			}
+			clearTimeout(searchTime);
+			if($scope.searchNow){
+				$scope.searchNow = false;
+				if($scope.searchNow === 'skip') return;
+				$scope.search.go(false,'searchterm');
+			}else{
+				searchTime = setTimeout(function(){
+					$scope.search.go(false,'searchterm');
+				},500);
+			}
+		}
+	});
+
 	$scope.dev=function(info,type){
 		console.log(info.filter)
 		$scope.db.client.get({index:$scope.db_index,type:type,id:info.id},function(err,data){
@@ -186,57 +241,7 @@ function($scope,$interval,$timeout,dims,lazy,audio,internetarchive,youtube,track
 			})
 		});
 	}
-	$('#search').click(function(){
-		$('#search input').focus();
-	})
 
-	$interval(function(){
-		if($scope.progress.internetarchive !== $scope.internetarchive.progress||$scope.progress.youtube !== $scope.youtube.progress||$scope.progress.musicbrainz !== $scope.musicbrainz){
-			$scope.progress.internetarchive = $scope.internetarchive.progress;
-			$scope.progress.youtube = $scope.youtube.progress;
-			$scope.progress.musicbrainz = $scope.musicbrainz;
-		}
-	},1000)
-
-
-
-
-	var searchTime;
-	$scope.$watch('searchTerm',function(oldVal,newVal){
-		if($scope.searchTerm && $scope.searchTerm.length){
-			$('#search .hide').html($scope.searchTerm);
-			$('#search input').width($('#search .hide').width()+10+'px');
-		}else{
-			$('#search input').width('100px')
-		}
-
-		if(oldVal!==newVal){
-			if($scope.searchTerm && $scope.searchTerm.length > 1){
-				$scope.goSearch = true;
-				var terms = $scope.tools.terms($scope.searchTerm);
-				$scope.pin.pinned.prefix = terms.prefix;
-				$scope.pin.pinned.album = terms.album;
-				$scope.pin.pinned.artist = terms.artist;
-				$scope.pin.pinned.title = terms.title;
-			}else{
-				$scope.pin.pinned.prefix = false;
-				$scope.pin.pinned.album = false;
-				$scope.pin.pinned.artist = false;
-				$scope.pin.pinned.title = false;
-				$scope.goSearch = false;
-			}
-			clearTimeout(searchTime);
-			if($scope.searchNow){
-				$scope.searchNow = false;
-				if($scope.searchNow === 'skip') return;
-				$scope.search.go(false,'searchterm');
-			}else{
-				searchTime = setTimeout(function(){
-					$scope.search.go(false,'searchterm');
-				},500);
-			}
-		}
-	});
 	$scope.albums = function(){
 		ipcRenderer.send('albums');
 	}

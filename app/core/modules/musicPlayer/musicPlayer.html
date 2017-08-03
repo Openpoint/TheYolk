@@ -178,9 +178,11 @@
 				<div id='youtube-wrap' ng-mousemove="fader()"
 					ng-class="{novid:!lib.playing.youtube,vid:lib.playing.youtube}">
 					<div ng-style="{width:dims.sidebarWidth-1,height:dims.sidebarWidth/2}"
-						ng-show="lib.playing && !lib.playing.youtube" class='meta'>
-						<img ng-src="{{imagePath('artist',lib.playing.artist)}}" />
-						<img ng-src="{{imagePath('album',lib.playing.album)}}" />
+						ng-if="lib.playing.state && !lib.playing.youtube" class='meta'>
+
+						<img cat="artist" id="{{lib.playing.artist}}" ng-src="{{image[lib.playing.artist]}}" yolk-thumb />
+						<img cat="album" id="{{lib.playing.album}}" ng-src="{{image[lib.playing.album]}}" yolk-thumb />
+
 						<div class='shadow'></div>
 						<div class='shadow right'></div>
 					</div>
@@ -219,7 +221,7 @@
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="artist">
-								<img cat="artist" ng-src="{{artist.image}}" yolk-thumb ng-click = 'drawers.drawer(artist)' />
+								<img cat="artist" id = "{{artist.id}}" ng-src="{{image[artist.id]}}" yolk-thumb ng-click = 'drawers.drawer(artist)' />
 								<div class='refresh' ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
@@ -249,7 +251,7 @@
 						<div class='drawer' id="drawer{{artist.id}}"  ng-style="{height:drawers.lib[pin.Page][artist.id].height||0}">
 							<div class='drawerInner ani-fOut' ng-if="drawers.dpos[pin.Page].open===artist.id">
 								<div ng-repeat="album in drawers.lib[pin.Page][artist.id].albums" class="album_image" >
-										<img cat="album" ng-src="{{album.image}}" yolk-album ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
+										<img cat="album" id="{{album.id}}" ng-src="{{image[album.id]}}" yolk-thumb ng-if="album.id!=='youtube'" ng-click="pin.tracks(artist.name,album.name,'album')"/>
 										<span class='youtube' ng-include="settings.paths.root+'/core/modules/musicPlayer/css/icons/youtube.svg'" ng-if="album.id==='youtube'"  ng-click="pin.tracks(artist.name,album.name,'title')"></span>
 								</div>
 							</div>
@@ -274,7 +276,7 @@
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="album">
-								<img cat="album" ng-src="{{album.image}}" yolk-thumb onerror="" ng-click = 'drawers.drawer(album)'/>
+								<img cat="album" id="{{album.id}}" ng-src="{{image[album.id]}}" yolk-thumb onerror="" ng-click = 'drawers.drawer(album)'/>
 								<div class='refresh' ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>

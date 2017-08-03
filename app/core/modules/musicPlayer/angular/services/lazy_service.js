@@ -34,6 +34,11 @@ angular.module('yolk').factory('lazy',[function() {
 		this.O = Math.floor(this.over/3);
 		watchScroll();
 	}
+	lazy.prototype.resume=function(scope){
+		$scope = scope;
+		watchScroll();
+		return this;
+	}
 	//set the padding in the playwindow
 	lazy.prototype.fixChrome = function(){
 		$scope.drawers.drawerPos();
@@ -90,6 +95,7 @@ angular.module('yolk').factory('lazy',[function() {
 
 	// get the relative position of the currently playing track in the track window
 	lazy.prototype.getPos = function(i){
+		if(!$scope.lib.playing.filter) return;
 		var self = this;
 		$scope.lib.playing.filter.pos = i;
 		//self.spacer=true;
@@ -185,6 +191,7 @@ angular.module('yolk').factory('lazy',[function() {
 		var scrollfix;
 		var t=0;
 		$('#playwindow').scroll(function(e){
+
 			clearTimeout(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			$scope.dims.scrollTop = $('#playwindow').scrollTop()
 			$scope.lazy.playPos();

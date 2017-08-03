@@ -19,6 +19,7 @@ window.Promise  = require("bluebird");
 window.Promise.config({cancellation: true})
 window.$ = window.jQuery = require('jquery');
 const Yolk = {};
+Yolk.controls = {html:{},commands:{}};
 Yolk.remote = require('electron').remote.process.Yolk.remote;
 Yolk.modules = Yolk.remote('modules');
 
@@ -63,6 +64,7 @@ $(window).ready(function(){
 })
 
 ipcRenderer.on('log',function(event,data){
+	console.warn(event)
 	if(data.log) console.log(data.log);
 	if(data.error) console.error(data.error);
 	if(data.warn) console.warn(data.warn);
@@ -124,12 +126,16 @@ Yolk.getModule=function(){
 Yolk.prepare=function($scope,mod_name){
 	if(Yolk.modules[mod_name].config.db_index && Yolk.modules[mod_name].config.db_index.index) $scope.db_index = Yolk.modules[mod_name].config.db_index.index;
 	process.env.ELECTRON_ENV === 'development'?$scope.isdev = true:$scope.isdev = false;
-	//$scope.root = Yolk.root;
 	$scope.icon = path.join(Yolk.root,'/core/lib/css/icons/yolk.svg');
 	$scope.ft = require(path.join(Yolk.root,'core/lib/filetools.js'));
 	$scope.db = require(path.join(Yolk.root,'core/lib/elasticsearch.js'));
-	$scope.utils = new utils();
+	if(!$scope.utils) $scope.utils = new utils();
 	if(mod_name === 'boot') return;
+
+	$('#topmen').append('<div id="controls"></div>');
+	Object.keys(Yolk.controls.html).forEach(function(key){
+		$('#topmen #controls').append(Yolk.controls.html[key])
+	})
 
 	$scope.$watch('settings',function(newVal,oldVal){
 		if(oldVal && newVal!==oldVal){
@@ -144,17 +150,19 @@ Yolk.prepare=function($scope,mod_name){
 				console.error(err)
 			})
 		}
-
 	},true);
+
 	return new Promise(function(resolve,reject){
+		if($scope.settings){
+			resolve(true);
+			return;
+		}
 		$scope.db.client.get({index:'global',type:'settings',id:mod_name},function(err,data){
 			$scope.$apply(function(){
 				$scope.settings = data._source;
 				if(!$scope.settings.paths) $scope.settings.paths = {};
-				$scope.settings.paths={
-					root:Yolk.root,
-					home:Yolk.home
-				}
+				$scope.settings.paths.root = Yolk.root;
+				$scope.settings.paths.home = Yolk.home;
 				resolve(true);
 			})
 		})

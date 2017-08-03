@@ -33,6 +33,13 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		this.all={};
 		this.memory = {};
 	}
+	search.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
+	search.prototype.fetchmem = function(){
+		return this.memory[context][mem];
+	}
 	search.prototype.makemem = function(){
 
 		if($scope.playlist.active){
@@ -55,7 +62,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		return this.memory;
 	}
 	search.prototype.prepare = function(refresh,deleted){
-
 		var self = this;
 		if(refresh){
 			$scope.drawers.refreshDrawers(deleted);
@@ -73,6 +79,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			flags.from = ($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O)
 		}
 		$scope.drawers.test = flags.from;
+
 		var state={
 			chunk:$scope.lazy.chunk === oldChunk.chunk,
 			sources:$scope.pin.pinned.sources.length === oldChunk.sources,
@@ -93,7 +100,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 		if(!state.sortby && self.memory[context][mem].all){
 			if(log) console.log('reverse')
-			console.log('reverse')
 			self.memory[context][mem].all = self.memory[context][mem].all.reverse();
 			this.memory[context][mem].chunks={};
 		}
@@ -103,7 +109,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	var t =false
 	//var brake = false;
 	search.prototype.go = function(refresh,origin,deleted){
-
 		var self = this;
 		if(!oldChunk) setOldChunk();
 		this.prepare(refresh,deleted)
@@ -315,6 +320,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 
 		$scope.db.fetch(search).then(function(data){
+
 			if(!data.items.length && data.libsize && log) console.error(search,data,Flags)
 			$scope.lib.size = data.libsize;
 			self.memory[context][mem].libsize = data.libsize;
@@ -410,8 +416,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			searchTerm:$scope.searchTerm,
 			page:$scope.pin.Page,
 			filter:$scope.pin.Filter,
-			playlistSelected:$scope.playlist.selected,
-			playlistActive:$scope.playlist.active
+			playlistSelected:$scope.playlist.selected||1,
+			playlistActive:$scope.playlist.active||false
 		}
 	}
 

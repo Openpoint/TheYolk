@@ -22,7 +22,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 
 	const tools = require('../../lib/tools/searchtools.js');
 	const Tools = require('../../lib/tools/youtubetools.js');
-	const log = false;
+	const log = true;
 	const kill = require('../../lib/tools/killer.js')
 	var moot = []
 	var $scope;
@@ -35,6 +35,10 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 		$scope.db.client.get({index:$scope.db_index,id:1,type:'youtubeartists'},function(err,data){
 			if(data._source) {Tools.youtubeArtists = data._source.arts};
 		})
+	}
+	youtube.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
 	}
 	youtube.prototype.getDone = function(){
 		if(log) console.log('getDone');

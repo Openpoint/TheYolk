@@ -18,9 +18,18 @@ const {ipcRenderer} = require('electron');
 const shell = require('electron').shell;
 var video;
 var remote=true;
-
+var send;
+var c;
+window.Yolk_context = function(ct){
+	c = ct;
+	if(c==='webview'){
+		send = ipcRenderer.sendToHost;
+	}else{
+		send = require('electron').remote.process.Yolk.win.send;
+	}
+}
 function timer(){
-	ipcRenderer.sendToHost('media','time',video.currentTime);
+	c==='webview'?send('media','time',video.currentTime):send('media',['time',video.currentTime]);
 	setTimeout(function(){
 		timer();
 	},1000);
@@ -37,24 +46,23 @@ window.addEventListener("load",function(){
 	if(!video) return;
 	video.addEventListener('loadedmetadata', function(){
 		var ratio = video.videoHeight/video.videoWidth;
-		ipcRenderer.sendToHost('media','ratio',ratio);
+		c==='webview'?send('media','ratio',ratio):send('media',['ratio',ratio]);
 	});
 	video.addEventListener('canplay', function(){
-
-		ipcRenderer.sendToHost('media','vidready',video.duration);
+		c==='webview'?send('media','vidready',video.duration):send('media',['vidready',video.duration]);
 		remote=false;
 	});
 	video.addEventListener('ended', function(){
-		ipcRenderer.sendToHost('media','next');
+		c==='webview'?send('media','next'):send('media',['next']);
 	});
 	video.addEventListener('pause', function(){
 		if(!remote){
-			ipcRenderer.sendToHost('media','pause');
+			c==='webview'?send('media','pause'):send('media',['pause']);
 		}
 	});
 	video.addEventListener('play', function(){
 		if(!remote){
-			ipcRenderer.sendToHost('media','play');
+			c==='webview'?send('media','play'):send('media',['play']);
 		}
 	});
 	timer();
@@ -63,7 +71,7 @@ ipcRenderer.on('media',function(send,mess,time){
 	if(!video) return;
 	switch (mess){
 		case 'pause':
-		console.log('pause')
+			console.log('pause');
 			remote=true;
 			video.pause();
 			setTimeout(function(){

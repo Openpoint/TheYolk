@@ -27,24 +27,30 @@ angular.module('yolk').factory('playlist',[function() {
 			type:'playlists',
 			id:0
 		},function(error,response){
-			self.active = false;
-			self.selected = 1;
-			self.new = null;
-			if(response._source){
-				self.options = response._source.options;
-				self.unique = response._source.unique;
-				self.activelist = {}
-				self.change();
-
-			}else{
+			$scope.$apply(function(){
 				self.active = false;
-				self.options = [{id:1,name:'Recently Played'}];
-				self.unique = 2;
-				self.activelist = {1:[]};
-				self.updatePlaylist(0);
-				self.updatePlaylist(1,[]);
-			}
+				self.selected = 1;
+				self.new = null;
+				if(response._source){
+					self.options = response._source.options;
+					self.unique = response._source.unique;
+					self.activelist = {}
+					self.change();
+
+				}else{
+					self.active = false;
+					self.options = [{id:1,name:'Recently Played'}];
+					self.unique = 2;
+					self.activelist = {1:[]};
+					self.updatePlaylist(0);
+					self.updatePlaylist(1,[]);
+				}
+			})
 		})
+	}
+	playlist.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
 	}
 	playlist.prototype.toggle=function(skip){
 		this.active ? this.active=false:this.active=true;
@@ -194,7 +200,6 @@ angular.module('yolk').factory('playlist',[function() {
 			return;
 		}
 		this.activelist[this.selected].push(data.id);
-		console.log(self.activelist[self.selected])
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
 	}
 	playlist.prototype.onReorder = function(event,data,target){
@@ -213,8 +218,7 @@ angular.module('yolk').factory('playlist',[function() {
 			this.activelist[this.selected].splice(pos.old,1)
 			this.activelist[this.selected].splice(pos.new,0,data.id)
 		}
-		this.updatePlaylist(this.selected,this.activelist[this.selected])
-		console.log(data)
+		this.updatePlaylist(this.selected,this.activelist[this.selected]);
 		$scope.search.go(true);
 	}
 	return playlist;

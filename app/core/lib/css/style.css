@@ -57,6 +57,50 @@ html {
 	position:relative;
 	-webkit-app-region: drag;
 }
+#topmen #controls{
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:60px;
+	display:flex;
+	align-items:center;
+	color:white;
+	z-index:100;
+}
+#topmen #controls > *{
+	padding:0 10px;
+	cursor:pointer;
+	height:100%;
+	box-sizing:border-box;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	color:lime;
+}
+#topmen #controls .dead{
+	opacity:.25;
+	cursor:default;
+}
+#topmen #controls > * >*{
+	transition:opacity 1s;
+	display:flex;
+	opacity:0;
+	position:absolute;
+	top:-1000px;
+	align-items:center;
+	background:rgba(0,0,0,.5);
+	padding:15px;
+	z-index:0;
+	color:white;
+}
+#topmen #controls > *:hover >*{
+	top:100%;
+	opacity:1;
+
+}
+#topmen #controls > * >* >*{
+	padding:8px;
+}
 #topmen *{
 	-webkit-app-region: no-drag;
 }

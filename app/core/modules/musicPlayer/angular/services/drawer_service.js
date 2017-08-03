@@ -27,7 +27,10 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 			title:{isvis:false}
 		};
 	}
-
+	drawers.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
 	drawers.prototype.drawer = function(row,forceopen,scroll){
 		var self = this;
 		if(!this.lib[$scope.pin.Page]){
@@ -288,7 +291,6 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 						console.error(err);
 						return;
 					}
-					console.log(data)
 					self.drawerContent(data._source,false,'artist')
 				})
 			}else if(deleted===self.dpos.artist.open){

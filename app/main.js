@@ -133,7 +133,7 @@ process.on('uncaughtException',function(err){
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 function createWindow () {
-	win = new BrowserWindow({width: 1200, height: 900, frame:false, center:true, title:'Yolk',show:false});
+	win = new BrowserWindow({width: 1200, height: 900, frame:false, center:false,x:10,y:10,title:'The Yolk',show:false});
 	win.loadURL(`file://${__dirname}/index.html#!/boot`);
 	//win.loadURL('chrome://gpu')
 	process.Yolk.win = win;
@@ -267,13 +267,27 @@ function elastic(home){
 	if(home){
 		process.env.JAVA_HOME = home;
 	}
-	var args = [
-		'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
-		'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
-		'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
-	];
+	if(os.platform()!=='win32'){
+		var args = [
+			'-n 18',
+			process.Yolk.elasticpath,
+			'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
+			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
+			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
+		];
+		process.Yolk.elasticsearch = child.spawn('nice',args);
+	}else{
+		var args = [
+			'java',
+			'/low',
+			process.Yolk.elasticpath,
+			'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
+			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
+			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
+		];
+		process.Yolk.elasticsearch = child.spawn('start',args);
+	}
 
-	process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args);
 	process.Yolk.elasticsearch.stdout.on('data', function(data){
 		var string = (`${data}`);
 		var trimmed = string.split('[yolk]')[1];
@@ -284,7 +298,6 @@ function elastic(home){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			message('install',process.Yolk.storedMesssage);
 		}
-		console.log(string);
 		if(string.indexOf('indices into cluster_state') > -1){
 			process.Yolk.storedMesssage.log = 'The database is being audited - this could take a few minutes';
 			message('install',process.Yolk.storedMesssage);
@@ -298,7 +311,6 @@ function elastic(home){
 		){
 			process.Yolk.resolver.dbReady();
 		}
-
 	});
 }
 

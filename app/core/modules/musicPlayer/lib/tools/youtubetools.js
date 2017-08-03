@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-const log = false;
+const log = true;
 const tools = require('./searchtools.js');
 const {ipcRenderer} = require('electron');
 const crypto = require('crypto');
@@ -173,7 +173,7 @@ youtubetools.prototype.checkArtists = function(artists){
 			}
 			if(lookup.artists.length){
 				lookup.artists.forEach(function(art){
-					self.youtubeArtists[art] = {}
+					self.youtubeArtists[tools.fix(art)] = {}
 				});
 				cartists = cartists.concat(lookup.artists)
 			}

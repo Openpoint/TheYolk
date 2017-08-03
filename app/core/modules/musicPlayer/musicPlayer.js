@@ -26,7 +26,7 @@ var define = {
 		}
 	},
 	require:[], //load services from external modules
-	core_process:['fileTools','musicbrainz'], //starts with the core process in a Node scope, put corresponding file in modules 'lib/process' folder
+	core_process:['fileTools','musicbrainz','background'], //starts with the core process in a Node scope, put corresponding file in modules 'lib/process' folder
 	db_index:{
 		index:"music_player",
 		settings:{analysis:{analyzer: {case_insensitive: {

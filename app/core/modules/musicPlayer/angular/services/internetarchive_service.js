@@ -44,6 +44,10 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 		this.max_duration = 30*60*1000 //maximum track length in milliseconds
 		this.getSearches()
 	}
+	ia.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
 	ia.prototype.getSearches = function(){
 		var self = this;
 		this.queries=[];

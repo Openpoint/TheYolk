@@ -18,15 +18,26 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce) {
 	const path = require('path');
 	const {ipcRenderer} = require('electron');
+
+	let ytwin;
 	const Url = require('url');
 	var vidlength;
-	var vidprogress;
+	//var vidprogress;
 	var vidratio;
 	var fadetimer;
 	var $scope;
 
-	var webView;
-
+	Yolk.controls.commands.musicPlayer = function(command){
+		if(command==='next') $scope.audio.next();
+		if(command ==='play'){
+			$scope.audio.play($scope.lib.playing);
+		}
+		if(command ==='prev' && $scope.lib.previous){
+			$scope.audio.play($scope.lib.previous);
+			$('#topmen .prev').addClass('dead');
+		}
+		if(!$scope.lib.previous) $('#topmen .prev').addClass('dead');
+	}
 	function fadein(){
 		clearTimeout(fadetimer);
 		$('#fullscreen_out').show();
@@ -37,7 +48,14 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	function fadeout(){
 		$('#fullscreen_out').hide();
 	};
+	function topmen(){
+		if($scope.lib.playing.state==='paused'){
 
+			$('#topmen .playing').removeClass('playing fa fa-pause-circle-o').addClass('paused fa fa-play-circle-o');
+		}else{
+			$('#topmen .paused').addClass('playing fa fa-pause-circle-o').removeClass('paused fa fa-play-circle-o');
+		}
+	}
 	//create the audio player objects
 	var audio = function(scope){
 		$scope = scope;
@@ -84,68 +102,191 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			})
 		});
 		this.playing = null;
+		this.Webview();
+	}
 
-		webView = document.querySelector('webview');
+	audio.prototype.background = function(){
+		var self = this;
+		this.bg = true;
+		ipcRenderer.sendSync('youtube_window');
+		this.youtube_window = Yolk.remote('youtube_window');
+		if(this.youtube_position && this.youtube_window.setPosition){
+			this.youtube_window.setPosition(this.youtube_position[0],this.youtube_position[1])
+		}
 
-
-		webView.addEventListener('dom-ready', function(e) {
-			//webView.openDevTools();
+		this.youtube_window.on('close',function(){
+			self.bgurl = self.youtube_window.getURL();
+			self.state='paused';
+			self.youtube_window.destroy();
+			self.youtube_window = false;
 		})
-		webView.addEventListener('new-window', function(e){
+		if($scope.lib.playing&&$scope.lib.playing.youtube){
+			var src = $scope.webView.src;
+			this.Webview($scope.webView.src);
+		}else{
+			this.Webview();
+		}
+		if($scope.lib.playing){
+			Yolk.controls.html.musicPlayer=`
+			<div class='fa fa-music' onclick='window.location="#!/musicPlayer"'>
+				<div>
+					<div class='prev fa fa-step-backward' onclick='Yolk.controls.commands.musicPlayer("prev");event.stopPropagation();'></div>
+					<div class='playing fa fa-pause-circle-o' style='font-size:2em;' onclick='Yolk.controls.commands.musicPlayer("play");event.stopPropagation();'></div>
+					<div class='fa fa-step-forward' onclick='Yolk.controls.commands.musicPlayer("next");event.stopPropagation();'></div>
+				</div>
+			</div>
+			<script style="display:none;">Yolk.controls.commands.musicPlayer()</script>		`
+		}
+	}
+
+	audio.prototype.resume = function(scope){
+		$scope = scope;
+		var self = this;
+		if(this.bg){
+			this.bg = false;
+			var src = this.bgurl||this.youtube_window.getURL();
+			this.bgurl = false;
+			if(this.youtube_window){
+				this.youtube_position = this.youtube_window.getPosition()
+				this.youtube_window.destroy();
+			}
+			this.youtube_window = false;
+			$timeout(function(){
+				if(self.state) $scope.lib.playing.state=self.state;
+				topmen();
+				self.state = false;
+				$scope.tracks.isInFocus();
+			})
+			this.Webview(src);
+		}else{
+			this.Webview($scope.webView.src);
+			console.warn('no bg')
+			$timeout(function(){
+				$scope.tracks.isInFocus();
+			})
+		}
+
+		return this;
+	}
+	ipcRenderer.on('media',function(event,data){
+		$scope.audio.listeners({channel:'media',args:data})
+	})
+	ipcRenderer.on('location',function(event,url){
+		var protocol = Url.parse(url).protocol
+		if (protocol === 'http:' || protocol === 'https:') {
+			url = encodeURIComponent(url);
+			$scope.webView.webContents.send('media','pause');
+			var win = Yolk.remote('win');
+			win.webContents.executeJavaScript("window.location = '#!/link?loc="+url+"';");
+		}
+	})
+	audio.prototype.listeners = function(event){
+		var self = this;
+		if(event.channel === 'media'){
+			switch (event.args[0]) {
+				case 'ratio':
+					vidratio = event.args[1];
+					if(this.bg){
+						this.youtube_window.setSize(600,Math.round(600*vidratio),true);
+					}
+					$scope.$apply(function(){
+						$scope.dims.vidheight = ($scope.dims.sidebarWidth-1)*vidratio;
+					})
+				break;
+				case 'vidready':
+					$scope.lib.playing.youtube=true;
+					vidlength = event.args[1];
+
+				break;
+				case 'next':
+					this.next();
+				break;
+				case 'time':
+					if(this.buffering) this.buffering = false;
+					this.vidprogress = event.args[1];
+
+				break;
+				case 'play':
+					this.state = 'playing';
+					$scope.$apply(function(){
+						$scope.lib.playing.state = 'playing';
+					});
+				break;
+				case 'pause':
+					this.state = 'paused';
+					$scope.$apply(function(){
+						$scope.lib.playing.state = 'paused';
+						self.progress();
+					});
+
+				break;
+			}
+		};
+	}
+	audio.prototype.Webview = function(src){
+		var self = this;
+		if(this.bg){
+			$scope.webView = this.youtube_window;
+			//$scope.webView.webContents.openDevTools()
+		}else{
+			$scope.webView = document.querySelector('webview');
+		}
+		if(src){
+			src = src.split('&start=')[0];
+			src+='&start='+Math.floor($scope.audio.vidprogress);
+		}
+
+		if(this.bg){
+			var proceed = false;
+			if(src) $scope.webView.loadURL(src,{httpReferrer:'https://youtube.com'});
+			$scope.webView.once('ready-to-show', () => {
+				$scope.webView.show()
+			})
+			$scope.webView.webContents.on('dom-ready',function(){
+				$scope.webView.webContents.executeJavaScript('Yolk_context("window")')
+			});
+			$scope.webView.webContents.on('media-started-playing',function(){
+				if(proceed) $scope.lib.playing.state = 'playing';
+				topmen()
+				if($scope.lib.playing.state==='paused') $scope.webView.webContents.send('media','pause');
+				proceed = true;
+			});
+			return;
+		}
+		$scope.webView.addEventListener('ipc-message',function(event){
+			self.listeners(event);
+		});
+		$scope.webView.addEventListener('dom-ready', function(e) {
+			//$scope.webView.openDevTools();
+			$scope.webView.executeJavaScript('Yolk_context("webview")');
+			if(src && $scope.lib.playing && $scope.lib.playing.youtube) $scope.webView.loadURL(src,{httpReferrer:'https://youtube.com'});
+			src=false;
+		})
+		$scope.webView.addEventListener('media-started-playing',function(){
+			if($scope.lib.playing.state === 'paused') $scope.webView.send('media','pause');
+
+		})
+		$scope.webView.addEventListener('new-window', function(e){
 			var protocol = Url.parse(e.url).protocol
 			if (protocol === 'http:' || protocol === 'https:') {
 				e.url = encodeURIComponent(e.url);
 				window.location = '#!/link?loc='+e.url;
 			}
 		});
-		webView.addEventListener('ipc-message',function(event){
-			if(event.channel === 'media'){
-				switch (event.args[0]) {
-					case 'ratio':
-						vidratio = event.args[1];
-						$scope.$apply(function(){
-							$scope.dims.vidheight = ($scope.dims.sidebarWidth-1)*vidratio;
-						})
-					break;
-					case 'vidready':
-						$scope.lib.playing.youtube=true;
-						vidlength = event.args[1];
-
-					break;
-					case 'next':
-						self.next();
-					break;
-					case 'time':
-						if($scope.audio.buffering) $scope.audio.buffering = false;
-						vidprogress = event.args[1];
-					break;
-					case 'play':
-						$scope.$apply(function(){
-							$scope.lib.playing.state = 'playing';
-						});
-					break;
-					case 'pause':
-
-						$scope.$apply(function(){
-							$scope.lib.playing.state = 'paused';
-							self.progress();
-						});
-
-					break;
-				}
-			};
-		});
 	}
+
+
 	//Play next track
 	audio.prototype.next = function(){
 		if(!$scope.lib.next){
 			if($scope.lib.playing.youtube){
 				$scope.dims.vidheight=false;
-				webView.send('media','pause');
+				if(!this.bg) $scope.webView.send('media','pause');
 			}else{
 				this.player.pause();
 			}
-			$scope.lib.playing = false;
+			$scope.lib.playing.state = false;
+			topmen();
 			return;
 		}
 		this.play($scope.lib.next);
@@ -154,8 +295,8 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 	//Play a track
 	audio.prototype.play = function(track,init){
-		var self = this;
 
+		var self = this;
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)
 		}
@@ -189,7 +330,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 					})
 				}
 			}
-			webView.send('media','pause');
+
+			$scope.webView.send('media','pause');
+
 			//webView.send('media','hide');
 			this.player.pause();
 			this.buffering=true;
@@ -199,25 +342,42 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			if($scope.lib.playing){
 				$scope.lib.playing.state = false;
 				$scope.lib.previous = $scope.lib.playing;
+				$('#topmen .prev').removeClass('dead')
 			}
-			vidprogress = 0;
+			this.vidprogress = 0;
 			this.progress(false,true)
+			if(!$scope.lib.playing) $scope.lib.playing = {};
+			$scope.lib.playing.state = false;
 			$scope.db.client.get({index:$scope.db_index,type:track.type,id:track.id},function(err,data){
-				if(err) console.error(err)
-				$scope.lib.playing = data._source;
-				$scope.lib.playing.state = 'playing';
-				$scope.tracks.isInFocus();
 
-				if(track.type !== 'youtube'){
-					$scope.lib.playing.youtube=false;
-					self.player.src = source;
+				if(err) console.error(err)
+				if($scope.$apply.toString().indexOf('function noop')===-1){
+					$scope.$apply(function(){
+						go();
+					})
 				}else{
-					$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
-					$scope.lib.playing.youtube = true;
-					$scope.lib.playing.state = 'playing';
-					webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https://youtube.com'});
+					go();
 				}
-				self.progress(true);
+				function go(){
+					$scope.lib.playing = data._source;
+					$scope.lib.playing.state = 'playing';
+					topmen()
+					$scope.tracks.isInFocus();
+
+					if(track.type !== 'youtube'){
+						if(self.bg) $scope.webView.hide();
+						$scope.lib.playing.youtube=false;
+						self.player.src = source;
+
+					}else{
+						if(self.bg) $scope.webView.show();
+						$scope.dims.vidheight = $scope.dims.sidebarWidth/16*9;
+						$scope.lib.playing.youtube = true;
+						$scope.lib.playing.state = 'playing';
+						$scope.webView.loadURL(track.path+track.file+'?autoplay=1&controls=0&color=white&disablekb=1&modestbranding=1&rel=0&showinfo=0',{httpReferrer:'https://youtube.com'});
+					}
+					self.progress(true);
+				}
 			})
 			//Add playing track to the recently played playlist
 			if(!$scope.playlist.active || $scope.playlist.selected !== 1){
@@ -234,19 +394,19 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 			if($scope.lib.playing.state === 'paused'){
 				$scope.lib.playing.state = 'playing';
-
+				topmen();
 				if($scope.lib.playing.youtube){
-					webView.send('media','play');
+					$scope.webView.send('media','play');
 				}else{
 					this.player.play();
 				}
 				this.progress(true);
 			}else{
-
 				$scope.lib.playing.state = 'paused';
+				topmen();
 				self.progress()
 				if($scope.lib.playing.youtube){
-					webView.send('media','pause');
+					$scope.webView.send('media','pause');
 				}else{
 					this.player.pause();
 				}
@@ -257,11 +417,11 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	//seek in the track
 	audio.prototype.seek=function(event){
 
-		vidprogress= vidlength*(event.offsetX/$scope.dims.playwindowWidth);
+		this.vidprogress= vidlength*(event.offsetX/$scope.dims.playwindowWidth);
 		if($scope.lib.playing.youtube){
-			webView.send('media','seek',vidprogress);
+			$scope.webView.send('media','seek',this.vidprogress);
 		}else{
-			this.player.currentTime  = vidprogress;
+			this.player.currentTime  = this.vidprogress;
 		}
 		this.progress(true,false,true);
 	}
@@ -273,18 +433,18 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(!$scope.lib.playing) return;
 		var self = this;
 		if(!reset && !$scope.lib.playing.youtube){
-			vidprogress = this.player.currentTime
+			this.vidprogress = this.player.currentTime
 		}
-		if(reset) vidprogress = 0;
-		if(vidprogress && vidlength){
+		if(reset) this.vidprogress = 0;
+		if(this.vidprogress && vidlength){
 			//console.log((vidprogress/vidlength)*100 +'%')
 			if(seek){
 				$('#playing .progress').css({
-					'width':(vidprogress/vidlength)*100 +'%'
+					'width':(this.vidprogress/vidlength)*100 +'%'
 				});
 			}else{
 				$('#playing .progress').css({
-					'width':(vidprogress/vidlength)*100 +'%'
+					'width':(this.vidprogress/vidlength)*100 +'%'
 				});
 			}
 		}else{

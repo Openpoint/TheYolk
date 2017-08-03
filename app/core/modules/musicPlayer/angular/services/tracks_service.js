@@ -27,6 +27,10 @@ angular.module('yolk').factory('tracks',[function(){
 			name:false,
 		}
 	}
+	tracks.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
 	function getAll(playlist,up){
 		//if(album && !$scope.playlist.active) return $scope.tracks.all;
 		if($scope.tracks.playlistAll || playlist){
@@ -65,7 +69,9 @@ angular.module('yolk').factory('tracks',[function(){
 				{match:{id:id}}
 		]}}}}
 		if(id) $scope.db.fetch(search).then(function(data){
+			if(!data.items.length) return;
 			data.items[0].filter.pos = next;
+			$scope.lib.next = data.items[0]; //set for background mode
 			$scope.$apply(function(){
 				$scope.lib.next = data.items[0];
 			})

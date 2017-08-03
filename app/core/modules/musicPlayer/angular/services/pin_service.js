@@ -36,6 +36,10 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 			album:0
 		}
 	}
+	pin.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
 	pin.prototype.Source = function(data){
 		if(data.type === 'Album'){
 			function go(scroll){
@@ -169,13 +173,13 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		this.Page = page;
 		switch (page){
 			case 'title':
-				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
+				this.sortby = this.Filter ? ['date:'+invert(this.direction[page])]:['metadata.title.raw:'+this.direction[page]];
 			break;
 			case 'artist':
-				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['name.raw:'+this.direction[page]];
+				this.sortby = this.Filter ? ['date:'+invert(this.direction[page])]:['name.raw:'+this.direction[page]];
 			break;
 			case 'album':
-				this.sortby = this.Filter ? ['date:'+this.direction[page]]:['metadata.title.raw:'+this.direction[page]];
+				this.sortby = this.Filter ? ['date:'+invert(this.direction[page])]:['metadata.title.raw:'+this.direction[page]];
 			break;
 		}
 		$scope.search.go(false,'page');
@@ -188,6 +192,13 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		delete oldterms.title
 		$scope.searchTerm = "artist:"+artist+" album:"+album;
 		this.page(destination)
+	}
+	function invert(dir){
+		if(dir==='asc'){
+			return 'desc';
+		}else{
+			return 'asc'
+		}
 	}
 	return pin;
 }])

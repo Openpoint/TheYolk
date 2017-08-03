@@ -409,8 +409,7 @@ mbdbase.prototype.saveMeta = function(track,body){
 				kill.update('promises');
 				if(kill.kill) return;
                 if(err){
-                    console.Yolk.error(err);
-                    resolve('ERROR SAVING ------------- '+tosave.id);
+                    reject(err);
                 }else{
                     if(!track.youtube){
                         message.send('refresh',track.type);

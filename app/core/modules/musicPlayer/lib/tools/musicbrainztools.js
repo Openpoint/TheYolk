@@ -264,6 +264,9 @@ mbtools.prototype.go = function(track){
 				mbdb.saveMeta(track,tt).then(function(message){
 					flow.busy = false;
 					if(log) console.Yolk.say(message);
+				},function(err){
+					flow.busy = false;
+					if(log) console.Yolk.err(err);
 				});
 				return;
 			}

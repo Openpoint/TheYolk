@@ -27,6 +27,10 @@ angular.module('yolk').factory('dims',[function() {
 		this.drawerHeight = 0;
 		this.scrollTop = 0;
 	}
+	dims.prototype.resume=function(scope){
+		$scope = scope;
+		return this;
+	}
 	dims.prototype.update = function(){
 		this.playwindowWidth = $(window).width() - this.sidebarWidth -2;
 		if($scope.playlist.active){

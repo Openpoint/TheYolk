@@ -297,7 +297,7 @@ var downart = function(src,item){
 			if(!error && response.statusCode == 200){
 				Jimp.read(body, function (err,image) {
 
-					if(err){
+					if(err || !image){
 						if(item.google){
 							item.google.index++;
 							if(item.google.index > 4) return;
