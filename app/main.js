@@ -278,21 +278,23 @@ function elastic(home){
 		process.Yolk.elasticsearch = child.spawn('nice',args);
 	}else{
 		var args = [
-			'java',
-			'/low',
+			'/c',
 			process.Yolk.elasticpath,
 			'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
 			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
 			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 		];
-		process.Yolk.elasticsearch = child.spawn('start',args);
+		process.Yolk.elasticsearch = child.spawn('cmd.exe',args);
 	}
 
 	process.Yolk.elasticsearch.stdout.on('data', function(data){
 		var string = (`${data}`);
 		var trimmed = string.split('[yolk]')[1];
 		var p = string.match(/pid\[([^\]]+)\]/);
-		if(p) pid = p[1];
+		if(p){
+			pid = p[1];
+			if(os.platform()==='win32') child.exec('wmic process where processid="'+pid+'" CALL setpriority "below normal"');
+		}
 
 		if(trimmed){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
