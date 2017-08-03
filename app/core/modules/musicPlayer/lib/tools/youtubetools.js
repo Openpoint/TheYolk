@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-const log = true;
+const log = false;
 const tools = require('./searchtools.js');
 const {ipcRenderer} = require('electron');
 const crypto = require('crypto');

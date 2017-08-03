@@ -22,7 +22,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 
 	const tools = require('../../lib/tools/searchtools.js');
 	const Tools = require('../../lib/tools/youtubetools.js');
-	const log = true;
+	const log = false;
 	const kill = require('../../lib/tools/killer.js')
 	var moot = []
 	var $scope;

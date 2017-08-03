@@ -109,6 +109,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	var t =false
 	//var brake = false;
 	search.prototype.go = function(refresh,origin,deleted){
+
 		var self = this;
 		if(!oldChunk) setOldChunk();
 		this.prepare(refresh,deleted)
@@ -157,6 +158,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 		if(origin === 'scroll') this.memory[context][mem].scrolltop = $('#playwindow').scrollTop();
 		if(!this.state.get) return;
+		$scope.loading = true;
 		if(log && !t) console.warn($scope.playlist.active?'playlist':$scope.pin.Page);
 		t=false;
 		if(log) console.log('GO:'+go);

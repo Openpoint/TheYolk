@@ -26,9 +26,9 @@ angular.module('yolk').directive('yolkThumb', function($rootScope) {
 		if(!scope.image) scope.image = {}
     var thisPath = path.join(paths[attrs.cat],attrs.id,'thumb.jpg');
     if(filetools.isThere('file',thisPath)){
-			scope.image[attrs.id] = thisPath;
+		scope.image[attrs.id] = thisPath;
     }else{
-			scope.image[attrs.id] = scope.lib.noart;
+		scope.image[attrs.id] = scope.lib.noart;
     }
   };
 });

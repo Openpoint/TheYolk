@@ -75,7 +75,6 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 
 
 	if(!$rootScope[mod_name]){
-		$scope.loading = true;
 		$scope.search.go(true,'init');
 		$interval(function(){
 			if($scope.progress.internetarchive !== $scope.internetarchive.progress||$scope.progress.youtube !== $scope.youtube.progress||$scope.progress.musicbrainz !== $scope.musicbrainz){

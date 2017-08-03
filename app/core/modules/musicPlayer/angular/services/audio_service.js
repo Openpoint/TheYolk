@@ -49,8 +49,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		$('#fullscreen_out').hide();
 	};
 	function topmen(){
-		if($scope.lib.playing.state==='paused'){
-
+		if($scope.lib.playing && $scope.lib.playing.state==='paused'){
 			$('#topmen .playing').removeClass('playing fa fa-pause-circle-o').addClass('paused fa fa-play-circle-o');
 		}else{
 			$('#topmen .paused').addClass('playing fa fa-pause-circle-o').removeClass('paused fa fa-play-circle-o');
@@ -155,6 +154,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				if(self.state) $scope.lib.playing.state=self.state;
 				topmen();
 				self.state = false;
+				$scope.search.go(false,'page');
 				$scope.tracks.isInFocus();
 			})
 			this.Webview(src);
