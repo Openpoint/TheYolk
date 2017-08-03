@@ -41,8 +41,7 @@ installer.prototype.hasJava=function(Path){
 		}else{
 			var jpath = 'java';
 		}
-		console.log('nice -n 19 '+jpath);
-		var jre = child.spawnSync(jpath, ['-version','nice -n 19']);
+		var jre = child.spawnSync(jpath, ['-version']);
 		if(jre.error){
 			if(Path){
 				process.Yolk.storedMesssage.log='No Local Java Installed';

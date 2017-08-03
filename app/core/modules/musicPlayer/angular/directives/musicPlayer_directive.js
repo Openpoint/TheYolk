@@ -20,15 +20,15 @@ const fs = require('fs');
 const filetools = require(path.join(Yolk.root,'core/lib/filetools.js'));
 
 angular.module('yolk').directive('yolkThumb', function($rootScope) {
-    return function(scope, element, attrs) {
+  return function(scope, element, attrs) {
 		if(!scope.settings) return;
-        var paths=scope.settings.paths;
+    var paths=scope.settings.paths;
 		if(!scope.image) scope.image = {}
-        var thisPath = path.join(paths[attrs.cat],attrs.id,'thumb.jpg');
-        if(filetools.isThere('file',thisPath)){
+    var thisPath = path.join(paths[attrs.cat],attrs.id,'thumb.jpg');
+    if(filetools.isThere('file',thisPath)){
 			scope.image[attrs.id] = thisPath;
-        }else{
+    }else{
 			scope.image[attrs.id] = scope.lib.noart;
-        }
-    };
+    }
+  };
 });
