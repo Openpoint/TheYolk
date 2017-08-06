@@ -43,7 +43,9 @@ angular.module('yolk').factory('dims',[function() {
 	}
 
 	$(window).resize(function(){
-		$scope.dims.update();
+		$scope.$apply(function(){
+			$scope.dims.update();
+		})	
 	});
 
 	return dims;

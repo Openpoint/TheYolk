@@ -299,7 +299,12 @@ classical.prototype.get = function(info){
 					testname(lastname,composer,whole2)
 				}
 			})
-			if(all_composers) putartist(Object.keys(all_composers))
+			if(all_composers){
+				var comps = Object.keys(all_composers).filter(function(composer){
+					return composer
+				})
+				if(comps.length) putartist(comps)
+			}
 		}
 	})
 	kill.promises.push(p);

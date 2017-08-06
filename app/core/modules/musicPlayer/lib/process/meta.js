@@ -232,12 +232,12 @@ action.wikimedia = function(){
 					if(body.query.pages[key].imageinfo && body.query.pages[key].imageinfo[0] && body.query.pages[key].imageinfo[0].url){
 						var src = body.query.pages[key].imageinfo[0].url;
 	                	new downart(src,item);
-					}else if(count === images.length){
+					}else if(count === item.images.length){
 						queue.google.push(item);
 						go('google');
 					}
 				})
-            }else if(count === images.length){
+            }else if(count === item.images.length){
 				queue.google.push(item);
 				go('google');
 			}

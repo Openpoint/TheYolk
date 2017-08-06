@@ -20,7 +20,7 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 	const {ipcRenderer} = require('electron');
 	const path = require('path');
 	const crypto = require('crypto');
-	const cpu = require('../../lib/tools/cpu.js');
+	//const cpu = require('../../lib/tools/cpu.js');
 	const kill = require('../../lib/tools/killer.js');
 	const tools = require('../../lib/tools/searchtools.js');
 	const log = false;
@@ -348,8 +348,8 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 	ia.prototype.musicbrainz = function(query){
 		var self = this;
 		clearTimeout(mtimeout);
-
-		if(cpu.load < 75) $scope.db.fetchAll(query).then(function(data){
+		//if(cpu.load < 75)
+		$scope.db.fetchAll(query).then(function(data){
 			if(kill.kill) return;
 			data = data.filter(function(track){
 				if(self.searches.indexOf(track.id) === -1){

@@ -16,9 +16,13 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var killer = function(){
+	var self = this;
 	this.kill = false;
 	this.promises = [];
 	this.requests = [];
+	if(process.Yolk) process.Yolk.win.on('close', () => {
+		self.Kill();
+	})
 }
 killer.prototype.Kill=function(){
 	this.kill = true;
@@ -33,4 +37,5 @@ killer.prototype.update = function(type){
 		if(type === 'requests') return !foo.status;
 	})
 }
+
 module.exports = new killer()

@@ -84,12 +84,16 @@ body,html{
 	top:0;
 	left:0;
 }
-#sidebar .right .item .throbber{
+#sidebar .right .item .throbber, #sidebar .right .item .glow{
 	width:25px;
 	height:25px;
 	margin:0;
 }
-
+.glow{
+	background:lime;
+	border-radius:50%;
+	box-shadow: 0px 0px 35px 5px rgba(0,255,0,0.85);
+}
 #sidebar .right .progress{
 	display:none;
 	position:absolute;
@@ -170,10 +174,9 @@ body,html{
 #playwindow{
 	overflow-x:hidden;
 	overflow-y:scroll;
-
-	position:relative;
 	position:absolute;
 	right:0;
+	will-change:contents;
 }
 #loading,#spacer{
 	position:absolute;
@@ -459,7 +462,15 @@ body,html{
 	background:url('../images/playBack.png');
 	background-attachment:local;
 }
-#tracks .spin i{
+#spin{
+	position:absolute;
+	right:0;
+	background:rgba(255,255,255,.25);
+	z-index:1000;
+	display:flex;
+	align-items:center;
+}
+#spin i{
 	margin:0 auto;
 }
 #trackspacer {

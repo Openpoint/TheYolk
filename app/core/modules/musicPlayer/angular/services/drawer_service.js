@@ -264,6 +264,8 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 	}
 
 	drawers.prototype.refreshDrawers = function(deleted){
+		console.warn('refresh drawer');
+		return;
 		var self = this;
 		if(this.lib.album) Object.keys(this.lib.album).forEach(function(key){
 			if(!self.lib.album[key].hasOwnProperty('refresh')) return;
@@ -274,10 +276,9 @@ angular.module('yolk').factory('drawers',['$timeout',function($timeout) {
 						console.error(err);
 						return;
 					}
-					self.drawerContent(data._source,false,'abum')
+					self.drawerContent(data._source,false,'album')
 				})
 			}else if(deleted===self.dpos.album.open){
-
 				delete self.lib.album[deleted];
 				self.dpos.album.open = false;
 			}

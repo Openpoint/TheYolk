@@ -53,6 +53,7 @@ mbtools.prototype.dupe = function(track,skip){
 	}
 	if(!track.musicbrainz_id) return false;
 	if(mbdb.dupes.mbid.some(function(dupe){
+			if(!dupe.file) console.Yolk.warn(dupe);
 			if(dupe.mbid === track.musicbrainz_id && dupe.id!==track.id){
 				//console.Yolk.error(track.downloads*1+' > '+dupe.downloads*1+' : '+(track.downloads*1 > dupe.downloads*1))
 				if(dupe.type === track.type && dupe.auth){return true}else

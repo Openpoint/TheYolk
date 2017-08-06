@@ -56,6 +56,7 @@ angular.module('yolk').factory('tracks',[function(){
 	}
 	//find the next playing track
 	tracks.prototype.next = function(){
+
 		if(!$scope.lib.playing) return;
 		var all = getAll(false,true);
 		if(!all||all.length < 2){

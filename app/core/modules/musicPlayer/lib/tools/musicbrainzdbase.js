@@ -31,7 +31,8 @@ const log = false;
 var mbdbase = function(){
 	this.noAlbum = [];
 	this.baddirs = {};
-	this.bulk=[[]];
+	//this.bulk=[[]];
+	this.bulk=[];
 }
 mbdbase.prototype.inject=function(type,f){
 	if(type === 'mbtools') mbtools = f;
@@ -45,6 +46,7 @@ mbdbase.prototype.getDupes=function(){
 		elastic.fetchAll({index:db_index,type:'local,internetarchive,youtube',body:{query:{match:{musicbrainzed:{query:'yes',type:'phrase'}}},_source:['musicbrainz_id','id','type','fix','rating','downloads','file']}}).then(function(data){
 			if(kill.kill) return;
 			data.forEach(function(track){
+				if(!track.file) console.Yolk.warn(file);
 				if(!self.dupes[track.type]){self.dupes[track.type]=[]}
 				self.dupes[track.type].push(track.id);
 				if(track.musicbrainz_id){self.dupes.mbid.push({mbid:track.musicbrainz_id,auth:track.auth,type:track.type,id:track.id,rating:track.rating,downloads:track.downloads,file:track.file})}
@@ -86,7 +88,7 @@ mbdbase.prototype.fromAlbum = function(track){
 				track = newtrack(track,data);
 				//first check for duplicate
 				if(!mbtools.dupe(track,true)){
-					self.dupes.mbid.push({mbid:track.musicbrainz_id,auth:track.auth,type:track.type,id:track.id,rating:track.rating,downloads:track.downloads});
+					self.dupes.mbid.push({mbid:track.musicbrainz_id,auth:track.auth,type:track.type,id:track.id,rating:track.rating,downloads:track.downloads,file:track.file});
 					self.saveTrack(track)
 					flow.add({type:'artist',id:track.artist,title:track.metadata.artist});
 					reject(track);
@@ -203,11 +205,72 @@ mbdbase.prototype.saveTrack = function(track,timer){
 		return;
 	}
 	var self = this;
+	if(track){
+		track.date = Date.now();
+		track.musicbrainzed ='yes';
+		if(track.type === 'internetarchive'||track.type === 'youtube'){
+			if(!track.file) console.Yolk.error(track);
+			this.bulk.push({update:{ _index:db_index,_type:track.type+'search',_id:track.type === 'internetarchive'?track.id:track.file}});
+			this.bulk.push({doc:{musicbrainzed:'yes'}});
+		}
+		this.bulk.push({update:{ _index:db_index,_type:track.type,_id:track.id}});
+		this.bulk.push({doc:track,doc_as_upsert:true});
+		if(track.artist && track.deleted === 'no'){
+			this.bulk.push({update:{ _index:db_index,_type:'artist',_id:track.artist}});
+			this.bulk.push({doc:{deleted:'no',bulk:'no'},doc_as_upsert:true});
+		}
+		if(track.album && track.deleted === 'no'){
+			this.bulk.push({update:{ _index:db_index,_type:'album',_id:track.album}});
+			this.bulk.push({doc:{deleted:'no',bulk:'no'}});
+		}
+	}
+	if(this.savetimer)  return;
+
+	if(cpu.load < 50 && !busy && this.bulk.length){
+		//console.log('Waiting to save : '+(i+1))
+		busy = true;
+		flow.busy = true;
+		elastic.client.bulk({body:this.bulk,refresh:true},function(err,data){
+			if(kill.kill) return;
+			if(err){
+				console.Yolk.error(err);
+				console.Yolk.say(self.bulk);
+			}
+			albums.compress().then(function(changed){
+				if(changed){
+					self.getDupes().then(function(){
+						busy = false;
+						flow.busy = false;
+					})
+				}else{
+					busy = false;
+					flow.busy = false;
+				}
+				message.send('refresh','title');
+			})
+		});
+		this.bulk=[];
+	}
+	this.savetimer = setTimeout(function(){
+		self.savetimer = false;
+		if(kill.kill) return;
+		self.saveTrack(false,true)
+	},5000)
+}
+/*
+mbdbase.prototype.saveTrack = function(track,timer){
+    if(kill.kill){
+		clearTimeout(this.savetimer);
+        console.Yolk.error('KILL');
+		return;
+	}
+	var self = this;
 	var i = this.bulk.length -1;
 	if(track){
 		track.date = Date.now();
 		track.musicbrainzed ='yes';
 		if(track.type === 'internetarchive'||track.type === 'youtube'){
+			if(!track.file) console.Yolk.error(track);
 			this.bulk[i].push({update:{ _index:db_index,_type:track.type+'search',_id:track.type === 'internetarchive'?track.id:track.file}});
 			this.bulk[i].push({doc:{musicbrainzed:'yes'}});
 		}
@@ -235,7 +298,8 @@ mbdbase.prototype.saveTrack = function(track,timer){
 			if(kill.kill) return;
 			if(err){
 				console.Yolk.error(err);
-				console.Yolk.say(bulk)
+				console.Yolk.say(bulk);
+
 			}
 			albums.compress().then(function(changed){
 				if(changed){
@@ -256,6 +320,7 @@ mbdbase.prototype.saveTrack = function(track,timer){
 		self.saveTrack(false,true)
 	},500)
 }
+*/
 //format and save album or artist to the database
 mbdbase.prototype.saveMeta = function(track,body){
     var p = new Promise(function(resolve,reject){

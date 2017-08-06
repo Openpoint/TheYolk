@@ -189,9 +189,8 @@ angular.module('yolk').factory('lazy',[function() {
 	var watchScroll = function(){
 		// watch for scrolling of the track list
 		var scrollfix;
-		var t=0;
-		$('#playwindow').scroll(function(e){
-
+		//var t=0;
+		$('#playwindow')[0].addEventListener('scroll',function(e){
 			clearTimeout(scrollfix); // in a long list scrolling by the handle goes too fast for the scroll event - do a automatic cleanup
 			$scope.dims.scrollTop = $('#playwindow').scrollTop()
 			$scope.lazy.playPos();
@@ -201,7 +200,7 @@ angular.module('yolk').factory('lazy',[function() {
 			},100);
 
 
-		});
+		},{passive:true});
 	}
 	return lazy;
 }])

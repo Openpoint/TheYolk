@@ -29,6 +29,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 
 	var youtube = function(scope){
 		$scope = scope;
+		this.progress = 0;
 		this.busy={};
 		var self = this;
 		this.getDone();

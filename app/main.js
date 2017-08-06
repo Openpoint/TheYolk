@@ -17,6 +17,7 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 
 process.Yolk = {};
 const {app, BrowserWindow, webContents, ipcMain, session} = require('electron');
+//app.commandLine.appendSwitch('disable-smooth-scrolling');
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 const fs=require('fs');
 const http = require('http');
@@ -39,12 +40,12 @@ const elasticchecksum = '9273fdecb2251755887f1234d6cfcc91e44a384d';
 const javaversion = 'jre1.8.0_131';
 var installer;
 var domReady;
+var closing = false;
 var message = function(type,message){
-	if(process.Yolk.message){
+	if(process.Yolk.message && !closing){
 		process.Yolk.message.send(type,message);
 	}
 }
-
 
 process.Yolk.modules = boot.modules;
 process.Yolk.resolver = {};
@@ -108,16 +109,7 @@ process.Yolk.chrome = function(action){
 			}else{
 				win.maximize();
 			}
-		/*
-			if(win.isFullScreen()){
-				win.setFullScreen(false);
-				if(win.isMaximized()){
-					win.unmaximize();
-				}
-			}else{
-				win.setFullScreen(true)
-			}
-			*/
+
 		break;
 		case 'devtools':
 			win.webContents.openDevTools();
@@ -150,15 +142,17 @@ function createWindow () {
 	win.on('unresponsive',function(){
 		console.log('Browser window unresponsive')
 	})
-
+	win.on('close', () => {
+		closing = true;
+	})
 	// Emitted when the window is closed.
 	win.on('closed', () => {
 		// Dereference the window object, usually you would store windows
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
 		win = null;
-		if(pid) kill(pid);
 		app.quit();
+		if(pid) kill(pid);
 	})
 }
 
@@ -188,6 +182,22 @@ app.on('gpu-process-crashed',()=>{
 // Some APIs can only be used after this event occurs.
 
 app.on('ready', function(){
+	/*
+	var name = process.argv[0].split('/');
+	name = name[name.length-1];
+	var pids = child.execSync('pgrep '+name);
+	pids = pids.toString().split('\n').filter(function(pid){
+		if(pid){
+			var arg = child.execSync('ps -p '+pid+' -o args').toString().split('\n')[1];
+			console.log(arg+' -- '+pid)
+			if(arg.indexOf('type=gpu-process') === -1){
+				child.exec('renice -n 19 -p '+pid);
+				return true;
+			}
+		}
+	});
+	console.log(pids);
+	*/
 	createWindow();
 	process.Yolk.javahome = path.join(boot.home,'.bin',javaversion);
 	if(os.platform()!=='win32'){

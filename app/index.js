@@ -64,7 +64,6 @@ $(window).ready(function(){
 })
 
 ipcRenderer.on('log',function(event,data){
-	console.warn(event)
 	if(data.log) console.log(data.log);
 	if(data.error) console.error(data.error);
 	if(data.warn) console.warn(data.warn);

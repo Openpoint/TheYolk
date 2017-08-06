@@ -37,6 +37,7 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	$scope.countries = require('../lib/tools/countries.json');
 	$scope.tools = require('../lib/tools/searchtools.js');
 
+
 	if(!$rootScope[mod_name]){
 		ipcRenderer.send('kill','revive');
 		$scope.progress={};
@@ -76,20 +77,12 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 
 	if(!$rootScope[mod_name]){
 		$scope.search.go(true,'init');
-		$interval(function(){
-			if($scope.progress.internetarchive !== $scope.internetarchive.progress||$scope.progress.youtube !== $scope.youtube.progress||$scope.progress.musicbrainz !== $scope.musicbrainz){
-				$scope.progress.internetarchive = $scope.internetarchive.progress;
-				$scope.progress.youtube = $scope.youtube.progress;
-				$scope.progress.musicbrainz = $scope.musicbrainz;
-			}
-		},1000)
 	}else{
 		//$scope.audio.player.play();
 		$('#playwindow').ready(function(){
 			setTimeout(function(){
 				$('#playwindow').scrollTop($scope.search.fetchmem().scrolltop);
 			})
-
 		})
 	}
 
@@ -98,7 +91,26 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	$scope.$on('$locationChangeSuccess', function(event) {
 		$scope.audio.background();
 	});
-
+	function progresstimer(){
+		$timeout.cancel($scope.progress_timer);
+		var types = ['internetarchive','youtube','musicbrainz'];
+		types.some(function(type){
+			if(!$scope[type]) return false;
+			if($scope.progress[type] && !$scope[type].progress || !$scope.progress[type] && $scope[type].progress){
+				$scope.progress[type] = $scope[type].progress;
+				return true;
+			}
+			return false;
+		})
+		types.forEach(function(type){
+			if(!$scope[type]) return;
+			$('#sidebar .progress .'+type).html($scope[type].progress);
+		})
+		$scope.progress_timer = $timeout(function(){
+			progresstimer();
+		},1000)
+	}
+	progresstimer();
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
 		//console.log('close');
@@ -179,27 +191,25 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		})
 	}
 
-
-	var refresh_time = false;
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			if(data  === 'bulk'){
-				$scope.refresh.title?$scope.refresh.title++:$scope.refresh.title=1
-				$scope.refresh.album?$scope.refresh.album++:$scope.refresh.album=1
-				$scope.refresh.artist?$scope.refresh.artist++:$scope.refresh.artist=1
-			}else{
-				$scope.refresh[data]?$scope.refresh[data]++:$scope.refresh[data]=1
-			}
-			if(refresh_time) return;
-			refresh_time = setTimeout(function(){
-				$scope.search.go(true);
-				refresh_time = false;
+			$scope.refresh[data]?$scope.refresh[data]++:$scope.refresh[data]=1
+			if($scope.refresh_time) return;
+			$scope.refresh_time = setTimeout(function(){
+				if($scope.refresh[$scope.pin.Page]){
+					$scope.search.go(true);
+				}
+				$scope.refresh_time = false;
 			},3000)
 		});
 	}
 	if(!ipcRenderer._events.progress){
 		ipcRenderer.on('progress',function(event,data){
-			if(data.type === 'musicbrainz') $scope.musicbrainz = data.size;
+
+			if(data.type === 'musicbrainz'){
+				if(!$scope.musicbrainz) $scope.musicbrainz = {}
+				$scope.musicbrainz.progress = data.size;
+			}
 		});
 	}
 	if(!ipcRenderer._events.verify){

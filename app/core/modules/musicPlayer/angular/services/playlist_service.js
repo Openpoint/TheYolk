@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-angular.module('yolk').factory('playlist',[function() {
+angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 	var $scope;
 
 	var playlist = function(scope){
@@ -65,7 +65,9 @@ angular.module('yolk').factory('playlist',[function() {
 		var self = this;
 		this.options.some(function(opt){
 			if (opt.id === self.selected){
-				self.name = opt.name;
+				$timeout(function(){
+					self.name = opt.name;
+				})
 				return true;
 			}
 		})

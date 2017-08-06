@@ -47,7 +47,7 @@ flow.prototype.resetq=function(){
 	};
 }
 
-flow.prototype.len = function(reset,nobulk){
+flow.prototype.len = function(reset){
 	var len = 0;
 	var self = this;
 
@@ -57,9 +57,10 @@ flow.prototype.len = function(reset,nobulk){
 			len+=self.mbq[key].length;
 		}
 	});
-	if(reset) mbdb.bulk = [[]];
-	if(nobulk) return len;
-	return len+mbdb.bulk.length-1;
+	//if(reset) mbdb.bulk = [[]];
+
+	//return len+mbdb.bulk.length-1;
+	return len;
 }
 var opt = 'youtube';
 flow.prototype.getTrack = function(){
