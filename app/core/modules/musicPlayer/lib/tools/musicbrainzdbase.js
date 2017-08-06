@@ -255,72 +255,9 @@ mbdbase.prototype.saveTrack = function(track,timer){
 		self.savetimer = false;
 		if(kill.kill) return;
 		self.saveTrack(false,true)
-	},5000)
+	},10000)
 }
-/*
-mbdbase.prototype.saveTrack = function(track,timer){
-    if(kill.kill){
-		clearTimeout(this.savetimer);
-        console.Yolk.error('KILL');
-		return;
-	}
-	var self = this;
-	var i = this.bulk.length -1;
-	if(track){
-		track.date = Date.now();
-		track.musicbrainzed ='yes';
-		if(track.type === 'internetarchive'||track.type === 'youtube'){
-			if(!track.file) console.Yolk.error(track);
-			this.bulk[i].push({update:{ _index:db_index,_type:track.type+'search',_id:track.type === 'internetarchive'?track.id:track.file}});
-			this.bulk[i].push({doc:{musicbrainzed:'yes'}});
-		}
-		this.bulk[i].push({update:{ _index:db_index,_type:track.type,_id:track.id}});
-		this.bulk[i].push({doc:track,doc_as_upsert:true});
-		if(track.artist && track.deleted === 'no'){
-			this.bulk[i].push({update:{ _index:db_index,_type:'artist',_id:track.artist}});
-			this.bulk[i].push({doc:{deleted:'no',bulk:'no'},doc_as_upsert:true});
-		}
-		if(track.album && track.deleted === 'no'){
-			this.bulk[i].push({update:{ _index:db_index,_type:'album',_id:track.album}});
-			this.bulk[i].push({doc:{deleted:'no',bulk:'no'}});
-		}
-		if(this.bulk[i].length >= 200) this.bulk.push([])
-	}
-	if(!timer && this.savetimer)  return;
 
-	if(cpu.load < 50 && !busy){
-		//console.log('Waiting to save : '+(i+1))
-		if(this.bulk[0].length) var bulk = this.bulk.shift();
-		if(!this.bulk.length) this.bulk.push([])
-		if(bulk) busy = true;
-		if(bulk) flow.busy = true;
-		if(bulk) elastic.client.bulk({body:bulk,refresh:true},function(err,data){
-			if(kill.kill) return;
-			if(err){
-				console.Yolk.error(err);
-				console.Yolk.say(bulk);
-
-			}
-			albums.compress().then(function(changed){
-				if(changed){
-					self.getDupes().then(function(){
-						busy = false;
-						flow.busy = false;
-					})
-				}else{
-					busy = false;
-					flow.busy = false;
-				}
-				message.send('refresh','bulk');
-			})
-		});
-	}
-	this.savetimer = setTimeout(function(){
-		if(kill.kill) return;
-		self.saveTrack(false,true)
-	},500)
-}
-*/
 //format and save album or artist to the database
 mbdbase.prototype.saveMeta = function(track,body){
     var p = new Promise(function(resolve,reject){

@@ -29,7 +29,8 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		$scope.$apply(function(){
 			$scope.settings.paths.artist = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 			$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
-			if($scope.settings.paths.musicDir && $rootScope[mod_name]) ipcRenderer.send('verify', $scope.settings.paths.musicDir);
+			if($scope.settings.paths.musicDir && !$rootScope[mod_name]) ipcRenderer.send('verify', $scope.settings.paths.musicDir);
+			$rootScope[mod_name] = $scope;
 		})
 	});
 
@@ -86,7 +87,7 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		})
 	}
 
-	$rootScope[mod_name] = $scope;
+
 
 	$scope.$on('$locationChangeSuccess', function(event) {
 		$scope.audio.background();
