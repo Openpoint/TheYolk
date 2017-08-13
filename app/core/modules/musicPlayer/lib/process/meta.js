@@ -78,7 +78,7 @@ imageWindow.webContents.on('did-start-loading',function(){
 });
 imageWindow.webContents.on('dom-ready',function(){
 	if(!thisface) return;
-	var face = "face('"+thisface.src+"')";
+	var face = "face('"+encodeURIComponent(thisface.src)+"')";
 	var foo = imageWindow.webContents.executeJavaScript(face,true);
 	foo.then(function(t){
 		fs.unlinkSync(thisface.src);
@@ -314,7 +314,9 @@ action.discogs = function(){
 	busy.discogs = true;
 	var item = queue.discogs.shift();
 	discogsItem(item)
+	console.Yolk.log("loading")
     discogs.loadURL(item.discogs);
+	console.Yolk.log("loaded")
 }
 
 //all else failed, so look for an image on google

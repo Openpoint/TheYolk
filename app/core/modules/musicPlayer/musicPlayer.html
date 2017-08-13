@@ -227,7 +227,7 @@
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="artist">
 								<img cat="artist" id = "{{artist.id}}" ng-src="{{image[artist.id]}}" yolk-thumb ng-click = 'drawers.drawer(artist)' />
-								<div class='refresh' ng-if="image[artist.id].indexOf('/noImage.svg')!==-1" ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
+								<div class='refresh' ng-if="image[artist.id].indexOf('noImage.svg')!==-1" ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
 								<a ng-if="lib.bios[artist.id].outlink" href="{{lib.bios[artist.id].outlink}}" class='fa fa-wikipedia-w wikilink'></a>
@@ -288,7 +288,7 @@
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="album">
 								<img cat="album" id="{{album.id}}" ng-src="{{image[album.id]}}" yolk-thumb onerror="" ng-click = 'drawers.drawer(album)'/>
-								<div class='refresh' ng-if="image[album.id].indexOf('/noImage.svg')!==-1" ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
+								<div class='refresh' ng-if="image[album.id].indexOf('noImage.svg')!==-1" ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
 

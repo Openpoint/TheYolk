@@ -338,6 +338,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		})
 	}
 	search.prototype.fixChrome = function(refresh){
+		if(!$scope.tracks.all) return;
 		$scope.lazy.maxheight = ($scope.tracks.all.length+1)*$scope.dims.trackHeight - $scope.dims.playwindowHeight
 		if($scope.lazy.maxheight < $scope.dims.playwindowHeight) $scope.lazy.maxheight = $scope.dims.playwindowHeight;
 		if($scope.drawers.dpos[$scope.pin.Page].open) $scope.lazy.maxheight+= $scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].height;

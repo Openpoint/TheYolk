@@ -38,7 +38,7 @@
 			var image = $('#image')[0];
 			var image2 = $('#image2')[0];
             var face = function(src){
-				console.log(process.pid)
+                src =  decodeURIComponent(src)
                 return new Promise(function(resolve,reject){
 					//$('#canvas').removeAttr('data-caman-id');
 					resize(src,800).then(function(s){
