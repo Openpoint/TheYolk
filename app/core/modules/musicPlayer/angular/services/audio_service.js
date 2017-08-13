@@ -230,12 +230,13 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			//$scope.webView.webContents.openDevTools()
 		}else{
 			$scope.webView = document.querySelector('webview');
+
 		}
 		if(src){
 			src = src.split('&start=')[0];
 			src+='&start='+Math.floor($scope.audio.vidprogress);
 		}
-
+		var google_pid;
 		if(this.bg){
 			var proceed = false;
 			if(src) $scope.webView.loadURL(src,{httpReferrer:'https://youtube.com'});
@@ -251,8 +252,26 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				if($scope.lib.playing.state==='paused') $scope.webView.webContents.send('media','pause');
 				proceed = true;
 			});
+			$scope.webView.webContents.on('did-start-loading',function(){
+				$scope.webView.webContents.executeJavaScript('Yolk_pid()').then(function(pid){
+					if(pid !== google_pid){
+						Yolk.remote('priority')(pid);
+					}
+					google_pid = pid;
+				})
+			})
 			return;
 		}
+
+		$scope.webView.addEventListener('did-start-loading',function(){
+			 $scope.webView.executeJavaScript('Yolk_pid()',false,function(pid){
+				if(pid !== google_pid){
+					Yolk.remote('priority')(pid);
+				}
+				google_pid = pid;
+			})
+		});
+
 		$scope.webView.addEventListener('ipc-message',function(event){
 			self.listeners(event);
 		});
@@ -295,7 +314,6 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 	//Play a track
 	audio.prototype.play = function(track,init){
-
 		var self = this;
 		if(track.type === 'local'){
 			var source = path.join(track.path,track.file)

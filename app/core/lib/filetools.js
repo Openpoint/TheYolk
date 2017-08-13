@@ -155,7 +155,7 @@ filetools.prototype.extract = function(src,dest,type){
 				}
 			});
 			parse.on('end',function(){
-				fs.unlink(src);
+				fs.unlinkSync(src);
 				resolve(true);
 			});
 			fs.createReadStream(src).pipe(parse);
@@ -191,7 +191,7 @@ filetools.prototype.extract = function(src,dest,type){
 					}
 				})
 				zipfile.on("end",function(){
-					fs.unlink(src);
+					fs.unlinkSync(src);
 					resolve(true);
 				})
 		})

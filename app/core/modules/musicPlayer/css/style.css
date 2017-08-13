@@ -271,6 +271,21 @@ body,html{
 	padding-left:25px;
 	display:flex;
 	flex-direction:column;
+	align-items:flex-start;
+	position:relative;
+	width:680px;
+}
+.wikilink{
+	text-decoration:none;
+	position:absolute;
+	right:0;
+	top:50%;
+	font-size:.85em;
+	color:#302B22;
+	opacity:.5;
+}
+.wikilink:hover{
+	opacity:1;
 }
 #artists .title{
 	margin-bottom:3px;
@@ -466,7 +481,7 @@ body,html{
 	position:absolute;
 	right:0;
 	background:rgba(255,255,255,.25);
-	z-index:1000;
+	z-index:2;
 	display:flex;
 	align-items:center;
 }
@@ -547,7 +562,7 @@ body,html{
 .drawer{
 	overflow:hidden;
 	width:100%;
-	transition:.5s linear height;
+	transition:.75s ease-in-out height;
 	background:tomato;
 	color:black;
 }
@@ -572,6 +587,7 @@ body,html{
 #playing{
 	width:100%;
 	position:absolute;
+	z-index:3;
 }
 
 #playing .Top .below{

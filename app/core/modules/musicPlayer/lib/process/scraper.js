@@ -16,52 +16,54 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 document.cookie = "CONSENT=YES";
 
 document.addEventListener("DOMNodeInserted", function(event) {
-    if(!window.jQuery){
-        window.$ = window.jQuery = require('jquery');
-    }
+	window._Yolk_.$ = window._Yolk_.jQuery = require('jquery');
 })
+window._Yolk_={};
 
-window.Promise  = require("bluebird");
+window._Yolk_.event = new CustomEvent('_Yolk_', {'pid':window.process.pid});
+window.dispatchEvent(window._Yolk_.event);
 
-window.scrape = function(){
-    var promise = new Promise(function(resolve,reject){
+
+window._Yolk_.Promise  = require("bluebird");
+window._Yolk_.getPID = function(){
+	return window.process.pid;
+}
+window._Yolk_.scrape = function(){
+    var promise = new _Yolk_.Promise(function(resolve,reject){
         var paths = []
-        resolve($('#view_images img').first().attr('src'));
+        resolve(_Yolk_.$('#view_images img').first().attr('src'));
     });
     return promise;
 }
-window.firstClick=function(i){
+window._Yolk_.firstClick=function(i){
 
-    var promise = new Promise(function(resolve,reject){
+    var promise = new _Yolk_.Promise(function(resolve,reject){
 
-        if(!$('#search img').length){
+        if(!_Yolk_.$('#search img').length){
             reject('no images found');
             return;
         }
-        var first = $('#search img').eq(i);
+        var first = _Yolk_.$('#search img').eq(i);
 
-        $('img').not(first).remove();
-        $(first).click();
+        _Yolk_.$('img').not(first).remove();
+        _Yolk_.$(first).click();
         setTimeout(function(){
             watcher();
         },500)
 
         var retry = 0
         function watcher(){
-            console.log('watcher')
             var batch = [];
-            if($('img').length > 1){
-                $.each($('img').not(first),function(){
+            if(_Yolk_.$('img').length > 1){
+                _Yolk_.$.each(_Yolk_.$('img').not(first),function(){
 
-                    if($(this).attr('src') && $(this).attr('src').indexOf('http') === 0 && $(this).attr('src').indexOf('maxresdefault') === -1 && $(this).attr('src').indexOf('/social/') === -1){
-                        batch.push($(this).attr('src'))
+                    if(_Yolk_.$(this).attr('src') && _Yolk_.$(this).attr('src').indexOf('http') === 0 && _Yolk_.$(this).attr('src').indexOf('maxresdefault') === -1 && _Yolk_.$(this).attr('src').indexOf('/social/') === -1){
+                        batch.push(_Yolk_.$(this).attr('src'))
                     }
                 })
 
             }
-            console.log(batch)
             if(batch[0]){
-                console.log(batch[0])
                 resolve(batch[0]);
             }else{
                 retry++

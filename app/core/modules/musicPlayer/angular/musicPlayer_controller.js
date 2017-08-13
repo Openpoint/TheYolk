@@ -44,6 +44,7 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		$scope.progress={};
 		$scope.Sortby={};
 		$scope.refresh={};
+		$scope.image = {};
 		$scope.searchTerm='';
 		$scope.audio=new audio($scope);
 		$scope.pin=new pin($scope);
@@ -69,7 +70,8 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	$scope.lib=!$rootScope[mod_name]?{
 		bios:{},
 		tracks:[],
-		padding:0
+		padding:0,
+		playingstyle:{}
 	}:$rootScope[mod_name].lib;
 
 	$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
@@ -98,6 +100,14 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		types.some(function(type){
 			if(!$scope[type]) return false;
 			if($scope.progress[type] && !$scope[type].progress || !$scope.progress[type] && $scope[type].progress){
+				/*
+				if($scope[type].progress && !$scope.slowmessage){
+					$scope.slowmessage=true;
+					$timeout(function(){
+						$scope.slowmessage=false;
+					},5000)
+				}
+				*/
 				$scope.progress[type] = $scope[type].progress;
 				return true;
 			}
@@ -194,19 +204,21 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 
 	if(!ipcRenderer._events.refresh){
 		ipcRenderer.on('refresh',function(event,data){
-			$scope.refresh[data]?$scope.refresh[data]++:$scope.refresh[data]=1
-			if($scope.refresh_time) return;
-			$scope.refresh_time = setTimeout(function(){
-				if($scope.refresh[$scope.pin.Page]){
-					$scope.search.go(true);
+			Object.keys(data).forEach(function(page){
+				if(data[page].length){
+					$scope.refresh[page]?$scope.refresh[page]++:$scope.refresh[page]=1;
 				}
-				$scope.refresh_time = false;
-			},3000)
+			})
+			$scope.refresh.title = 1;
+			$scope.drawers.refreshDrawers();
+			if($scope.refresh[$scope.pin.Page]){
+				$scope.search.go(true);
+			}
+
 		});
 	}
 	if(!ipcRenderer._events.progress){
 		ipcRenderer.on('progress',function(event,data){
-
 			if(data.type === 'musicbrainz'){
 				if(!$scope.musicbrainz) $scope.musicbrainz = {}
 				$scope.musicbrainz.progress = data.size;
@@ -239,18 +251,14 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 			$scope.search.go(true);
 		});
 	}
-	if(!ipcRenderer._events.refreshart){
-		ipcRenderer.on('refreshart',function(event){
-			var p = $scope.pin.Page;
-			$scope.$apply(function(){
-				$scope.pin.Page = false;
-			})
-			$timeout(function(){
-				$scope.pin.Page = p;
+
+	if(!ipcRenderer._events.newart){
+		ipcRenderer.on('newart',function(event,data){
+			if($scope.pin.Page === data.item.type) $scope.$apply(function(){
+				$scope.image[data.item.id] = data.dest;
 			})
 		});
 	}
-
 	$scope.albums = function(){
 		ipcRenderer.send('albums');
 	}

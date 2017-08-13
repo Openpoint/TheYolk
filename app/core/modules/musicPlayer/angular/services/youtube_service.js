@@ -97,6 +97,10 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 
 		var query = 'https://www.googleapis.com/youtube/v3/videos?key=AIzaSyBGwfPX9w5DLGlchh93z-K35PAnJCXEgeg&maxResults=50&part=snippet,statistics,contentDetails&id='+ids2.join(',');
 		var r = $.get(query).done(function(response){
+			if(!response.items){
+				console.error(response);
+				return;
+			}
 			var bulk = []
 			response.items = response.items.filter(function(video){
 				bulk.push({index:{_index:$scope.db_index,_type:'youtubesearch',_id:video.id}})
@@ -110,8 +114,6 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 					return false;
 				}
 			})
-
-
 			$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
 				if(kill.kill) return;
 				if(err) console.error(err);
@@ -170,6 +172,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 			return;
 		}
 		if(artists.length){
+			if(log) (console.log(artists))
 			Tools.checkArtists(artists).then(function(gartists){
 				if(gartists && gartists.length){
 
@@ -260,7 +263,7 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 				},function(err){
 					console.error(err)
 				})
-				$scope.db.client.update({index:$scope.db_index,type:'youtubeartists',id:1,doc_as_upsert:true,refresh:true,body:{doc:{arts:Tools.youtubeArtists}}},function(err,data){
+				$scope.db.client.update({index:$scope.db_index,type:'youtubeartists',id:1,doc_as_upsert:true,refresh:true,retry_on_conflict:5,body:{doc:{arts:Tools.youtubeArtists}}},function(err,data){
 					if(err) console.error(err);
 				})
 			}
@@ -270,6 +273,9 @@ angular.module('yolk').factory('youtube',['$http',function($http) {
 
 	youtube.prototype.kill=function(){
 		if(log) console.log('kill');
+		$scope.db.client.update({index:$scope.db_index,type:'youtubeartists',id:1,doc_as_upsert:true,refresh:true,retry_on_conflict:5,body:{doc:{arts:Tools.youtubeArtists}}},function(err,data){
+			if(err) console.error(err);
+		})
 		Tools.Kill();
 		this.progress = Tools.libsize();
 		this.getDone();

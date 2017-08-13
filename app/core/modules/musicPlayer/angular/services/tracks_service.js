@@ -15,10 +15,11 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-angular.module('yolk').factory('tracks',[function(){
+angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 
 	var $scope;
 	const tools = require('../../lib/tools/searchtools.js');
+	const log = false;
 
 	var tracks = function(scope){
 		$scope = scope;
@@ -31,8 +32,8 @@ angular.module('yolk').factory('tracks',[function(){
 		$scope = scope;
 		return this;
 	}
-	function getAll(playlist,up){
-		//if(album && !$scope.playlist.active) return $scope.tracks.all;
+	function getAll(playlist){
+		if(log) console.log('tracks','getAll()');
 		if($scope.tracks.playlistAll || playlist){
 			if(!playlist){
 				$scope.tracks.source.type='Playlist';
@@ -55,10 +56,11 @@ angular.module('yolk').factory('tracks',[function(){
 		return $scope.search.memory.Title;
 	}
 	//find the next playing track
-	tracks.prototype.next = function(){
-
+	var old_id
+	tracks.prototype.next = function(all){
 		if(!$scope.lib.playing) return;
-		var all = getAll(false,true);
+		if(log) console.log('tracks','next()');
+		if(!all) all = getAll(false);
 		if(!all||all.length < 2){
 			$scope.lib.next = false;
 			return;
@@ -66,6 +68,8 @@ angular.module('yolk').factory('tracks',[function(){
 		var index = all.indexOf($scope.lib.playing.id);
 		var next = all[index+1] ? index+1:0;
 		var id = all[next];
+		if(id === old_id) return;
+		old_id = id;
 		var search = {index:$scope.db_index,type:$scope.pin.pinned.sources.toString(),size:1,body:{query:{bool:{must:[
 				{match:{id:id}}
 		]}}}}
@@ -73,7 +77,7 @@ angular.module('yolk').factory('tracks',[function(){
 			if(!data.items.length) return;
 			data.items[0].filter.pos = next;
 			$scope.lib.next = data.items[0]; //set for background mode
-			$scope.$apply(function(){
+			$timeout(function(){
 				$scope.lib.next = data.items[0];
 			})
 		},function(err){
@@ -82,16 +86,20 @@ angular.module('yolk').factory('tracks',[function(){
 	}
 
 	//check if the playing track is contained in the active list
+	//var old_index;
 	tracks.prototype.isInFocus = function(){
-
 		if(!$scope.lib.playing) return;
+		if(log) console.log('tracks','isInFocus()');
 		var self = this;
 		var all = getAll($scope.playlist.active);
-		($scope.tracks.source.type==='Album'||($scope.tracks.source.type==='Playlist'&&!$scope.playlist.active))?$scope.tracks.nofocus = true:$scope.tracks.nofocus = false;
+		//($scope.tracks.source.type==='Album'||($scope.tracks.source.type==='Playlist'&&!$scope.playlist.active))?$scope.tracks.nofocus = true:$scope.tracks.nofocus = false;
 		var index = -1;
-		if(all) index = all.indexOf($scope.lib.playing.id);
+		if(all && $scope.pin.Page === 'title') index = all.indexOf($scope.lib.playing.id);
 		$scope.lazy.getPos(index);
-		self.next();
+		setTimeout(function(){
+			$scope.lazy.playPos();
+		})
+		self.next(all);
 	}
 
 
@@ -105,13 +113,14 @@ angular.module('yolk').factory('tracks',[function(){
 			if(!data.hits.total){
 				$scope.db.client.update({index:$scope.db_index,type:'artist',id:artist,refresh:true,body:{doc:{deleted:'yes'}}},function(err,data){
 					if(err) console.err(err);
-					$scope.search.go(true,'track and artist deleted',artist);
+					$scope.search.go(true,'track and artist deleted');
 				})
 			}
 		})
 	}
 	//delete a track
 	tracks.prototype.delete = function(track,playing,bulk){
+		if(log) console.log('tracks','delete()');
 		if(playing) $scope.audio.next();
 
 		if($scope.playlist.active){
@@ -182,6 +191,7 @@ angular.module('yolk').factory('tracks',[function(){
 	}
 	//undelete a track
 	tracks.prototype.undelete = function(track,playing,bulk){
+		if(log) console.log('tracks','undelete()');
 		if(track.name) track.type = 'artist'
 		if(!track.type) track.type = 'album'
 

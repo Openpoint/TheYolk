@@ -65,7 +65,6 @@ youtubetools.prototype.search =function(query){
 	})
 	kill.promises.push(p);
 	return p;
-
 }
 youtubetools.prototype.convert_time = function(duration) {
 	var a = duration.match(/\d+/g);
@@ -185,8 +184,13 @@ youtubetools.prototype.checkArtists = function(artists){
 				var ids = [];
 				lookup.disambig.forEach(function(artist){
 					count++
+					if(log) console.log('disambig: '+artist)
 					var query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='+tools.queryBuilder(artist)+'&language=en&format=json';
 					var r = $.get(query).done(function(response){
+						if(!response.search){
+							console.error(response);
+							return;
+						}
 						response.search.forEach(function(result){
 							ids.push(result.id)
 						})
@@ -217,6 +221,7 @@ youtubetools.prototype.checkArtists = function(artists){
 }
 
 youtubetools.prototype.mbArtists = function(artists){
+	if(log) console.log('mbArtists()',artists)
 	var self = this;
 	artists = artists.filter(function(artist,pos,me){
 		if(artist.trim().length > 2 && me.indexOf(artist) === pos && !self.youtubeArtists[artist.trim()]){return true}
@@ -342,13 +347,18 @@ youtubetools.prototype.Kill = function(){
 }
 
 youtubetools.prototype.wikidata = function(string){
+	if(log) console.log('wikidata('+string+')')
 	var self = this;
 	var artists = []
 	var disambig = []
 	var p = new Promise(function(resolve,reject){
 		var query = 'https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&'+string+'&languages=en&format=json';
 		var r = $.get(query).done(function(response){
-
+			if(!response.entities){
+				console.error(response);
+				resolve(false);
+				return;
+			}
 			Object.keys(response.entities).forEach(function(key){
 				if(Number(key)){return}
 				var item = response.entities[key];

@@ -28,6 +28,10 @@ window.Yolk_context = function(ct){
 		send = require('electron').remote.process.Yolk.win.send;
 	}
 }
+window.Yolk_pid = function(){
+	return process.pid;
+	//return window.process.pid;
+}
 function timer(){
 	c==='webview'?send('media','time',video.currentTime):send('media',['time',video.currentTime]);
 	setTimeout(function(){
@@ -53,9 +57,11 @@ window.addEventListener("load",function(){
 		remote=false;
 	});
 	video.addEventListener('ended', function(){
+		window.location = 'data:text/plain,'
 		c==='webview'?send('media','next'):send('media',['next']);
 	});
 	video.addEventListener('pause', function(){
+
 		if(!remote){
 			c==='webview'?send('media','pause'):send('media',['pause']);
 		}

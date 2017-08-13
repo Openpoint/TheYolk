@@ -22,68 +22,118 @@
             const {ipcRenderer} = require('electron');
 			const smartcrop = require('smartcrop');
             require('jquery.facedetection');
+			function getPID(){
+				return process.pid;
+			}
         </script>
+		<script type="text/javascript" src="caman.full.min.js"></script>
     </head>
     <body>
+		<div id='content'>
+			<img id="image2" />
+			<img id="image" />
+			<canvas id='canvas' style='display:none'></canvas>
+		</div>
         <script>
-            var face = function(src,discoq){
-				src = decodeURI(src);
-                var promise = new Promise(function(resolve,reject){
-                    var image = document.createElement('img');
-                    $(image).attr('src',src);
-
-                    image.onload = function(){
-                        try{
-                            $(image).faceDetection({
-                                complete: function (data) {
-									var confidence;
-									var options = {
-										width: 250,
-										height:250
-									}
-									if (data.length){
-										data.forEach(function(face){
-											if(!confidence){
-												confidence = face.confidence;
-											}else if(face.confidence > confidence){
-												confidence = face.confidence;
-											}
+			var image = $('#image')[0];
+			var image2 = $('#image2')[0];
+            var face = function(src){
+				console.log(process.pid)
+                return new Promise(function(resolve,reject){
+					//$('#canvas').removeAttr('data-caman-id');
+					resize(src,800).then(function(s){
+						image.src=s;
+						setTimeout(function(){
+							getface().then(function(options){
+								smartcrop.crop(image,options).then(function(result){
+									makecrop(result.topCrop).then(function(data){
+										resize(data,250,250).then(function(s){
+											image2.src = s;
+											resolve(s);
 										})
-										data = data.filter(function(face){
-											if(face.confidence === confidence){
-												return true;
-											}
-										})
-										var boost = data.map(function(face){
-											return {
-												x:face.x,
-												y:face.y,
-												width:face.width,
-												height:face.height,
-												weight:1
-											}
-										})
-										options.boost = boost;
-										smartcrop.crop(image,options).then(function(result){
-											$(image).remove();
-											resolve(result.topCrop)
-										})
-									}else{
-										smartcrop.crop(image,options).then(function(result){
-											$(image).remove();
-											resolve(result.topCrop)
-										})
-									}
-                                }
-                            });
-                        }
-                        catch(err){
-                            reject(err);
-                        }
-                    }
+									},function(err){
+										reject(err)
+									})
+								},function(err){
+									reject(err)
+								})
+							},function(err){
+								reject(err)
+							})
+						})
+					})
                 })
-                return promise;
             }
+
+			var makecrop = function(p){
+				return new Promise(function(resolve,reject){
+					Caman("#canvas",image.src,function(){
+						console.log(this);
+						this.crop(p.width,p.height,p.x,p.y);
+						this.render();
+						resolve($('#canvas')[0].toDataURL('image/jpeg'));
+					})
+				})
+			}
+
+			var resize = function(src,width,height){
+				return new Promise(function(resolve,reject){
+					var options = {}
+					options.width = width;
+					if(height) options.height = height;
+					Caman("#canvas",src,function(){
+						//this.reloadCanvasData();
+						this.resize(options);
+						this.render();
+						resolve($('#canvas')[0].toDataURL('image/jpeg'));
+					})
+				})
+			}
+
+			var getface = function(){
+				return new Promise(function(resolve,reject){
+					$(image).faceDetection({
+						complete: function (data) {
+							var confidence;
+							var options = {
+								width: 250,
+								height:250
+							}
+							if (data.length){
+								data.forEach(function(face){
+									if(!confidence){
+										confidence = face.confidence;
+									}else if(face.confidence > confidence){
+										confidence = face.confidence;
+									}
+								})
+								data = data.filter(function(face){
+									if(face.confidence === confidence){
+										return true;
+									}
+								})
+								var boost = data.map(function(face){
+									return {
+										x:face.x,
+										y:face.y,
+										width:face.width,
+										height:face.height,
+										weight:1
+									}
+								})
+								options.boost = boost;
+								resolve(options);
+
+							}else{
+								resolve(options);
+							}
+						},
+						error: function (code, message) {
+							reject(message)
+						}
+					});
+				})
+			}
         </script>
     </body>
 </html>

@@ -116,7 +116,16 @@ process.Yolk.chrome = function(action){
 		break;
 	}
 }
-
+//downgrade a process priority
+process.Yolk.priority = function(pid){
+	if(os.platform()==='win32'){
+		child.exec('wmic process where ProcessId="'+pid+'" CALL setpriority "below normal"');
+		child.exec('wmic process where ParentProcessId="'+pid+'" CALL setpriority "below normal"');
+	}else{
+		var ren = child.spawnSync('renice',['-n 19','-p $(./renicer.sh '+pid+')'],{shell:true});
+		if(ren.error) console.Yolk.error(ren.error);
+	}
+}
 process.on('uncaughtException',function(err){
 	console.error(err);
 })
@@ -279,13 +288,11 @@ function elastic(home){
 	}
 	if(os.platform()!=='win32'){
 		var args = [
-			'-n 18',
-			process.Yolk.elasticpath,
 			'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
 			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
 			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 		];
-		process.Yolk.elasticsearch = child.spawn('nice',args);
+		process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args);
 	}else{
 		var args = [
 			'/c',
@@ -303,9 +310,8 @@ function elastic(home){
 		var p = string.match(/pid\[([^\]]+)\]/);
 		if(p){
 			pid = p[1];
-			if(os.platform()==='win32') child.exec('wmic process where processid="'+pid+'" CALL setpriority "below normal"');
+			process.Yolk.priority(pid);
 		}
-
 		if(trimmed){
 			process.Yolk.storedMesssage.log = trimmed.replace(/\/n/g,'').trim();
 			message('install',process.Yolk.storedMesssage);

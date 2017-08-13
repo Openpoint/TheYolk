@@ -76,7 +76,7 @@
 	<div id='sidebar' ng-style="{width:dims.sidebarWidth, height:dims.sidebarHeight, top:dims.menHeight}">
 		<div class='wrap'>
 			<div class='right section' ng-style="{height:dims.searchHeight}">
-				<div class='item stop' ng-if="progress.youtube||progress.internetarchive||progress.musicbrainz" ng-click="stop()">
+				<div class='item stop' ng-show="progress.youtube||progress.internetarchive||progress.musicbrainz" ng-click="stop()">
 					<div class='inner'>
 						<div class='fa fa-hand-paper-o'></div>
 					</div>
@@ -204,7 +204,7 @@
 		</div>
 
 	</div>
-	<div id='spin' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}"  ng-show='loading'>
+	<div id='spin' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}" ng-show='loading'>
 		<i class='fa fa-spinner fa-3x fa-pulse'></i>
 	</div>
 	<div id='playwindow' ng-style="{width:dims.playwindowWidth, height:dims.playwindowHeight}">
@@ -227,13 +227,18 @@
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="artist">
 								<img cat="artist" id = "{{artist.id}}" ng-src="{{image[artist.id]}}" yolk-thumb ng-click = 'drawers.drawer(artist)' />
-								<div class='refresh' ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
+								<div class='refresh' ng-if="image[artist.id].indexOf('/noImage.svg')!==-1" ng-click="refreshart(artist)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
-								<div class='title' ng-click="pin.artist(artist.name)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === artist.name.toLowerCase()}">
-									<span class='cancel fa fa-times-circle'></span>
-									{{lib.bios[artist.id].title || artist.name}}
+								<a ng-if="lib.bios[artist.id].outlink" href="{{lib.bios[artist.id].outlink}}" class='fa fa-wikipedia-w wikilink'></a>
+								<div class='title' ng-class="{'pinned':pin.pinned.artist.toLowerCase() === artist.name.toLowerCase()}">
+									<div  ng-click="pin.artist(artist.name)">
+										<span class='cancel fa fa-times-circle'></span>
+										<span>{{lib.bios[artist.id].title || artist.name}}</span>
+									</div>
+
 								</div>
+
 								<div class='country' yolk-country>{{countries[artist.country]}}</div>
 								<div class='bio' ng-class="{open:drawers.dpos[pin.Page].open===artist.id}">{{lib.bios[artist.id].bio}}</div>
 
@@ -266,6 +271,7 @@
 			</div>
 
 			<div id="albums" ng-if="pin.Page === 'album'">
+
 				<div ng-style="{height:lazy.trackHeight}" class='nothing row' ng-if = "!lib[pin.Page].length && !loading">
 					<div class='title'>
 						No albums found
@@ -274,24 +280,25 @@
 						<span  ng-if="tools.terms(searchTerm).album" class='pinned' ng-click="pin.album(tools.terms(searchTerm).album)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).album}}</span>
 					</div>
 				</div>
-				<div ng-repeat="album in lib[pin.Page]  track by album.id" class= 'row'>
 
+				<div ng-repeat="album in lib[pin.Page] track by album.id" class= 'row'>
 					<div class='album'
 						ng-class="album.filter.zebra"
 					>
 						<div class='inner' ng-style="{height:lazy.trackHeight}">
 							<div class='image' ng-style="{height:lazy.trackHeight,width:lazy.trackHeight+4}" drag-container="true" drag-data="album">
 								<img cat="album" id="{{album.id}}" ng-src="{{image[album.id]}}" yolk-thumb onerror="" ng-click = 'drawers.drawer(album)'/>
-								<div class='refresh' ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
+								<div class='refresh' ng-if="image[album.id].indexOf('/noImage.svg')!==-1" ng-click="refreshart(album)"><a class='fa fa-refresh'></a></div>
 							</div>
 							<div class='info'>
+
 								<div class='title' ng-click="pin.album(album.metadata.title)" ng-class="{'pinned':pin.pinned.album.toLowerCase() === album.metadata.title.toLowerCase()}">
 									<span class='cancel fa fa-times-circle'></span>
-									{{::album.metadata.title}} {{utils.date(album.release_date)}}
+									<span>{{album.metadata.title}} {{utils.date(album.release_date)}}</span>
 								</div>
 								<div class='row artist' ng-click="pin.artist(album.metadata.artist)" ng-class="{'pinned':pin.pinned.artist.toLowerCase() === album.metadata.artist.toLowerCase()}">
 									<span class='cancel fa fa-times-circle'></span>
-									{{::album.metadata.artist}}
+									<span>{{album.metadata.artist}}</span>
 								</div>
 							</div>
 
@@ -315,7 +322,7 @@
 								<div class="disc" ng-repeat = "disc in drawers.lib[pin.Page][album.id].discs">
 									<div class='heading'>Disc {{$index+1}}</div>
 									<div class='songs'>
-										<div ng-repeat = "track in disc track by track.id"  ng-click="
+										<div ng-repeat = "track in disc"  ng-click="
 										audio.play(drawers.lib[pin.Page][album.id].tracks[track.id],'album')
 										" class='track_row'>
 											<div class='number'>{{$index+1}}: </div>
@@ -422,7 +429,7 @@
 			>
 
 				<div class='inner'
-					ng-style="{width:dims.playwindowWidth - dims.scroller,left:dims.sidebarWidth+1}"
+					ng-style="lib.playingstyle"
 				>
 				<div ng-if='playlist.active && playlist.selected!==1' class='reorder'>
 					<div ng-show='playlist.reorder && playlist.reorder!==lib.playing.id' drop-container on-drop="playlist.onReorder($event, $dragData, lib.playing.id)" class='pad'></div>
@@ -454,7 +461,7 @@
 						</div>
 						<div class='scroll'>
 							<div class='up fa fa-arrow-up' ng-click="lazy.Scroll('up')"
-							ng-if="lib.playing.Bottom && lib.playing.filter.pos!==-1 && pin.Page==='title' && !tracks.nofocus"></div>
+							ng-if="lib.playing.Bottom && lib.playing.filter.pos!==-1 && !tracks.source.type"></div>
 						</div>
 					</div>
 					<div class='progressBar' ng-click="audio.seek($event)" ng-style="{height:lazy.progressHeight}" ng-class="{error:audio.error}">
@@ -489,7 +496,7 @@
 						</div>
 						<div class='scroll'>
 							<div class='down fa fa-arrow-down' ng-click="lazy.Scroll('down')"
-							ng-if="lib.playing.Top && lib.playing.filter.pos!==-1 && pin.Page==='title' && !tracks.nofocus"></div>
+							ng-if="lib.playing.Top && lib.playing.filter.pos!==-1  && !tracks.source.type"></div>
 						</div>
 					</div>
 				</div>

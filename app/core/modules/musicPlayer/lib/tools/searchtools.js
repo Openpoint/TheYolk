@@ -236,7 +236,7 @@ search.prototype.compress = function(term){
 
 //strip all special characters from string
 search.prototype.strip = function(string){
-	string = string.trim().replace(/\'/g,'').replace(/[^\w\s]/gi,' ').replace(/ +(?= )/g,'').toLowerCase();
+	string = string.replace(/\'/g,'').replace(/[^\w\s]/gi,' ').replace(/ +(?= )/g,'').toLowerCase().trim();
 	return string;
 }
 
@@ -266,7 +266,7 @@ search.prototype.gibberish = function(term){
 //strip a term of punctuation for comparative purposes
 search.prototype.strim = function(phrase){
 	if(!phrase){return false};
-	phrase = phrase.trim().toLowerCase().replace(/[\¬\`\¦\!\"\£\$\%\^\*\_\-\+\=\~\#\@\'\:\;\,\.\?\/\\\|\’\“\”\[\]\{\}\(\)]/g,' ').replace(/\&/g,' and ').replace(/\n/g,' ');
+	phrase = phrase.toLowerCase().replace(/[\¬\`\¦\!\"\£\$\%\^\*\_\-\+\=\~\#\@\'\:\;\,\.\?\/\\\|\’\“\”\[\]\{\}\(\)]/g,' ').replace(/\&/g,' and ').replace(/\n/g,' ').trim();
 	phrase = this.despace(phrase);
 	return phrase;
 }
@@ -274,7 +274,7 @@ search.prototype.strim = function(phrase){
 //fix a string by normalising quote marks
 search.prototype.fix = function(string){
 	if(!string){return false};
-	return string.replace(/\’/g,"'").replace(/\s\s+/g, ' ').replace(/‐/g,'-').trim().toLowerCase();
+	return string.replace(/\’/g,"'").replace(/\s\s+/g, ' ').replace(/‐/g,'-').toLowerCase().trim();
 }
 
 //built query for elastic lookup on external results

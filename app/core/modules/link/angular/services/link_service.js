@@ -26,7 +26,8 @@ angular.module('yolk').factory('link',[function() {
 		this.widgets = [];
 		this.port = [];
 		var self = this;
-		this.load('port')
+		//this.load('port')
+		this.populate();
 		this.load('widgets')
 	}
 	link.prototype.load = function(type){
@@ -37,7 +38,7 @@ angular.module('yolk').factory('link',[function() {
 			if(!data.found){
 				$scope.db.client.create({index:$scope.db_index,type:'links',id:type,body:{links:[]}},function(err,data){
 					if(err) console.error(err);
-					if(type === 'port') self.populate();
+					//if(type === 'port') self.populate();
 				})
 				return;
 			}
@@ -53,12 +54,14 @@ angular.module('yolk').factory('link',[function() {
 					})
 					return i === index;
 				});
+				/*
 				if(type === 'port'){
 					self.port.forEach(function(w){
 						if(portf.indexOf(w.url)===-1) self.delete(w.url,'port')
 					})
 					self.populate();
 				}
+				*/
 			})
 		})
 	}
@@ -88,7 +91,7 @@ angular.module('yolk').factory('link',[function() {
 					$scope.$apply(function(){
 						data.title = $("<textarea/>").html(data.title).text();
 						self[type].push({title:data.title,icon:data.icon,url:url});
-						self.save(type);
+						if(type === 'widgets') self.save(type);
 					});
 					resolve(true)
 				})

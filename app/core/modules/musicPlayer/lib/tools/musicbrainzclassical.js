@@ -62,14 +62,13 @@ classical.prototype.get = function(info){
 	var self = this;
 	var p = new Promise(function(resolve,reject){
 
-		if(log) console.Yolk.say(info.metadata.artist+' :|: '+info.metadata.album+' :|: '+info.metadata.title);
 		var whole = '';
 	    var whole_album = '';
 	    var whole_title = '';
 	    var composers = {};
 	    info.classical={};
-
-		['artist','album','title'].forEach(function(key){
+		var types = ['artist','album','title'];
+		types.forEach(function(key){
 			if(info.metadata[key]){
 				info.metadata[key]=info.metadata[key].toLowerCase();
 	            //var opus = ['op.','op:','op-','op_'];
@@ -85,9 +84,6 @@ classical.prototype.get = function(info){
 				}
 			}
 		})
-
-	    if(log) console.Yolk.say(whole)
-
 		var postfix = false;
 		var all_composers = false;
 		var all_composers2 = false;
@@ -95,6 +91,8 @@ classical.prototype.get = function(info){
 		var gotnames=[];
 
 	    elastic.fetchAll({index:db_index,type:'classical',body:{query:{match:{name:{query:whole,operator:'or'}}}}}).then(function(data){
+			if(log) console.Yolk.say(info.metadata.artist+' :|: '+info.metadata.album+' :|: '+info.metadata.title);
+			if(log) console.Yolk.say(whole)
 			kill.update('promises');
 			if(kill.kill) return;
 	        if(!data.length){
@@ -109,13 +107,32 @@ classical.prototype.get = function(info){
 	            if(composer.alt) composers[composer.name] = composer.alt;
 	            if(composer.codes) composers[composer.name] = composer.codes;
 	        })
+			if(log) console.Yolk.log(composers);
 	        getnames(whole);
 	        delete info.retry;
 	        //check if there are work identifiers for the composer
 	    	if(all_composers || all_composers2 || all_composers3){
 	    		if(all_composers2) all_composers = all_composers2;
 	    		if(all_composers3) all_composers = all_composers3;
+				/*
+				if(typeof all_composers !== 'object') {
+					console.Yolk.error(typeof all_composers);
+					console.Yolk.error(all_composers);
+					delete info.classical;
+					info.isclassic = 'no';
+					resolve(info);
+					return;
+				}
+				*/
+				if(log) console.Yolk.warn(all_composers);
 	    		Object.keys(all_composers).some(function(composer){
+					/*
+					if(!all_composers.hasOwnProperty(composer) || typeof all_composers[composer] !== 'array'){
+						console.Yolk.error(typeof all_composers[composer])
+						console.Yolk.error(all_composers[composer]);
+						return false;
+					}
+					*/
 	    			return all_composers[composer].some(function(cat){
 	                    var ident = self.divider(whole,cat,true);
 	                    if(ident=== 'too long'){
@@ -184,6 +201,7 @@ classical.prototype.get = function(info){
 
 		//get the original track artist if different to composer
 		function putartist(comps){
+			if(log) console.Yolk.log('putartist()')
 			if(info.metadata.artist){
 				var artist = tools.strim(info.metadata.artist);
 				var artists = info.metadata.artist.replace(/[\(\)\{\}\[\]0-9]/g,'').split(/(?:[\/\,]| - | and | et | by | with | conductor )/g).map(function(artist){return artist.trim()}).filter(function(artist){
@@ -199,7 +217,7 @@ classical.prototype.get = function(info){
 
 			//prefer artist with work codes
 			comps = comps.filter(function(c){
-				if(all_composers[c].length){
+				if(all_composers[c] && all_composers[c].length){
 					return !all_composers[c].some(function(i){
 						var r = new RegExp("(^| )"+i+" [0-9]")
 						if(whole.search(r) !== -1){
@@ -243,6 +261,7 @@ classical.prototype.get = function(info){
 		}
 
 		function testname(name,composer,whole3){
+			if(log) console.Yolk.log('testname()')
 			var regex = new RegExp("(?:^| )"+name+"(?: |$)");
 			if(name.split(' ').length === 1 && tools.roman([name]).length) return false;
 			//console.Yolk.say(name+' : '+whole3)
@@ -261,6 +280,7 @@ classical.prototype.get = function(info){
 		//get the composer name and details
 
 		function getnames(whole2){
+			if(log) console.Yolk.log('getnames()')
 			all_composers = false;
 
 			//check for match on full name first
@@ -313,6 +333,7 @@ classical.prototype.get = function(info){
 
 //find classical work number references from recording title
 classical.prototype.divider = function(title,op,noroman){
+	if(log) console.Yolk.log('divider()')
 	if(!title){return false};
 	var self = this;
 

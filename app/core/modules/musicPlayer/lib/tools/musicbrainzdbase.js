@@ -31,7 +31,6 @@ const log = false;
 var mbdbase = function(){
 	this.noAlbum = [];
 	this.baddirs = {};
-	//this.bulk=[[]];
 	this.bulk=[];
 }
 mbdbase.prototype.inject=function(type,f){
@@ -227,7 +226,6 @@ mbdbase.prototype.saveTrack = function(track,timer){
 	if(this.savetimer)  return;
 
 	if(cpu.load < 50 && !busy && this.bulk.length){
-		//console.log('Waiting to save : '+(i+1))
 		busy = true;
 		flow.busy = true;
 		elastic.client.bulk({body:this.bulk,refresh:true},function(err,data){
@@ -236,18 +234,25 @@ mbdbase.prototype.saveTrack = function(track,timer){
 				console.Yolk.error(err);
 				console.Yolk.say(self.bulk);
 			}
-			albums.compress().then(function(changed){
-				if(changed){
-					self.getDupes().then(function(){
+			if(altered.album.length){
+				albums.compress().then(function(changed){
+					if(changed){
+						self.getDupes().then(function(){
+							busy = false;
+							flow.busy = false;
+						})
+					}else{
 						busy = false;
 						flow.busy = false;
-					})
-				}else{
-					busy = false;
-					flow.busy = false;
-				}
-				message.send('refresh','title');
-			})
+					}
+
+				})
+			}else{
+				busy = false;
+				flow.busy = false;
+			}
+			message.send('refresh',altered)
+			altered = {artist:[],album:[]}
 		});
 		this.bulk=[];
 	}
@@ -259,7 +264,9 @@ mbdbase.prototype.saveTrack = function(track,timer){
 }
 
 //format and save album or artist to the database
+var altered = {artist:[],album:[]}
 mbdbase.prototype.saveMeta = function(track,body){
+	var self = this;
     var p = new Promise(function(resolve,reject){
     	var tosave = {links:{}}
     	var artwork = {
@@ -395,7 +402,7 @@ mbdbase.prototype.saveMeta = function(track,body){
     		break;
     	}
 
-    	//save the album or artist to the database
+
     	function save(){
     		tosave.date = Date.now();
     		tosave.deleted = 'no';
@@ -414,9 +421,9 @@ mbdbase.prototype.saveMeta = function(track,body){
                     reject(err);
                 }else{
                     if(!track.youtube){
-                        message.send('refresh',track.type);
                         meta.add(artwork);
                     }
+					altered[tosave.type].push(tosave.id);
                     resolve('SAVED ------------- '+tosave.id);
                 }
             })
@@ -464,7 +471,7 @@ var populate = function(track,type){
 	structure.query5.push({match:{primary_type:{query:'album',type:'phrase',boost:5}}});
 	structure.query5.push({match:{secondary_type:{query:'lp',type:'phrase',boost:5}}});
 	structure.query5.push({match:{status:{query:'official',type:'phrase',boost:5}}});
-	structure.query5.push({match:{artwork:{query:true,boost:5}}});
+	//structure.query5.push({match:{artwork:{query:true,boost:5}}});
 
 	if(track.classical){
 		structure.query2.push(

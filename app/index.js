@@ -18,6 +18,7 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 window.Promise  = require("bluebird");
 window.Promise.config({cancellation: true})
 window.$ = window.jQuery = require('jquery');
+require('jquery.easing');
 const Yolk = {};
 Yolk.controls = {html:{},commands:{}};
 Yolk.remote = require('electron').remote.process.Yolk.remote;
@@ -76,6 +77,14 @@ ipcRenderer.on('log',function(event,data){
 
 Yolk.home = Yolk.remote('home');
 Yolk.root = Yolk.remote('root');
+
+Yolk.print = function(data,level){
+	if(!level) level = 'warn';
+	if(typeof data !== 'object') return;
+	Object.keys(data).forEach(function(key){
+		console[level](key,data[key]);
+	})
+}
 
 Yolk.fixChrome = function(){
 	$('body').hide();
