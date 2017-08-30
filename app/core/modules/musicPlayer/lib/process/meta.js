@@ -252,8 +252,8 @@ var timeout={
 };
 var action = {};
 var go = function(type){
-	if(log) console.Yolk.log('go:'+type)
     if(timeout[type].to) return;
+	if(log) console.Yolk.log('go:'+type)
 	if(cpu.load < 40) action[type]();
     timeout[type].to = setTimeout(function(){
         //this.delay = timeout[type].delay;
@@ -314,9 +314,7 @@ action.discogs = function(){
 	busy.discogs = true;
 	var item = queue.discogs.shift();
 	discogsItem(item)
-	console.Yolk.log("loading")
     discogs.loadURL(item.discogs);
-	console.Yolk.log("loaded")
 }
 
 //all else failed, so look for an image on google

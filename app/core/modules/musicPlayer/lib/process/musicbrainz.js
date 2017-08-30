@@ -20,7 +20,7 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
  * rules at http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
  *
  * */
-
+process.Yolk.modules.musicPlayer.progress = {};
 const {ipcMain} = require('electron');
 const request = require('request');
 const path = require('path');

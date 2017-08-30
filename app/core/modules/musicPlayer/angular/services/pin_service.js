@@ -42,18 +42,17 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	}
 	pin.prototype.Source = function(data){
 		if(data.type === 'Album'){
-
-			$scope.pin.Filter = $scope.drawers.dpos.album.filter;
+			$scope.pin.Filter = $scope.tracks.source.filter;
 			$scope.searchTerm = '';
-			$scope.search.drawer = data;
-			$scope.search.scrolltop = data;
-
+			console.error()
 			if($scope.pin.Page!=='album'){
 				if($scope.playlist.active) $scope.playlist.toggle(true);
-				this.page('album');
+				this.page('album',false,$scope.search.all[data.id]);
+				//$scope.search.drawer = $scope.search.all[data.id];
 			}else{
 				$timeout(function(){
-					$scope.search.go(false,'drawer');
+					$scope.search.drawer = $scope.search.all[data.id];
+					$scope.search.go(false,'source pinned');
 				})
 
 			}
@@ -87,6 +86,8 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 	pin.prototype.pinner = function(name,type){
 		if($scope.playlist.active) return;
 		var terms = $scope.tools.terms($scope.searchTerm)
+		if(this.pinned[type]) this.pinned[type] = this.pinned[type].toLowerCase();
+		if(name) name = name.toLowerCase();
 		if(this.pinned[type] === name){
 			delete oldterms[type]
 			delete terms[type]
@@ -113,7 +114,8 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		this.pinner(name,'album')
 	}
 	pin.prototype.title = function(name){
-		this.pinner(name,'title')
+		this.pinner(name,'title');
+		if($scope.pin.Page!=='title') $scope.pin.Page = 'title';
 	}
 	pin.prototype.clear = function(){
 		oldterms = {};
@@ -121,7 +123,7 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 		$scope.searchTerm = '';
 		$('#search input').focus();
 	}
-	pin.prototype.page = function(page,skip){
+	pin.prototype.page = function(page,skip,drawer){
 		if($scope.playlist.active) skip = true;
 		if($scope.playlist.active) $scope.playlist.toggle(true);
 		var newterm = '';
@@ -141,6 +143,8 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 
 		if(this.Page === page && !skip){
 			this.direction[page] === 'asc' ? this.direction[page] = 'desc':this.direction[page] = 'asc';
+		}else if(this.Page !== 'title'){
+			$scope.drawers.closeall(this.Page);
 		}
 		this.Page = page;
 		switch (page){
@@ -154,7 +158,14 @@ angular.module('yolk').factory('pin',['$timeout',function($timeout) {
 				this.sortby = this.Filter ? ['date:'+invert(this.direction[page])]:['metadata.title.raw:'+this.direction[page]];
 			break;
 		}
-		$scope.search.go(false,'page');
+		$timeout(function(){
+			if(drawer){
+				$scope.search.drawer = drawer;
+				$scope.search.noscroll = true;
+			}
+			$scope.search.go(false,drawer?'source pinned2':'page');
+		})
+
 	}
 	pin.prototype.filter = function(filter){
 		this.Filter === filter ? this.Filter = false:this.Filter = filter;

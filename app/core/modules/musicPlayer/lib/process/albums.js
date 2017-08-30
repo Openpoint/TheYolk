@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+var changed = process.Yolk.modules.musicPlayer.config.progress;
 const {ipcMain} = require('electron');
 const path = require('path');
 const elastic = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
@@ -26,12 +26,13 @@ var albums = {};
 var tracks  = {};
 var tracksid  = {};
 
+/*
 ipcMain.on('albums', function(event) {
 	alb.compress().then(function(data){
 		event.sender.send('albums',data);
 	})
 })
-
+*/
 var albums = function(){}
 
 albums.prototype.compress = function(){
@@ -71,7 +72,7 @@ albums.prototype.compress = function(){
 			console.Yolk.error(err);
 		})
 	})
-	return compress_promise;
+	//return compress_promise;
 }
 function merge(albums,tracks){
 	return new Promise(function(resolve,reject){
@@ -81,6 +82,7 @@ function merge(albums,tracks){
 			})
 			if(!albums[key].tracks.length){
 				albums[key].albums.forEach(function(album){
+
 					bulk.push({update:{_index:db_index,_type:'album',_id:album.id}});
 					bulk.push({doc:{deleted:'yes'}})
 				})
@@ -91,6 +93,7 @@ function merge(albums,tracks){
 		})
 		if(bulk.length){
 			elastic.client.bulk({body:bulk,refresh:true},function(err,data){
+				changed.album?changed.album++:changed.album=1;
 				resolve(true);
 			})
 		}else{

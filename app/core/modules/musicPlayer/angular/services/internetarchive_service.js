@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q) {
+angular.module('yolk').factory('internetarchive',['$http','$q','$timeout',function($http,$q,$timeout) {
 
 	const {ipcRenderer} = require('electron');
 	const path = require('path');
@@ -347,7 +347,7 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 	var mtimeout;
 	ia.prototype.musicbrainz = function(query){
 		var self = this;
-		clearTimeout(mtimeout);
+		$timeout.cancel(mtimeout);
 		//if(cpu.load < 75)
 		$scope.db.fetchAll(query).then(function(data){
 			if(kill.kill) return;
@@ -367,7 +367,7 @@ angular.module('yolk').factory('internetarchive',['$http','$q',function($http,$q
 			console.error(err);
 		});
 
-		if(self.progress) mtimeout = setTimeout(function(){
+		if(self.progress) mtimeout = $timeout(function(){
 			if(kill.kill) return;
 			self.musicbrainz(query);
 		},1000)

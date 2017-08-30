@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+var changed = process.Yolk.modules.musicPlayer.config.progress;
 const path = require('path');
 const elastic = require(path.join(process.Yolk.root,'core/lib/elasticsearch.js'));
 const db_index = process.Yolk.modules.musicPlayer.config.db_index.index;
@@ -229,6 +230,18 @@ mbdbase.prototype.saveTrack = function(track,timer){
 		busy = true;
 		flow.busy = true;
 		elastic.client.bulk({body:this.bulk,refresh:true},function(err,data){
+			data.items.forEach(function(item){
+				var type = item.update._type;
+				var r = item.update.result;
+
+				if(type==='artist' && r!=='noop'){
+					changed.artist?changed.artist++:changed.artist = 1;
+				}else if(type==='album' && r!=='noop'){
+					changed.album?changed.album++:changed.album = 1;
+				}else if(r!=='noop'){
+					changed.title?changed.title++:changed.title = 1;
+				}
+			})
 			if(kill.kill) return;
 			if(err){
 				console.Yolk.error(err);
@@ -251,7 +264,8 @@ mbdbase.prototype.saveTrack = function(track,timer){
 				busy = false;
 				flow.busy = false;
 			}
-			message.send('refresh',altered)
+
+			//message.send('refresh',altered)
 			altered = {artist:[],album:[]}
 		});
 		this.bulk=[];
@@ -424,6 +438,7 @@ mbdbase.prototype.saveMeta = function(track,body){
                         meta.add(artwork);
                     }
 					altered[tosave.type].push(tosave.id);
+					changed[tosave.type]?changed[tosave.type]++:changed[tosave.type]=1;
                     resolve('SAVED ------------- '+tosave.id);
                 }
             })

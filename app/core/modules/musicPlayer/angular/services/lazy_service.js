@@ -41,15 +41,8 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 	}
 	//set the padding in the playwindow
 	lazy.prototype.fixChrome = function(scrolltop){
-
+		var self = this;
 		if(log) console.log('lazy','fixChrome('+scrolltop+')');
-		//console.error(this.maxheight,$('#tracks').outerHeight(),$('#playwindow').scrollTop())
-
-		if(scrolltop > this.maxheight){
-			scrolltop = this.maxheight;
-			if(log) console.warn('lazy','fixChrome('+scrolltop+')');
-		}
-		$scope.drawers.drawerPos(scrolltop);
 		//Yolk.print($scope.drawers.dpos[$scope.pin.Page]);
 		//console.warn('Chunk: '+this.chunk)
 		if($scope.lazy.chunk){
@@ -57,49 +50,50 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		}else{
 			var padding = 0;
 		}
-		if($scope.drawers.dpos[$scope.pin.Page].inlist){
-			var height = $scope.lib.size*$scope.lazy.trackHeight+$scope.drawers.dpos[$scope.pin.Page].height;
-		}else{
-			var height = $scope.lib.size*$scope.lazy.trackHeight;
-		}
+
+		var height = $scope.lib.size*$scope.lazy.trackHeight;
 		$scope.dims.dyn = {
 			paddingTop:padding,
 			paddingBottom:$scope.lazy.trackHeight,
 			height:height-padding
 		}
-		//console.warn('padding:'+padding+' height:'+(height-padding))
+
+		if(!$scope.drawers.dpos[$scope.pin.Page].open) return;
+		//if($scope.drawers.dpos[$scope.pin.Page].inlist){
+
+			height = $scope.lib.size*$scope.lazy.trackHeight+$scope.drawers.dpos[$scope.pin.Page].height;
+			$scope.dims.dyn.height = height - padding;
+		//}
 		if($scope.drawers.dpos[$scope.pin.Page].pad){
 			$scope.drawers.dpos[$scope.pin.Page].spacer = $scope.drawers.dpos[$scope.pin.Page].height;
 		}else{
 			$scope.drawers.dpos[$scope.pin.Page].spacer = 0;
 		}
-		//console.warn('Spacer:'+$scope.drawers.dpos[$scope.pin.Page].spacer);
+
 	}
 
 
-	lazy.prototype.scroll = function(scrolltop){
+	lazy.prototype.scroll = function(scrolltop,skip){
 		if(log) console.log('lazy','scroll('+scrolltop+')');
 		if(typeof scrolltop === 'undefined') scrolltop = $('#playwindow').scrollTop();
-		if($scope.tracks.all) this.maxchunk = Math.floor(($scope.tracks.all.length*$scope.dims.trackHeight)/(this.chunkHeight*this.O))
 
 		this.chunk = Math.floor(scrolltop/(this.chunkHeight*this.O));
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step;
 
-		if($scope.pin.Page === 'title') return;
-
-		//Yolk.print($scope.drawers.dpos[$scope.pin.Page],'warn')
+		if($scope.pin.Page === 'title'||!$scope.drawers.dpos[$scope.pin.Page].open || skip) return;
 
 		if($scope.drawers.dpos[$scope.pin.Page].fix){
 			scrolltop-=$scope.drawers.dpos[$scope.pin.Page].height;
 			this.chunk = Math.floor(scrolltop/(this.chunkHeight*this.O));
 		}
 
-		if($scope.drawers.dpos[$scope.pin.Page].open && this.chunk >= $scope.drawers.dpos[$scope.pin.Page].inChunk){
+		if(this.chunk >= $scope.drawers.dpos[$scope.pin.Page].inChunk){
 			$scope.drawers.dpos[$scope.pin.Page].pad = true;
 		}else{
 			$scope.drawers.dpos[$scope.pin.Page].pad = false;
 		}
+
 		this.Top = this.Step*this.chunk;
 		this.Bottom = this.Top+this.Step;
 	}
@@ -109,6 +103,7 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		this.winHeight = $scope.dims.playwindowHeight;
 		this.Step = Math.ceil(this.winHeight/this.trackHeight);
 		this.chunkHeight = this.Step*this.trackHeight;
+		this.chunkSize = this.Step*this.O;
 		if(typeof top === 'undefined') top =  $scope.dims.scrollTop;
 		this.scroll(top);
 	}
@@ -241,8 +236,9 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 		$('#playwindow')[0].addEventListener('scroll',function(e){
 			$scope.dims.scrollTop = e.target.scrollTop;
 			$scope.search.setScroll(e.target.scrollTop);
+
 			if($scope.search.brake){
-				clearTimeout(t3);
+				$timeout.cancel(t3);
 				return;
 			}
 			if(e.timeStamp -t2 > 40){
@@ -250,12 +246,11 @@ angular.module('yolk').factory('lazy',['$timeout',function($timeout) {
 				$scope.lazy.playPos();
 			}
 			if(e.timeStamp -t > 490){
-				clearTimeout(t3);
+				$timeout.cancel(t3);
 				t = e.timeStamp;
-
-				t3 = setTimeout(function(){
+				t3 = $timeout(function(){
 					var oc = $scope.lazy.chunk;
-					$scope.drawers.drawerPos();
+					$scope.drawers.drawerPos('watchscroll');
 					if(oc !== $scope.lazy.chunk){
 						$scope.search.go(false,'scroll');
 					}

@@ -40,10 +40,15 @@ var define = {
 	module_name:"musicPlayer",
 	settings:{
 		paths:{},
-		fileTypes:["mp3","ogg","wav"]
+		fileTypes:["mp3","ogg","wav"],
+	},
+	progress:{
+		title:0,
+		album:0,
+		artist:0
 	},
 	data:{artist_images:"images/artist",album_images:"images/album"},
-	headers:{'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )'}//todo - automatically update version in UA
+	headers:{'User-Agent': 'Yolk MusicPlayer/0.0.0 ( http://openpoint.ie )'},//todo - automatically update version in UA
 }
 
 function Mapping(){

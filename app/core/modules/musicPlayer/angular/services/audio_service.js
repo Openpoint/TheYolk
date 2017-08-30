@@ -39,9 +39,9 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(!$scope.lib.previous) $('#topmen .prev').addClass('dead');
 	}
 	function fadein(){
-		clearTimeout(fadetimer);
+		$timeout.cancel(fadetimer);
 		$('#fullscreen_out').show();
-		fadetimer = setTimeout(function(){
+		fadetimer = $timeout(function(){
 			fadeout();
 		},3000);
 	};
@@ -69,7 +69,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				document.getElementById("youtube2").webkitRequestFullscreen();
 				$('#youtube2').addClass('fullscreen').removeClass('small');
 				$scope.isfullscreen = true;
-				fadetimer = setTimeout(function(){
+				fadetimer = $timeout(function(){
 					fadeout();
 				},3000);
 			}else{
@@ -81,6 +81,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 		}
 		var self = this;
+		this.width = 0;
 		this.player = new Audio();
 		this.player.preload = 'auto';
 		this.player.addEventListener('ended', function(){
@@ -154,7 +155,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 				if(self.state) $scope.lib.playing.state=self.state;
 				topmen();
 				self.state = false;
-				$scope.search.go(false,'page');
+				$scope.search.go(false,'resume');
 				$scope.tracks.isInFocus();
 			})
 			this.Webview(src);
@@ -447,7 +448,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	//control the progress bar
 	var Progress;
 	audio.prototype.progress = function(repeat,reset,seek){ //update the progress bar when playing
-		clearTimeout(Progress)
+		$timeout.cancel(Progress)
 		if(!$scope.lib.playing) return;
 		var self = this;
 		if(!reset && !$scope.lib.playing.youtube){
@@ -456,23 +457,30 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(reset) this.vidprogress = 0;
 		if(this.vidprogress && vidlength){
 			//console.log((vidprogress/vidlength)*100 +'%')
+			this.width = (this.vidprogress/vidlength)*100 +'%';
+			/*
 			if(seek){
 				$('#playing .progress').css({
 					'width':(this.vidprogress/vidlength)*100 +'%'
 				});
 			}else{
+				this.width =
 				$('#playing .progress').css({
 					'width':(this.vidprogress/vidlength)*100 +'%'
 				});
 			}
+			*/
 		}else{
 			//console.log('reset')
+			this.width = 0;
+			/*
 			$('#playing .progress').css({
 				'width':'0%'
 			});
+			*/
 		}
 		if($scope.lib.playing && $scope.lib.playing.state && repeat){
-			Progress = setTimeout(function(){
+			Progress = $timeout(function(){
 				self.progress(true);
 			},1000);
 		}

@@ -18,7 +18,7 @@
 	Yolk.fixChrome();
 </script>
 
-<div ng-controller="musicPlayer" id='playframe'>
+<div ng-controller="musicPlayer" id='playframe' ng-cloak>
 	<div id='topmen'>
 		<div class='icon'><a ng-include="icon" href='#!/home'></a></div>
 		<div id='menitems' ng-style="{left:dims.sidebarWidth+15}">
@@ -87,7 +87,7 @@
 						<div class='icon-youtube'></div>
 					</div>
 					<!--<div  class='progress' ng-if="progress.youtube">Youtube:{{progress.youtube}}</div>-->
-					<div  class='progress' ng-show="progress.youtube">Youtube:<span class='youtube'></span></div>
+					<div  class='progress' ng-show="progress.youtube">Youtube:<span class='youtube'>{{progress.youtube}}</span></div>
 				</div>
 				<div class='item' ng-class='{active:progress.internetarchive}'>
 					<div class='inner'>
@@ -95,7 +95,7 @@
 						<div class='icon-internetarchive'></div>
 					</div>
 					<!--<div  class='progress' ng-if="progress.internetarchive">Internet Archive:{{progress.internetarchive}}</div>-->
-					<div  class='progress' ng-show="progress.internetarchive">Internet Archive:<span class='internetarchive'></span></div>
+					<div  class='progress' ng-show="progress.internetarchive">Internet Archive:<span class='internetarchive'>{{progress.internetarchive}}</span></div>
 				</div>
 				<div class='item' ng-class='{active:progress.musicbrainz}'>
 					<div class='inner'>
@@ -103,7 +103,7 @@
 						<div class='icon-musicbrainz'></div>
 					</div>
 					<!--<div  class='progress' ng-if="progress.musicbrainz">Musicbrainz:{{progress.musicbrainz}}</div>-->
-					<div  class='progress' ng-show="progress.musicbrainz">Musicbrainz:<span class='musicbrainz'></span></div>
+					<div  class='progress' ng-show="progress.musicbrainz">Musicbrainz:<span class='musicbrainz'>{{progress.musicbrainz}}</span></div>
 				</div>
 
 			</div>
@@ -169,7 +169,7 @@
 
 			<div class='bottom'>
 				<div ng-if="isdev">
-					<div ng-click = "albums()">Albums</div>
+					<!-- <div ng-click = "albums()">Albums</div> -->
 					<div ng-click='nuke()'>NUKE!</div>
 					<div onClick="Yolk.remote('chrome')('devtools')">Tools</div>
 				</div>
@@ -247,7 +247,7 @@
 								<div class='widget' ng-click="dev(artist,'artist')" ng-if="isdev">
 									<div class='fa fa-cogs'></div>
 								</div>
-								<div class = "widget"  ng-if="artist.deleted === 'no'" ng-click="tracks.delete(artist,false,true)">
+								<div class = "widget"  ng-if="artist.deleted === 'no'" ng-click="tracks.delete(artist,false)">
 									<div class='fa fa-times-circle'></div>
 								</div>
 								<div class = "widget" ng-if="artist.deleted === 'yes' || pin.Filter==='recent'"  ng-click="tracks.undelete(artist,false,true)">
@@ -307,7 +307,7 @@
 								<div class='widget' ng-click="dev(album,'album')" ng-if="isdev">
 									<div class='fa fa-cogs'></div>
 								</div>
-								<div class = "widget"  ng-if="album.deleted === 'no'" ng-click="tracks.delete(album,false,true)">
+								<div class = "widget"  ng-if="album.deleted === 'no'" ng-click="tracks.delete(album,false)">
 									<div class='fa fa-times-circle'></div>
 								</div>
 								<div class = "widget" ng-if="album.deleted === 'yes' || pin.Filter==='recent'" ng-click="tracks.undelete(album,false,true)">
@@ -317,17 +317,19 @@
 							</div>
 							<div class='pad'></div>
 						</div>
+
 						<div class='drawer' id="drawer{{album.id}}" ng-style="{height:drawers.lib[pin.Page][album.id].height||0}">
 							<div class='drawerInner ani-fOut'  ng-if="drawers.dpos[pin.Page].open===album.id">
 								<div class="disc" ng-repeat = "disc in drawers.lib[pin.Page][album.id].discs">
 									<div class='heading'>Disc {{$index+1}}</div>
 									<div class='songs'>
 										<div ng-repeat = "track in disc"  ng-click="
-										audio.play(drawers.lib[pin.Page][album.id].tracks[track.id],'album')
+										audio.play(drawers.lib[pin.Page][album.id].tracks[track.id],'album');
+										tracks.playingfrom('album');
 										" class='track_row'>
 											<div class='number'>{{$index+1}}: </div>
 											<div class='track' ng-class="{active:drawers.lib[pin.Page][album.id].tracks[track.id].type}">
-												{{drawers.lib[pin.Page][album.id].tracks[track.id].metadata.title||track.title}}
+												<span>{{drawers.lib[pin.Page][album.id].tracks[track.id].metadata.title||track.title}}</span>
 												<span ng-if="
 												tools.strim(album.metadata.artist) !== tools.strim(drawers.lib[pin.Page][album.id].tracks[track.id].metadata.artist.toLowerCase())
 												" class='other_artist'>: {{drawers.lib[pin.Page][album.id].tracks[track.id].metadata.artist}}</span>
@@ -347,7 +349,7 @@
 						<span ng-if="tools.terms(searchTerm).prefix" class='pinned' ng-click="pin.prefix(tools.terms(searchTerm).prefix)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).prefix}}</span>
 						<span ng-if="tools.terms(searchTerm).artist" class='pinned' ng-click="pin.artist(tools.terms(searchTerm).artist)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).artist}}</span>
 						<span  ng-if="tools.terms(searchTerm).album" class='pinned' ng-click="pin.album(tools.terms(searchTerm).album)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).album}}</span>
-						<span  ng-if="tools.terms(searchTerm).title" class='pinned' ng-click="pin.album(tools.terms(searchTerm).title)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).title}}</span>
+						<span  ng-if="tools.terms(searchTerm).title" class='pinned' ng-click="pin.title(tools.terms(searchTerm).title)"><span class='fa fa-times-circle'></span> {{tools.terms(searchTerm).title}}</span>
 					</div>
 					<div class='info'>You can search online from the search bar above</div>
 				</div>
@@ -363,7 +365,7 @@
 								<div ng-show='playlist.reorder && playlist.reorder!==track.id' drop-container on-drop="playlist.onReorder($event, $dragData, track.id)" class='pad'></div>
 							</div>
 							<div class='above'>
-								<div class='icons' ng-click="audio.play(track,true)">
+								<div class='icons' ng-click="audio.play(track,true);tracks.playingfrom(playlist.active?'playlist':false)">
 									<div class='play'>
 										<i class='fa fa-play-circle-o'></i>
 									</div>
@@ -373,7 +375,10 @@
 								</div>
 
 								<div ng-if="playlist.selected==1">
-									<div class='title'>{{::track.metadata.title || track.file}}</div>
+									<div class='title' ng-click="pin.title(track.metadata.title)" ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === track.metadata.title.toLowerCase())),hover:!playlist.active}">
+										<span class='cancel fa fa-times-circle'></span>
+										<span>{{::track.metadata.title || track.file}}</span>
+									</div>
 								</div>
 							</div>
 							<div class='below'>
@@ -383,14 +388,14 @@
 								<div class='info'>
 									<div class='artist row' ng-if="track.metadata.artist" ng-click="pin.artist(track.metadata.artist)" ng-class="{'pinned':(!playlist.active && (pin.pinned.artist.toLowerCase() === track.metadata.artist.toLowerCase())),hover:!playlist.active}">
 										<span class='cancel fa fa-times-circle'></span>
-										{{::track.metadata.artist}}
+										<span>{{::track.metadata.artist}}</span>
 									</div>
 									<div class='row' ng-if='!track.metadata.artist'>
 										[Artist unknown]
 									</div>
 									<div class='album row' ng-if="track.metadata.album"  ng-click="pin.album(track.metadata.album)" ng-class="{'pinned':!playlist.active && pin.pinned.album.toLowerCase() === track.metadata.album.toLowerCase(),hover:!playlist.active}">
 										<span class='cancel fa fa-times-circle'></span>
-										{{::track.metadata.album}}
+										<span>{{::track.metadata.album}}</span>
 									</div>
 									<div class='row' ng-if='!track.metadata.album'>
 										[Album unknown]
@@ -444,11 +449,27 @@
 							</div>
 						</div>
 						<div ng-if="playlist.selected && playlist.selected!==1">
-							<div class='title grab' drag-container="true" drag-data="lib.playing" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{lib.playing.metadata.title || lib.playing.file}}</div>
+							<div class='title grab'
+							drag-container="true"
+							drag-data="lib.playing"
+							on-drag-end='playlist.reorder=false'
+							on-drag-start="playlist.handleDragStart($event,$dragData)"
+							ng-click="pin.title(lib.playing.metadata.title)"
+							ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === lib.playing.metadata.title.toLowerCase())),hover:!playlist.active}"
+							>
+								<span class='cancel fa fa-times-circle'></span>
+								<span>{{lib.playing.metadata.title || lib.playing.file}}</span>
+							</div>
 						</div>
 
 						<div ng-if="playlist.selected==1">
-							<div class='title'>{{lib.playing.metadata.title || lib.playing.file}}</div>
+							<div class='title'
+							ng-click="pin.title(lib.playing.metadata.title)"
+							ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === lib.playing.metadata.title.toLowerCase())),hover:!playlist.active}"
+							>
+								<span class='cancel fa fa-times-circle'></span>
+								<span>{{lib.playing.metadata.title || lib.playing.file}}</span>
+							</div>
 						</div>
 
 						<div id='seek'>
@@ -466,7 +487,7 @@
 					</div>
 					<div class='progressBar' ng-click="audio.seek($event)" ng-style="{height:lazy.progressHeight}" ng-class="{error:audio.error}">
 						<div class='buffer ani-fOut' ng-if='audio.buffering && !audio.error'></div>
-						<div class='progress'></div>
+						<div class='progress' ng-style="{width:audio.width}"></div>
 					</div>
 					<div class='below'>
 						<div class='icons'>

@@ -32,35 +32,43 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 		$scope = scope;
 		return this;
 	}
-	function getAll(playlist){
-		if(log) console.log('tracks','getAll()');
-		if($scope.tracks.playlistAll || playlist){
-			if(!playlist){
-				$scope.tracks.source.type='Playlist';
-				$scope.tracks.source.name = $scope.playlist.options.filter(function(op){
-					return op.id === $scope.playlist.selected
-				})[0].name;
-				$scope.tracks.source.id = $scope.playlist.selected
-			}
-			return $scope.playlist.activelist[$scope.playlist.selected];
-		}
-		if($scope.tracks.albumAll){
+	tracks.prototype.playingfrom = function(type){
+		if(type === 'album'){
 			$scope.tracks.source.type = 'Album';
 			$scope.tracks.source.name = $scope.drawers.lib['album'][$scope.drawers.lib['album'].playing].title;
 			$scope.tracks.source.id = $scope.drawers.lib['album'][$scope.drawers.lib['album'].playing].id;
+			$scope.tracks.source.filter = $scope.pin.Filter;
+		}else if(type === 'playlist'){
+			$scope.tracks.source.type='Playlist';
+			$scope.tracks.source.name = $scope.playlist.options.filter(function(op){
+				return op.id === $scope.playlist.selected
+			})[0].name;
+			$scope.tracks.source.id = $scope.playlist.selected
+		}else{
+			$scope.tracks.source={};
+		}
+	}
+	function getAll(playlist){
+		if(log) console.log('tracks','getAll()');
+		if($scope.tracks.playlistAll || playlist){
+			if($scope.tracks.source.type==='Playlist'){
+				var pl = $scope.tracks.source.id
+			}else{
+				var pl = $scope.playlist.selected
+			}
+			return $scope.playlist.activelist[pl];
+		}
+		if($scope.tracks.albumAll){
 			return $scope.tracks.albumAll;
 		}
-		$scope.tracks.source.type= false;
-		$scope.tracks.source.name= false;
-		$scope.tracks.source.id= false;
 		return $scope.search.memory.Title;
 	}
 	//find the next playing track
 	var old_id
-	tracks.prototype.next = function(all){
+	tracks.prototype.next = function(){
 		if(!$scope.lib.playing) return;
 		if(log) console.log('tracks','next()');
-		if(!all) all = getAll(false);
+		var all = getAll();
 		if(!all||all.length < 2){
 			$scope.lib.next = false;
 			return;
@@ -96,10 +104,10 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 		var index = -1;
 		if(all && $scope.pin.Page === 'title') index = all.indexOf($scope.lib.playing.id);
 		$scope.lazy.getPos(index);
-		setTimeout(function(){
+		$timeout(function(){
 			$scope.lazy.playPos();
 		})
-		self.next(all);
+		self.next();
 	}
 
 
@@ -113,13 +121,43 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 			if(!data.hits.total){
 				$scope.db.client.update({index:$scope.db_index,type:'artist',id:artist,refresh:true,body:{doc:{deleted:'yes'}}},function(err,data){
 					if(err) console.err(err);
+					$scope.search.changed.artist++;
 					$scope.search.go(true,'track and artist deleted');
 				})
 			}
 		})
 	}
+	//check if a track being deleted has left an album empty
+	tracks.prototype.deleteAlbum = function(track){
+		if(track.type !=='album' && track.type !=='artist' && track.type!=='youtube'){
+			var query = $scope.tools.wrap.bool([{must:[
+				{match:{album:{query:track.album,type:'phrase'}}},
+				{match:{deleted:{query:'no',type:'phrase'}}}
+			]}]);
+			var types='local,internetarchive';
+			$scope.db.fetchAll({index:$scope.db_index,type:types,body:{query:query}}).then(function(data){
+				if(data.length) return;
+				$scope.db.update({
+					index:$scope.db_index,
+					type:'album',
+					id:track.album,
+					refresh:true,
+					body:{doc:{
+						deleted:"yes",
+						date:Date.now()
+					}}
+				}).then(function(data){
+					if(data.result!=='noop') $scope.search.changed.album++;
+				},function(err){
+					console.error(err);
+				})
+			},function(err){
+				console.error(err)
+			})
+		}
+	}
 	//delete a track
-	tracks.prototype.delete = function(track,playing,bulk){
+	tracks.prototype.delete = function(track,playing){
 		if(log) console.log('tracks','delete()');
 		if(playing) $scope.audio.next();
 
@@ -131,7 +169,7 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 		var type = track.type;
 		var self = this;
 
-		if(bulk && (type === 'album'||type==='artist')){
+		if(type === 'album'||type==='artist'){
 			if(type==='album'){
 				var query = $scope.tools.wrap.bool([{must:[
 					{match:{album:{query:id,type:'phrase'}}},
@@ -157,6 +195,7 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 					if(type === 'album' && artists.indexOf(track.artist)===-1) artists.push(track.artist)
 				})
 				$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
+					self.changed(data);
 					if(err) console.error(err)
 					if(type === 'album' && artists.length){
 						artists.forEach(function(artist){
@@ -171,16 +210,22 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 			})
 		}
 
-		if($scope.drawers.lib['album'] && track.type==="album" && track.id === $scope.drawers.lib['album'].playing) $scope.drawers.dpos.album.filter = 'deleted';
+		if($scope.drawers.lib['album'] && track.type==="album" && track.id === $scope.drawers.lib['album'].playing) $scope.tracks.source.filter = 'deleted';
+
 		$scope.db.update({
 			index:$scope.db_index,
 			type:type,
 			id:id,
+			refresh:true,
 			body:{doc:{
 				deleted:"yes",
 				date:Date.now()
 			}}
 		}).then(function(data){
+			if(data.result!=='noop'){
+				$scope.search.changed[type]++;
+				self.deleteAlbum(track);
+			}
 			if(type!=='artist'&&type!=='album'){
 				self.deleteArtist(track.artist);
 			}
@@ -191,6 +236,7 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 	}
 	//undelete a track
 	tracks.prototype.undelete = function(track,playing,bulk){
+		var self = this;
 		if(log) console.log('tracks','undelete()');
 		if(track.name) track.type = 'artist'
 		if(!track.type) track.type = 'album'
@@ -200,12 +246,13 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 				index:$scope.db_index,
 				type:'artist',
 				id:track.artist,
+				refresh:true,
 				body:{doc:{
 					deleted:"no",
 					bulk:'no',
 				}}
 			}).then(function(data){
-
+				if(data.result!=='noop') $scope.search.changed.artist++;
 			},function(err){
 				console.error(err);
 			})
@@ -213,12 +260,13 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 				index:$scope.db_index,
 				type:'album',
 				id:track.album,
+				refresh:true,
 				body:{doc:{
 					deleted:"no",
 					bulk:'no',
 				}}
 			}).then(function(data){
-
+				if(data.result!=='noop') $scope.search.changed.album++;
 			},function(err){
 				console.error(err);
 			})
@@ -249,13 +297,13 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 
 				})
 				$scope.db.client.bulk({body:bulk,refresh:true},function(err,data){
-					//console.log(data)
+					self.changed(data);
 				})
 			},function(err){
 				console.error(err)
 			})
 		}
-		if($scope.drawers.lib['album'] && track.type==='album' && track.id === $scope.drawers.lib['album'].playing) $scope.drawers.dpos.album.filter = false;
+		if($scope.drawers.lib['album'] && track.type==="album" && track.id === $scope.drawers.lib['album'].playing) $scope.tracks.source.filter = false;
 		$scope.db.update({
 			index:$scope.db_index,
 			type:track.type,
@@ -266,11 +314,25 @@ angular.module('yolk').factory('tracks',['$timeout',function($timeout){
 				date:Date.now()
 			}}
 		}).then(function(data){
+			if(data.result!=='noop') $scope.search.changed[track.type]++;
 			$scope.search.go(true,'track undeleted');
 		},function(err){
 			console.error(err);
 		})
 	}
+	tracks.prototype.changed = function(data){
+		data.items.forEach(function(item){
+			var type = item.update._type;
+			var r = item.update.result;
 
+			if(type==='artist' && r!=='noop'){
+				$scope.search.changed.artist++
+			}else if(type==='album' && r!=='noop'){
+				$scope.search.changed.album++
+			}else if(r!=='noop'){
+				$scope.search.changed.title++
+			}
+		})
+	}
 	return tracks;
 }])

@@ -24,13 +24,16 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	$('#search').click(function(){
 		$('#search input').focus();
 	})
+
 	delete Yolk.controls.html.musicPlayer;
 	Yolk.prepare($rootScope[mod_name]||$scope,mod_name).then(function(){
 		$scope.$apply(function(){
 			$scope.settings.paths.artist = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.artist_images);
 			$scope.settings.paths.album = path.join(Yolk.home,'data/modules',mod_name,Yolk.modules[mod_name].config.data.album_images);
 			if($scope.settings.paths.musicDir && !$rootScope[mod_name]) ipcRenderer.send('verify', $scope.settings.paths.musicDir);
+			if(!$rootScope[mod_name]) $scope.search.go(true,'init');
 			$rootScope[mod_name] = $scope;
+			progresstimer();
 		})
 	});
 
@@ -76,14 +79,9 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 
 	$scope.lib.noart = path.join(Yolk.root,'core/modules/musicPlayer/images/noImage.svg');
 	$scope.dims.update();
-
-
-	if(!$rootScope[mod_name]){
-		$scope.search.go(true,'init');
-	}else{
-		//$scope.audio.player.play();
+	if($rootScope[mod_name]){
 		$('#playwindow').ready(function(){
-			setTimeout(function(){
+			$timeout(function(){
 				$('#playwindow').scrollTop($scope.search.fetchmem().scrolltop);
 			})
 		})
@@ -97,31 +95,19 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	function progresstimer(){
 		$timeout.cancel($scope.progress_timer);
 		var types = ['internetarchive','youtube','musicbrainz'];
-		types.some(function(type){
-			if(!$scope[type]) return false;
-			if($scope.progress[type] && !$scope[type].progress || !$scope.progress[type] && $scope[type].progress){
-				/*
-				if($scope[type].progress && !$scope.slowmessage){
-					$scope.slowmessage=true;
-					$timeout(function(){
-						$scope.slowmessage=false;
-					},5000)
-				}
-				*/
-				$scope.progress[type] = $scope[type].progress;
-				return true;
-			}
-			return false;
-		})
+		var progress = {}
 		types.forEach(function(type){
-			if(!$scope[type]) return;
-			$('#sidebar .progress .'+type).html($scope[type].progress);
+			if($scope[type]) progress[type] = $scope[type].progress;
 		})
+		$scope.progress = progress;
+		if($scope.search.changed[$scope.pin.Page]){
+			$scope.search.go(true,'refresh');
+		}
 		$scope.progress_timer = $timeout(function(){
 			progresstimer();
 		},1000)
 	}
-	progresstimer();
+
 	//stop scanning the local filesystem if window dies
 	window.onbeforeunload = function(){
 		//console.log('close');
@@ -152,13 +138,13 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 				$scope.pin.pinned.title = false;
 				$scope.goSearch = false;
 			}
-			clearTimeout(searchTime);
+			$timeout.cancel(searchTime);
 			if($scope.searchNow){
 				$scope.searchNow = false;
 				if($scope.searchNow === 'skip') return;
 				$scope.search.go(false,'searchterm');
 			}else{
-				searchTime = setTimeout(function(){
+				searchTime = $timeout(function(){
 					$scope.search.go(false,'searchterm');
 				},500);
 			}
@@ -202,21 +188,6 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		})
 	}
 
-	if(!ipcRenderer._events.refresh){
-		ipcRenderer.on('refresh',function(event,data){
-			Object.keys(data).forEach(function(page){
-				if(data[page].length){
-					$scope.refresh[page]?$scope.refresh[page]++:$scope.refresh[page]=1;
-				}
-			})
-			$scope.refresh.title = 1;
-			$scope.drawers.refreshDrawers();
-			if($scope.refresh[$scope.pin.Page]){
-				$scope.search.go(true);
-			}
-
-		});
-	}
 	if(!ipcRenderer._events.progress){
 		ipcRenderer.on('progress',function(event,data){
 			if(data.type === 'musicbrainz'){
@@ -235,7 +206,10 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 						})
 					})
 				})
-				$scope.search.go(true);
+				$scope.$apply(function(){
+					$scope.search.go(true,'verify');
+				})
+
 				var artists = [];
 				data.remove.forEach(function(track){
 					if(artists.indexOf(track.artist) === -1){
@@ -246,11 +220,6 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 			}
 		});
 	}
-	if(!ipcRenderer._events.albums){
-		ipcRenderer.on('albums',function(event,data){
-			$scope.search.go(true);
-		});
-	}
 
 	if(!ipcRenderer._events.newart){
 		ipcRenderer.on('newart',function(event,data){
@@ -259,9 +228,11 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 			})
 		});
 	}
+	/*
 	$scope.albums = function(){
 		ipcRenderer.send('albums');
 	}
+	*/
 	$scope.refreshart = function(data){
 		$scope.db.client.get({index:$scope.db_index,type:data.type,id:data.id},function(err,data){
 			if(err){
@@ -286,7 +257,7 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 		$scope.internetarchive.kill();
 		$scope.youtube.kill();
 		ipcRenderer.send('kill');
-		setTimeout(function(){
+		$timeout(function(){
 			ipcRenderer.send('kill','revive');
 		})
 	}
@@ -319,7 +290,7 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 								$scope.utils.boot(Yolk.modules[key].config.db_index)
 							}
 							if(count === Object.keys(Yolk.modules).length){
-								setTimeout(function(){
+								$timeout(function(){
 									window.location.reload();
 								},1000)
 							}

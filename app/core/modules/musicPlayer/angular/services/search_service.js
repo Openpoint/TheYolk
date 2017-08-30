@@ -31,6 +31,14 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		$scope = scope;
 		this.all={};
 		this.memory = {};
+		this.changed = Yolk.remote('modules').musicPlayer.config.progress;
+		var self = this;
+		Yolk.test = function(){
+			self.go(true,'test refresh')
+		}
+		Yolk.report = function(){
+			console.log(self.memory[context][mem])
+		}
 	}
 	search.prototype.resume=function(scope){
 		$scope = scope;
@@ -39,39 +47,64 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	search.prototype.fetchmem = function(){
 		return this.memory[context][mem];
 	}
-	search.prototype.makemem = function(){
-
+	search.prototype.context = function(){
 		if($scope.playlist.active){
 			context = 'playlist';
 			mem = $scope.playlist.selected;
-		}
-
-		if(!$scope.playlist.active){
+		}else{
 			context = $scope.pin.Page;
 			$scope.pin.Page === 'title'?mem = $scope.pin.pinned.sources.join(''):mem = $scope.pin.Page;
 			if($scope.searchTerm) mem+=$scope.searchTerm
 			if($scope.pin.Filter) mem+=$scope.pin.Filter;
 		}
+	}
 
+	search.prototype.makemem = function(scrolltop,libsize,all){
 		if(!this.memory[context]) this.memory[context] = {};
 		if(!this.memory[context][mem]){
 			this.memory[context][mem] = {};
 		}
 		if(!this.memory[context][mem].chunks) this.memory[context][mem].chunks = {};
+		if(!this.memory[context][mem].scrolltop) this.memory[context][mem].scrolltop = scrolltop||0;
+		//if(libsize) this.memory[context][mem].libsize = libsize;
+		//if(all) this.memory[context][mem].all = all;
 		return this.memory;
 	}
-	search.prototype.prepare = function(refresh){
-		//if(log) console.log('search','prepare()')
+	var count = 0;
+	search.prototype.prepare = function(){
+		if(log) console.log('search','prepare()')
 		var self = this;
 		if(!$scope.lazy.Step) $scope.lazy.step();
-		if(refresh){
-			if(this.memory[context]) var scrolltop = this.memory[context][mem].scrolltop;
-			this.memory = {Title:this.memory.Title};
-			this.memory = this.makemem();
-			if(typeof scrolltop !== 'undefined') this.memory[context][mem].scrolltop = scrolltop;
+		if(!oldChunk) setOldChunk();
+
+		if(this.refresh){
+			count++;
+			//console.info('%c refresh: '+count,'color:red');
+			if(this.memory[context]&&this.memory[context][mem]){
+				var scrolltop = this.memory[context][mem].scrolltop;
+			}
+			if(this.memory[context]) delete this.memory[context];
+			this.memory = this.makemem(scrolltop);
 		}else{
 			this.memory = this.makemem();
 		}
+		if(this.drawer && this.drawer.close){
+			//$scope.drawers.dpos[$scope.pin.Page]={};
+			//$scope.drawers.lib[$scope.pin.Page][this.drawer.close].height = 0;
+			$scope.drawers.closeall($scope.pin.Page);
+			this.drawer = false;
+			//return;
+		}
+
+
+		if(typeof this.memory[context][mem].libsize === 'undefined'||!this.drawer){
+			//this.brake = true;
+			$scope.lazy.scroll(this.memory[context][mem].scrolltop);
+			//$('playwindow').scrollTop(0);
+		}else{
+			this.fixChrome(this.getTop(),'prepare');
+		}
+
 		var state={
 			chunk:$scope.lazy.chunk === oldChunk.chunk,
 			sources:$scope.pin.pinned.sources.length === oldChunk.sources,
@@ -85,26 +118,29 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			},
 			get:true,
 		}
+
 		flags = {size:$scope.lazy.Step*$scope.lazy.over}
-		flags.from = 0
-		if(typeof self.memory[context][mem].chunk!=='undefined' && (!state.page||!state.playlist.active||!state.playlist.selected)){
-			$scope.lazy.chunk = self.memory[context][mem].chunk
-		}
-		if($scope.lazy.chunk){
-			flags.from = ($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O)
-		}
+		flags.from = 0;
+		if($scope.lazy.chunk > 0) flags.from = ($scope.lazy.Step*$scope.lazy.chunk*$scope.lazy.O)-($scope.lazy.Step*$scope.lazy.O)
+
+
 		if(!state.playlist.selected||!state.playlist.active||!state.searchterm||!state.filter||!state.sources) state.page = false;
-		if((state.page && $scope.pin.sortby[0] === oldChunk.sortby)||!state.page||!state.filter) state.sortby = true;
-		if(!refresh && state.chunk && state.sortby && state.searchterm && state.page && state.filter && state.playlist.selected && state.playlist.active && state.sources){
-			state.get = false;
-		}
-		if(!state.sortby && self.memory[context][mem].all){
+		if(!this.refresh && state.chunk && state.sortby && state.searchterm && state.page) state.get = false;
+		if((state.page && $scope.pin.sortby[0] === oldChunk.sortby)||!state.page) state.sortby = true;
+
+		if(!state.sortby && this.memory[context][mem].all){ //reverse the order of the active view
 			if(log) console.error('search','reverse')
 			this.memory[context][mem].all = self.memory[context][mem].all.reverse();
-			this.memory[context][mem].chunks={};
+			this.memory[context][mem].chunks = {};
 			this.memory[context][mem].scrolltop = 0;
 			flags.from = 0;
 			state.reversed = true;
+			//this.brake = true;
+		}
+		if($scope.drawers.dpos[$scope.pin.Page].open && !state.page){
+			//$scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].height = 0;
+			//$scope.drawers.dpos[$scope.pin.Page]={};
+			$scope.drawers.closeall($scope.pin.Page);
 		}
 		this.state = state;
 	}
@@ -113,45 +149,42 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	search.prototype.setScroll = function(s){
 		if(!this.brake) this.memory[context][mem].scrolltop = s;
 	}
+
 	search.prototype.go = function(refresh,origin){
 		var self = this;
-		if($scope.refresh[$scope.pin.Page]){
-			refresh = true;
-			$scope.refresh[$scope.pin.Page] = 0;
-		}
-
-		if(!oldChunk) setOldChunk();
-		this.prepare(refresh)
-		setOldChunk();
-		if(typeof self.memory[context][mem].scrolltop === 'undefined') self.memory[context][mem].scrolltop = 0;
-
-		if(!this.state.get){
-			this.fixChrome(true);
-			self.goscroll();
-			//self.godrawer();
+		if(this.brake){
+			//console.info('%c busy:'+origin,'color:red');
+			$timeout.cancel(this.retry);
+			this.retry = $timeout(function(){
+				self.go(refresh,origin)
+			},100)
 			return;
 		}
-
-		this.brake = true;
-		$scope.loading = true;
-		if(log) console.warn('search',$scope.playlist.active?'playlist':$scope.pin.Page);
-
-		if(self.memory[context][mem].libsize && !refresh){
-			$scope.lib.size = self.memory[context][mem].libsize;
-			self.fixChrome(true);
-			if(!self.state.page||!self.state.playlist.active||!self.state.playlist.selected||self.state.reversed){
-				$timeout(function(){
-					$('#playwindow').scrollTop(self.memory[context][mem].scrolltop);
-				})
-			}
-		}else{
-			$scope.lazy.scroll(0);
-			flags.from = 0;
-			//$scope.lazy.chunk = 0;
+		this.origin = origin;
+		this.page = $scope.pin.Page;
+		this.context();
+		if(this.changed[$scope.pin.Page]){
 			refresh = true;
+			$scope.drawers.refreshDrawers($scope.pin.Page);
+			this.changed[$scope.pin.Page] = 0;
 		}
-
 		this.refresh = refresh;
+		this.origin = origin;
+		this.prepare();
+		setOldChunk();
+		if(!this.state.get && !this.drawer) return;
+		if(!this.state.get){
+			this.goscroll();
+			return;
+		}
+		if(!this.drawer && this.refresh && $scope.drawers.dpos[$scope.pin.Page].open) this.drawer = this.all[$scope.drawers.dpos[$scope.pin.Page].open];
+		this.brake = true;
+		this.sync = true;
+		$scope.loading = true;
+		//console.info('%c '+origin,'color:blue');
+		if(log) Yolk.print(flags);
+		if(log) console.warn('search',$scope.playlist.active?'playlist':$scope.pin.Page);
+		if(log) console.warn('refresh:'+this.refresh+' origin:'+origin)
 
 		if($scope.pin.Page!=='title'){
 			this[$scope.pin.Page]();
@@ -161,6 +194,10 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			this.playlist(flags);
 			return;
 		}
+		this.title();
+	}
+
+	search.prototype.title = function(){
 		if(log) console.log('search','go title()')
 		var scs = ['download','file','id','metadata.*','path','type','artist','album','date','deleted'];
 		var search = {index:$scope.db_index,type:'local,internetarchive,youtube',body:{_source:scs,query:{bool:{must:[{bool:{should:[]}}]}}}};
@@ -189,7 +226,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}
 		this.getMem(search,'title')
 	}
-
 	search.prototype.album = function(){
 		if(log) console.log('search','go album()')
 		var self = this;
@@ -259,7 +295,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				data.forEach(function(track){
 					self.all[track.id] = track;
 				})
-				if(log) console.log('search','refreshing playlist')
+				if(log) console.log('search','refreshing playlist');
+				self.sync = false;
 				self.playlist(Flags,true);
 			},function(err){
 				console.error(err)
@@ -268,7 +305,6 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}else{
 			$scope.lib.size = tracks.length
 			self.memory[context][mem].libsize = tracks.length;
-			console.warn(data,Flags)
 			self.commit(data,'playlist',Flags);
 		}
 	}
@@ -288,8 +324,26 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 			$scope.db.fetchAll(activesearch).then(function(data){
 				data = data.map(function(id){return id.id});
+				self.memory[context][mem].libsize = data.length;
 				self.memory[context][mem].all = data;
-				if(log) console.log('search','renew "All"')
+				if(log) console.log('search','renew "All"');
+				if($scope.drawers.dpos[self.page].open || self.drawer){
+					var r =false;
+					if($scope.drawers.dpos[self.page].open) r = self.dcancel($scope.drawers.dpos[self.page].open);
+					if(self.drawer) r?self.dcancel(self.drawer.id):r = self.dcancel(self.drawer.id);
+					if(r){
+						//console.error(self.memory[context][mem].all);
+						$scope.$apply(function(){
+							self.brake = false;
+							self.loading = false;
+							self.drawer = false;
+							self.go(false,'drawer was not found');
+						})
+						return;
+					}
+				}
+
+				self.sync = false;
 				self.Search(search,type,flags);
 			},function(err){
 				console.error('search',err);
@@ -297,6 +351,16 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		}else{
 			self.Search(search,type,flags);
 		}
+	}
+	search.prototype.dcancel = function(id){
+		if(this.memory[context][mem].all.indexOf(id) < 0){
+			//console.error('no drawer found: '+id)
+			//$scope.drawers.lib[this.page][id].height = 0;
+			//$scope.drawers.dpos[this.page]={};
+			$scope.drawers.closeall(this.page);
+			return true;
+		}
+		return false;
 	}
 	search.prototype.Search=function(search,type,Flags){
 		if(log) console.log('search','Search('+type+')')
@@ -310,19 +374,21 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			self.commit(data,type,Flags);
 			return;
 		}
-
 		$scope.db.fetch(search).then(function(data){
 
 			if(!data.items || (!data.items.length && data.libsize)){
-				//console.error('search',search,data,Flags);
-				self.brake = false;
+
 				$scope.loading = false;
-				$scope.$apply(function(){
-					self.fixChrome(true);
-				})
-				//$scope.$apply(function(){self.go()});
+				//console.error(search);
+				self.memory[context][mem].scrolltop=0;
+				$('#playwindow').scrollTop(0);
+				$timeout(function(){
+					self.brake = false;
+					self.go(false,'error');
+				});
 				return;
 			}
+
 			$scope.lib.size = data.libsize;
 			self.memory[context][mem].libsize = data.libsize;
 			self.memory[context][mem].chunks[$scope.lazy.chunk] = [];
@@ -331,27 +397,22 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				self.all[item.id] = item;
 			})
 			if(log) console.log('search','renew cache');
+			self.sync = false;
+
 			self.commit(data.items,type,Flags);
 
 		},function(err){
 			if(err) console.error('search',err);
 		})
 	}
-	search.prototype.fixChrome = function(refresh){
-		if(!$scope.tracks.all) return;
-		$scope.lazy.maxheight = ($scope.tracks.all.length+1)*$scope.dims.trackHeight - $scope.dims.playwindowHeight
-		if($scope.lazy.maxheight < $scope.dims.playwindowHeight) $scope.lazy.maxheight = $scope.dims.playwindowHeight;
-		if($scope.drawers.dpos[$scope.pin.Page].open) $scope.lazy.maxheight+= $scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].height;
-		if(refresh) $scope.lazy.fixChrome(this.memory[context][mem].scrolltop);
-	}
+
 
 	search.prototype.commit = function(items,type,Flags){
 		if(log) console.log('search','commit('+type+')')
 		var self = this;
 		items = playpos(items,Flags);
+
 		self.memory[context][mem].chunk = $scope.lazy.chunk;
-		$scope.loading = false;
-		$scope.lib[$scope.pin.Page] = items;
 		if(!$scope.playlist.active){
 			$scope.tracks.all = self.memory[context][mem].all;
 			if($scope.pin.Page === 'title') self.memory.Title = self.memory[context][mem].all;
@@ -359,33 +420,24 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			$scope.tracks.all = $scope.playlist.activelist[$scope.playlist.selected];
 		}
 
-		if($scope.drawers.dpos[$scope.pin.Page].open && $scope.tracks.all.indexOf($scope.drawers.dpos[$scope.pin.Page].open) === -1){
-			$scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].height = 0;
-			$scope.drawers.dpos[$scope.pin.Page].open = false;
-			this.refresh = true;
-		}
-
-		this.fixChrome(this.refresh);
-
 		$scope.tracks.isInFocus();
 
-		setTimeout(function(){
-			$scope.$apply();
-			if((!self.state.page||!self.state.playlist.active||!self.state.playlist.selected) && self.refresh){
-				setTimeout(function(){
-					$('#playwindow').scrollTop(self.memory[context][mem].scrolltop);
-					self.brake = false;
-					self.goscroll();
-					//self.godrawer();
 
-				})
-			}else{
-				self.brake = false;
+		if(this.sync){
+			$scope.loading = false;
+			$scope.lib[$scope.pin.Page] = items;
+			this.goscroll();
+		}else{
+			$scope.$apply(function(){
+				$scope.loading = false;
+				$scope.lib[$scope.pin.Page] = items;
 				self.goscroll();
-				//self.godrawer();
-			}
-		})
+			});
+		}
 
+
+
+		if(log) console.log('------------------------------------------------------------------------------------------------------------')
 		if(type === 'artist'){
 			items.forEach(function(row){
 				if(!$scope.lib.bios[row.id]){
@@ -395,85 +447,73 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			});
 		}
 	}
-	search.prototype.artistAlbums = function(artist){
-		if(log) console.log('search','artistAlbums()')
-		return new Promise(function(resolve,reject){
-			var must = $scope.tools.wrap.bool([{must:[
-				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},
-				{match:{deleted:{query:'no',type:'phrase'}}},
-				{match:{musicbrainzed:{query:'yes',type:'phrase'}}}
-			]}])
-			var query = {index:$scope.db_index,type:"local,internetarchive,youtube",body:{query:must}}
-			$scope.db.fetchAll(query).then(function(data){resolve(data)},function(err){reject(err)})
-		})
+	search.prototype.getTop = function(){
+		if(!this.memory[context][mem].all) return 0;
+		if(!this.drawer||!this.drawer.id) return this.memory[context][mem].scrolltop;
+		var newtop = this.memory[context][mem].all.indexOf(this.drawer.id)*$scope.lazy.trackHeight;
+		if(log) console.log('getTop: '+newtop);
+		return newtop;
+	}
+	search.prototype.fixChrome = function(top,from){
+		$scope.lib.size = this.memory[context][mem].libsize;
+		var maxheight = ($scope.lib.size+1)*$scope.dims.trackHeight - $scope.dims.playwindowHeight
+		if(maxheight < $scope.dims.playwindowHeight) maxheight = $scope.dims.playwindowHeight;
+		if($scope.drawers.dpos[$scope.pin.Page] && $scope.drawers.dpos[$scope.pin.Page].open && $scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].h) maxheight+= $scope.drawers.lib[$scope.pin.Page][$scope.drawers.dpos[$scope.pin.Page].open].h;
+		if(typeof top === 'undefined'){
+			(this.drawer && this.drawer.id)?top = this.getTop():top = this.memory[context][mem].scrolltop;
+		}
+		if(top > maxheight) top = maxheight;
+		if(!maxheight) console.error(this.memory[context][mem],$scope.drawers.dpos[$scope.pin.Page].open,$scope.drawers.lib[$scope.pin.Page])
+		//console.warn('from:'+from,'top:'+top,'maxheight:'+maxheight,'libsize:'+$scope.lib.size)
+		$scope.drawers.drawerPos('search.fixChrome',top);
+		$scope.lazy.fixChrome(top);
 	}
 
-	search.prototype.albumTrack = function(track,album){
-		if(log) console.log('search','albumTrack()')
-		var query = {
-			index:$scope.db_index,
-			type:"local,internetarchive,youtube",
-			body:{query:{bool:{must:[
-				{match:{'deleted':'no'}},
-				{match:{'metadata.title':{query:track.title,operator:'and',fuzziness:'auto'}}},
-				{bool:{should:[
-					{match:{'metadata.artist':{query:track.artist.name,operator:'and',fuzziness:'auto'}}},
-					{match:{'metadata.artist':{query:album.artist,operator:'and',fuzziness:'auto'}}},
-					{match:{'metadata.album':{query:album.title,operator:'and',fuzziness:'auto',boost:20}}}
-				]}}
-			]}}}
-		}
-		return new Promise(function(resolve,reject){
-			$scope.db.fetchAll(query).then(function(data){
-				resolve(data)
-			},function(err){
-				reject(err)
-			})
-		})
-	}
-
-	//process the query into external searches
-	search.prototype.remoteSearch = function(search_id,e){
-		if(log) console.log('search','remoteSearch()')
-		if(e && e.which !== 13) return;
-		$scope.goSearch = false;
-		if($scope.pin.pinned.sources.indexOf('internetarchive')===-1) $scope.pin.source('internetarchive');
-		if($scope.pin.pinned.sources.indexOf('youtube')===-1) $scope.pin.source('youtube');
-		var search_id = crypto.createHash('sha1').update(search_id).digest('hex');
-		var sources = $scope.pin.pinned.sources.filter(function(source){
-			if(source!=='local') return true;
-		})
-		sources.forEach(function(source){
-			if($scope[source] && $scope[source].search) $scope[source].search($scope.searchTerm);
-		})
-	}
-	search.prototype.godrawer = function(){
-		if(!this.drawer) return;
-		$scope.drawers.drawer(this.drawer,true);
-		this.drawer = false;
-	}
-	search.prototype.goscroll = function(){
-		if(!this.scrolltop||$scope.pin.Page!=='album'){
-			this.scrolltop = false;
-			$scope.drawers.ani=false;
-			return;
-		}
+	search.prototype.goscroll = function(pos){
 		var self = this;
-		if(!$('#playwindow').length){
-			alert('retry')
-			setTimeout(function(){self.goscroll()},100);
-			return;
+		if(this.origin!=='scroll'){
+			var st = this.getTop();
+		}else{
+			var st = $('#playwindow').scrollTop()
 		}
-		var st = $scope.tracks.all.indexOf(this.scrolltop.id)*$scope.lazy.trackHeight;
-		this.scrolltop = false;
-		$timeout(function(){
-			self.godrawer();
-		})
-		$('#playwindow').stop().animate({scrollTop:(st)},750,'easeOutExpo',function(){
-			$scope.$apply(function(){
-				self.go(false,'scroll')
+		this.memory[context][mem].scrolltop=st;
+		self.fixChrome(st,'goscroll');
+
+		if(this.drawer && this.origin!=='drawer'){
+			if($scope.tracks.all.indexOf(this.drawer.id) === -1) alert('goscroll drawer not found');
+			$scope.drawers.closeall(this.page);
+			//$scope.drawers.drawer(this.drawer,true,this.noscroll);
+			$scope.drawers.drawer(this.drawer,true,this.noscroll);
+		}
+
+		if($('#playwindow').scrollTop()!==st || this.refresh || !this.state.page){
+
+			if(!this.state.page || this.refresh) this.noscroll = true;
+			if(!this.state.page){
+				this.noscroll=false;
+				$timeout(function(){
+					$('#playwindow').stop().scrollTop(st);
+					self.brake = false;
+				})
+			}else{
+				if(self.noscroll){
+					self.noscroll=false;
+					$('#playwindow').stop().scrollTop(st);
+					self.brake = false;
+
+				}else{
+					$('#playwindow').stop().animate({scrollTop:(st)},750,'easeOutExpo',function(){
+						self.brake = false;
+					});
+				}
+			}
+		}else{
+			this.noscroll = false;
+			$timeout(function(){
+				self.brake = false;
 			})
-		});
+		}
+		this.drawer = false;
 	}
 	var setOldChunk = function(){
 		oldChunk = {
@@ -552,16 +592,15 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 								artist = res.label;
 								return true
 							}else{
-								console.log(res.description)
+								//console.log(res.description)
 							}
 						})
 					})
 					$scope.lib.bios[row.id]={};
 					if(!artist){
-						console.error('no data: '+row.name)
+						//console.error('no data: '+row.name)
 						return;
 					}
-					console.warn(artist)
 					options.uri = "https://en.wikipedia.org/w/api.php?action=query&titles="+$scope.tools.queryBuilder(artist)+"&prop=extracts&exintro=true&explaintext=true&redirects=true&format=json";
 					request.get(options,function(error, response, body){
 						if(error){
@@ -590,10 +629,60 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 							}
 						}
 					})
-				}else{
-					console.warn('Nothing found for: '+row.name)
 				}
 			}
+		})
+	}
+	search.prototype.artistAlbums = function(artist){
+		if(log) console.log('search','artistAlbums()')
+		return new Promise(function(resolve,reject){
+			var must = $scope.tools.wrap.bool([{must:[
+				{match:{"metadata.artist.exact":{query:artist.toLowerCase()}}},
+				{match:{deleted:{query:'no',type:'phrase'}}},
+				{match:{musicbrainzed:{query:'yes',type:'phrase'}}}
+			]}])
+			var query = {index:$scope.db_index,type:"local,internetarchive,youtube",body:{query:must}}
+			$scope.db.fetchAll(query).then(function(data){resolve(data)},function(err){reject(err)})
+		})
+	}
+
+	search.prototype.albumTrack = function(track,album){
+		if(log) console.log('search','albumTrack()')
+		var query = {
+			index:$scope.db_index,
+			type:"local,internetarchive,youtube",
+			body:{query:{bool:{must:[
+				{match:{'deleted':'no'}},
+				{match:{'metadata.title':{query:track.title,operator:'and',fuzziness:'auto'}}},
+				{bool:{should:[
+					{match:{'metadata.artist':{query:track.artist.name,operator:'and',fuzziness:'auto'}}},
+					{match:{'metadata.artist':{query:album.artist,operator:'and',fuzziness:'auto'}}},
+					{match:{'metadata.album':{query:album.title,operator:'and',fuzziness:'auto',boost:20}}}
+				]}}
+			]}}}
+		}
+		return new Promise(function(resolve,reject){
+			$scope.db.fetchAll(query).then(function(data){
+				resolve(data)
+			},function(err){
+				reject(err)
+			})
+		})
+	}
+
+	//process the query into external searches
+	search.prototype.remoteSearch = function(search_id,e){
+		if(log) console.log('search','remoteSearch()')
+		if(e && e.which !== 13) return;
+		$scope.goSearch = false;
+		if($scope.pin.pinned.sources.indexOf('internetarchive')===-1) $scope.pin.source('internetarchive');
+		if($scope.pin.pinned.sources.indexOf('youtube')===-1) $scope.pin.source('youtube');
+		var search_id = crypto.createHash('sha1').update(search_id).digest('hex');
+		var sources = $scope.pin.pinned.sources.filter(function(source){
+			if(source!=='local') return true;
+		})
+		sources.forEach(function(source){
+			if($scope[source] && $scope[source].search) $scope[source].search($scope.searchTerm);
 		})
 	}
 	return search;

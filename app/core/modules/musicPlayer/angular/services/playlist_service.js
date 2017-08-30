@@ -86,6 +86,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 		if(e && e!=='add' && e.which !== 13){
 			return;
 		}else{
+			this.name = playlist;
 			self.options.push({id:self.unique,name:playlist});
 			self.selected=$scope.playlist.options[$scope.playlist.options.length-1].id;
 			//if(!self.renew[self.selected]) self.renew[self.selected]=false;
@@ -107,15 +108,17 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 	}
 	playlist.prototype.deletePlaylist = function(){
 		if(!this.selected) return;
+		var self = this;
 		var indx;
 		$scope.playlist.options.some(function(opt,index){
-			if(opt.id === $scope.playlist.selected){
+			if(opt.id === self.selected){
 				indx = index;
 				return true;
 			}
 		})
 		this.options.splice(indx, 1);
 		this.selected = 1;
+		this.change();
 		this.updatePlaylist(0);
 		$scope.search.go(false,'playlist deleted');
 	}
@@ -130,6 +133,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			}
 		})
 		this.options[indx].name = this.new;
+		this.name = this.new;
 		this.new = null;
 		this.updatePlaylist(0);
 	}
@@ -160,7 +164,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			return track!==id
 		})
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
-		$scope.search.go(true);
+		$scope.search.go(true,'playlist removed');
 	}
 
 	playlist.prototype.handleDragStart=function(event,data){
@@ -185,6 +189,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			}
 			if(data.type === 'artist'){
 				$scope.drawers.drawerContent(data,true).then(function(data){
+					console.error(data)
 					data.forEach(function(track){
 						if(self.activelist[self.selected].indexOf(tracks.id) === -1){
 							self.activelist[self.selected].push(track.id);
@@ -221,7 +226,7 @@ angular.module('yolk').factory('playlist',['$timeout',function($timeout) {
 			this.activelist[this.selected].splice(pos.new,0,data.id)
 		}
 		this.updatePlaylist(this.selected,this.activelist[this.selected]);
-		$scope.search.go(true);
+		$scope.search.go(true,'playlist reordered');
 	}
 	return playlist;
 }])
