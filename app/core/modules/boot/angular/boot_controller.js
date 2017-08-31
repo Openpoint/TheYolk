@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-angular.module('yolk').controller('boot', ['$scope','$location',function($scope,$location) {
+angular.module('yolk').controller('boot', ['$scope','$location','$timeout',function($scope,$location,$timeout) {
 
 	const mod_name = 'boot';
 	Yolk.prepare($scope,mod_name);
@@ -24,6 +24,10 @@ angular.module('yolk').controller('boot', ['$scope','$location',function($scope,
 	$scope.installed.message = "";
 	$scope.installed.progress = "";
 	$scope.root = Yolk.root;
+	$scope.online = true;
+	$timeout(function(){
+		$scope.online = Yolk.remote('online');
+	},1000)
 
 	Yolk.remote('dbReady').then(function(){
 

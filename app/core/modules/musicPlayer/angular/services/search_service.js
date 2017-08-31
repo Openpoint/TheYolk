@@ -301,6 +301,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				self.sync = false;
 				self.playlist(Flags,true);
 			},function(err){
+				self.brake = false;
 				console.error(err)
 			})
 			return;
@@ -348,6 +349,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 				self.sync = false;
 				self.Search(search,type,flags);
 			},function(err){
+				self.brake = false;
 				console.error('search',err);
 			})
 		}else{
@@ -404,6 +406,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 			self.commit(data.items,type,Flags);
 
 		},function(err){
+			self.brake = false;
 			if(err) console.error('search',err);
 		})
 	}
