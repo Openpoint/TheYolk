@@ -42,6 +42,8 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 	}
 	search.prototype.resume=function(scope){
 		$scope = scope;
+		this.brake = false;
+		this.noscroll = true;
 		return this;
 	}
 	search.prototype.fetchmem = function(){
