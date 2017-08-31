@@ -26,6 +26,7 @@ const Elastic = require('elasticsearch');
 const child = require('child_process');
 const os = require('os');
 const kill = require('tree-kill');
+const isOnline = require('is-online');
 Promise = require("bluebird");
 Promise.config({cancellation: true});
 
@@ -33,7 +34,6 @@ const Installer = require('./core/lib/installer.js');
 const bootloader = require('./core/lib/bootloader.js');
 const ft = require('./core/lib/filetools.js');
 const boot = new bootloader(path.resolve(__dirname));
-
 
 const elasticversion = '5.3.0';
 const elasticchecksum = '9273fdecb2251755887f1234d6cfcc91e44a384d';
@@ -61,6 +61,17 @@ process.Yolk.storedMesssage = {};
 process.Yolk.BrowserWindow = BrowserWindow;
 process.Yolk.session = session;
 process.Yolk.version = require('../package.json').version;
+process.Yolk.online = false;
+
+var online = function(){
+	isOnline({timeout:1000}).then(o => {
+	    process.Yolk.online = o;
+		setTimeout(function(){
+			online();
+		},1000)
+	});
+}
+online();
 
 //signals that the renderer client is ready
 process.Yolk.clientReady = function(){

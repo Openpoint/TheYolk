@@ -18,6 +18,7 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 angular.module('yolk').controller('musicPlayer', [
 '$scope','$interval','$timeout','$rootScope','dims','lazy','audio','internetarchive','youtube','tracks','drawers','search','pin','playlist',
 function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,youtube,tracks,drawers,search,pin,playlist) {
+
 	const {dialog} = require('electron').remote
 	const path = require('path');
 	const mod_name = 'musicPlayer';
@@ -92,8 +93,11 @@ function($scope,$interval,$timeout,$rootScope,dims,lazy,audio,internetarchive,yo
 	$scope.$on('$locationChangeSuccess', function(event) {
 		$scope.audio.background();
 	});
+
 	function progresstimer(){
 		$timeout.cancel($scope.progress_timer);
+		$scope.online = Yolk.remote('online');
+		if(!$scope.online) $scope.stop();
 		var types = ['internetarchive','youtube','musicbrainz'];
 		var progress = {}
 		types.forEach(function(type){

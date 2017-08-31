@@ -1009,3 +1009,11 @@ body,html{
 #playing .reorder .pad{
 	border-color:white;
 }
+#notonline{
+	margin:5px 17px 0 12px;
+	padding:8px 5px;
+	text-align:center;
+	background:tomato;
+	color:white;
+	line-height:1.2em;
+}
