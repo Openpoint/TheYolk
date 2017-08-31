@@ -141,6 +141,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 
 	audio.prototype.resume = function(scope){
 		$scope = scope;
+
 		var self = this;
 		if(this.bg){
 			this.bg = false;
@@ -152,6 +153,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			}
 			this.youtube_window = false;
 			$timeout(function(){
+				$scope.isfullscreen = false;
 				if(self.state) $scope.lib.playing.state=self.state;
 				topmen();
 				self.state = false;
@@ -163,6 +165,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 			this.Webview($scope.webView.src);
 			console.warn('no bg')
 			$timeout(function(){
+				$scope.isfullscreen = false;
 				$scope.tracks.isInFocus();
 			})
 		}
@@ -175,6 +178,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 	ipcRenderer.on('location',function(event,url){
 		var protocol = Url.parse(url).protocol
 		if (protocol === 'http:' || protocol === 'https:') {
+			if($scope.isfullscreen) $scope.fullscreen();
 			url = encodeURIComponent(url);
 			$scope.webView.webContents.send('media','pause');
 			var win = Yolk.remote('win');

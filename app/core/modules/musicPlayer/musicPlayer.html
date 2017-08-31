@@ -370,12 +370,25 @@
 										<i class='fa fa-play-circle-o'></i>
 									</div>
 								</div>
-								<div ng-if="playlist.selected && playlist.selected!==1">
-									<div class='title grab' drag-container="true" drag-data="track" on-drag-end='playlist.reorder=false' on-drag-start="playlist.handleDragStart($event,$dragData)">{{::track.metadata.title || track.file}}</div>
+								<div ng-if="playlist.selected!==1">
+									<div class='title grab'
+									drag-container="true"
+									drag-data="track"
+									on-drag-end='playlist.reorder=false'
+									on-drag-start="playlist.handleDragStart($event,$dragData)"
+									ng-click="!playlist.active?pin.title(track.metadata.title):false"
+									ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === track.metadata.title.toLowerCase())),hover:playlist.selected === 1}"
+									>
+										<span class='cancel fa fa-times-circle'></span>
+										<span>{{::track.metadata.title || track.file}}</span>
+									</div>
 								</div>
 
 								<div ng-if="playlist.selected==1">
-									<div class='title' ng-click="pin.title(track.metadata.title)" ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === track.metadata.title.toLowerCase())),hover:!playlist.active}">
+									<div class='title'
+									ng-click="pin.title(track.metadata.title)"
+									ng-class="{'pinned':(!playlist.active && (pin.pinned.title.toLowerCase() === track.metadata.title.toLowerCase())),hover:!playlist.active}"
+									>
 										<span class='cancel fa fa-times-circle'></span>
 										<span>{{::track.metadata.title || track.file}}</span>
 									</div>
