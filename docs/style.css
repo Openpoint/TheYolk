@@ -228,7 +228,7 @@ a{
 	opacity:.75;
 	width:auto;
 }
-#downloads .downloads a{
+#downloads .download{
 	display:block;
 	padding:10px 0;
 	text-decoration:none;
@@ -239,7 +239,7 @@ a{
 	border-bottom:1px solid #302B22;
 	margin-bottom:10px;
 }
-#downloads h2{
-	text-align:center;
+#older{
 	margin-top:40px;
+	margin-bottom:10px;
 }
