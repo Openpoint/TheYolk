@@ -90,9 +90,15 @@ installer.prototype.getJava = function(){
 				cookie:'oraclelicense=accept-securebackup-cookie'
 			},
 			win32ia32:{
+				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-windows-x64.tar.gz",
+				checksum:"md5:75933fa1298ab1ccc25cb1e303db7372",
+				cookie:'oraclelicense=accept-securebackup-cookie'
+				//drop 32bit windows support due to https://github.com/nodejs/node-v0.x-archive/issues/2862
+				/*
 				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-windows-i586.tar.gz",
 				checksum:"md5:116a59cb5c1165016c01551332c02006",
 				cookie:'oraclelicense=accept-securebackup-cookie'
+				*/
 			},
 			darwinx64:{
 				url:"http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jre-8u131-macosx-x64.tar.gz",

@@ -313,9 +313,7 @@ function elastic(home){
 			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
 			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 		];
-		console.log(args);
 		process.Yolk.elasticsearch = child.spawn('cmd.exe',args);
-		console.log(process.Yolk.elasticsearch);
 	}
 
 	process.Yolk.elasticsearch.stdout.on('data', function(data){
