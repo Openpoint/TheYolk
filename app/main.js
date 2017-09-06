@@ -263,6 +263,7 @@ var hasElastic = function(home){
 			elastic(home);
 		}else{
 			installer.getElastic(elasticversion,elasticchecksum).then(function(){
+				console.log('got elastic: ' + home)
 				elastic(home);
 			},function(errors){
 				process.Yolk.storedMesssage.elastic=elasticversion;
@@ -312,7 +313,9 @@ function elastic(home){
 			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
 			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 		];
+		console.log(args);
 		process.Yolk.elasticsearch = child.spawn('cmd.exe',args);
+		console.log(process.Yolk.elasticsearch);
 	}
 
 	process.Yolk.elasticsearch.stdout.on('data', function(data){
