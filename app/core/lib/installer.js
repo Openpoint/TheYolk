@@ -182,6 +182,7 @@ installer.prototype.getElastic = function(elasticversion,hash){
 		function extract(){
 
 			ft.extract(target,path.join(self.home,'.bin'),'tar.gz').then(function(){
+				console.log('extracted 2')
 				message('log','finished extraction');
 				resolve();
 			},function(err){

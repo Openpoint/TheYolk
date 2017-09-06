@@ -143,6 +143,7 @@ filetools.prototype.extract = function(src,dest,type){
 			var parse = targz().createParseStream();
 
 			parse.on('entry', function(entry){
+				console.log(entry.path);
 				var p = path.join(destination,entry.path);
 				if(entry.type==='Directory'){
 					if(!self.isThere('directory',p)) self.mkdir(destination,entry.path);
@@ -156,6 +157,7 @@ filetools.prototype.extract = function(src,dest,type){
 			});
 			parse.on('end',function(){
 				fs.unlinkSync(src);
+				console.log('extracted');
 				resolve(true);
 			});
 			fs.createReadStream(src).pipe(parse);
