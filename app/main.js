@@ -273,6 +273,12 @@ var hasElastic = function(home){
 	});
 }
 function install(){
+	installer.hasJava(process.Yolk.javahome).then(function(res){
+		hasElastic(process.Yolk.javahome);
+	},function(){
+		getJava();
+	});
+	/*
 	installer.hasJava().then(function(res){
 		hasElastic();
 	},function(res){
@@ -286,6 +292,7 @@ function install(){
 			getJava();
 		}
 	});
+	*/
 }
 
 //Start the elasticsearch server

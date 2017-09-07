@@ -35,14 +35,20 @@ var installer = function(){
 installer.prototype.hasJava=function(Path){
 	var self = this;
 	var promise = new Promise(function(resolve,reject){
-
+		var jpath = path.join(Path,'bin','java');
+		/*
 		if(Path){
 			var jpath = path.join(Path,'bin','java');
 		}else{
 			var jpath = 'java';
 		}
+		*/
 		var jre = child.spawnSync(jpath, ['-version']);
 		if(jre.error){
+			process.Yolk.storedMesssage.log='No Local Java Installed';
+			message('install',process.Yolk.storedMesssage);
+			reject(true);
+			/*
 			if(Path){
 				process.Yolk.storedMesssage.log='No Local Java Installed';
 				message('install',process.Yolk.storedMesssage);
@@ -52,15 +58,16 @@ installer.prototype.hasJava=function(Path){
 				message('install',process.Yolk.storedMesssage);
 				reject(false);
 			}
+			*/
 		}else{
 			var data = jre.stderr.toString('utf8').split('\n')[0].split(' ');
 			var version=data[data.length-1].replace(/"/g,'').split('.');
 			if(version[0]==1 && version[1]>=8){
 				resolve(true);
 			}else{
-				process.Yolk.storedMesssage.log='System Java too old';
+				process.Yolk.storedMesssage.log='Java too old';
 				message('install',process.Yolk.storedMesssage);
-				reject(false);
+				reject(true);
 			}
 		}
 	});
