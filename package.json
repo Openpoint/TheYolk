@@ -1,6 +1,6 @@
 {
   "name": "TheYolk",
-  "version": "0.0.9-alpha.1",
+  "version": "0.0.10-alpha.1",
   "main": "app/main.js",
   "author": {
     "name": "Michael Jonker",
