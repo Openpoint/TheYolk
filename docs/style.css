@@ -236,10 +236,17 @@ a{
 }
 #downloads h1{
 	text-align:center;
-	border-bottom:1px solid #302B22;
-	margin-bottom:10px;
+	border-bottom:2px solid #302B22;
+
 }
 #older{
 	margin-top:40px;
+	margin-bottom:10px;
+}
+#warning{
+	background:#FF8C00;
+	text-align:center;
+	padding:10px;
+	margin:0 auto;
 	margin-bottom:10px;
 }
