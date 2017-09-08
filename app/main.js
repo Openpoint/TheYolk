@@ -177,8 +177,9 @@ function createWindow () {
 	  win.show()
 	})
 	if(process.env.ELECTRON_ENV === 'development') win.webContents.openDevTools();
-	win.webContents.on('crashed',function(){
+	win.webContents.on('crashed',function(event,killed){
 		console.log('Browser window crashed');
+		console.error(event);
 		if(pid) kill(pid);
 		app.quit();
 	})
