@@ -7,7 +7,7 @@ cache:
   - '%USERPROFILE%\.electron'
 
 install:
-  - ps: Install-Product node 8
+  - ps: Install-Product node 7
   - npm install
 
 build_script:
