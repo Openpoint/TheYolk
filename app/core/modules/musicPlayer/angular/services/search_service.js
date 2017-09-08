@@ -549,8 +549,31 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 
 	//look up artist details from wikipedia
 	var wikitypes = ['band','singer-songwriter','singer','musician','performer','orchestra','musical act','rapper','composer','group','soprano','actress','actor','character','artist','combo']
+	var wikiq = [];
+	var wbusy;
 	var wiki = function(row){
-
+		if(row) wikiq.push(row);
+		if(wbusy) return;
+		if(wikiq.length){
+			wbusy = true;
+			try {
+				var art = wikiq.shift();
+				console.log(art);
+				wiki2(art);
+			}
+			catch(err) {
+				wiki2(wikiq.shift());
+				console.error(err);
+			}
+			$timeout(function(){
+				wbusy = false;;
+				wiki();
+			},100)
+		}
+	}
+	var wbusy;
+	var wiki2 = function(row){
+		wbusy=true;
 		if(log) console.log('search','wiki()')
 		if(row.links && row.links.wikipedia){
 			$scope.lib.bios[row.id]={}
@@ -563,6 +586,7 @@ angular.module('yolk').factory('search',['$timeout',function($timeout) {
 		var headers = Yolk.modules["musicPlayer"].config.headers
 		var options={headers:{'User-Agent':headers['User-Agent']},uri:query};
 		request.get(options,function(error,response,body){
+			wbusy=false;
 			if(error){
 				console.error('search',error);
 				return;
