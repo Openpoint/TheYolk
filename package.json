@@ -57,7 +57,8 @@
       "target": [
         "deb",
         "rpm"
-      ]
+		],
+		"category":"internet"
     },
     "win": {
       "target": [
