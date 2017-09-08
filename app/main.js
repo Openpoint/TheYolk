@@ -16,9 +16,9 @@ along with The Yolk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 process.Yolk = {};
-const {app, BrowserWindow, webContents, ipcMain, session} = require('electron');
+const {app, BrowserWindow, webContents, ipcMain, session, Menu} = require('electron');
 //app.commandLine.appendSwitch('disable-smooth-scrolling');
-app.commandLine.appendSwitch('ignore-gpu-blacklist');
+
 const fs=require('fs');
 const http = require('http');
 const path=require('path');
@@ -27,6 +27,9 @@ const child = require('child_process');
 const os = require('os');
 const kill = require('tree-kill');
 const isOnline = require('is-online');
+
+if(os.platform()!=='darwin') app.commandLine.appendSwitch('ignore-gpu-blacklist');
+
 Promise = require("bluebird");
 Promise.config({cancellation: true});
 
@@ -62,7 +65,8 @@ process.Yolk.BrowserWindow = BrowserWindow;
 process.Yolk.session = session;
 process.Yolk.version = require('../package.json').version;
 process.Yolk.online = false;
-
+const menu = Menu.buildFromTemplate([])
+Menu.setApplicationMenu(menu)
 var online = function(){
 	isOnline({timeout:1000}).then(o => {
 	    process.Yolk.online = o;
@@ -112,9 +116,17 @@ process.Yolk.chrome = function(action){
 			win.close();
 		break;
 		case 'min':
+			if(win.isFullScreen()){
+				win.setFullScreen(false);
+				return;
+			}
 			win.minimize();
 		break;
 		case 'max':
+			if(os.platform()==='darwin'){
+				win.setFullScreen(win.isFullScreen()?false:true);
+				return;
+			}
 			if(win.isMaximized()){
 				win.unmaximize();
 			}else{
@@ -145,7 +157,18 @@ process.on('uncaughtException',function(err){
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 function createWindow () {
-	win = new BrowserWindow({width: 1200, height: 900, frame:false, center:false,x:10,y:10,title:'The Yolk',show:false});
+	win = new BrowserWindow({
+		width: 1200,
+		height: 900,
+		frame:false,
+		center:false,
+		x:10,
+		y:10,
+		title:'The Yolk',
+		show:false,
+
+	});
+
 	win.loadURL(`file://${__dirname}/index.html#!/boot`);
 	//win.loadURL('chrome://gpu')
 	process.Yolk.win = win;
@@ -219,7 +242,12 @@ app.on('ready', function(){
 	console.log(pids);
 	*/
 	createWindow();
-	process.Yolk.javahome = path.join(boot.home,'.bin',javaversion);
+	if(os.platform()!=='darwin'){
+		process.Yolk.javahome = path.join(boot.home,'.bin',javaversion);
+	}else{
+		process.Yolk.javahome = path.join(boot.home,'.bin',javaversion+'.jre','Contents','Home');
+	}
+
 	if(os.platform()!=='win32'){
 		process.Yolk.elasticpath = path.join(boot.home,'.bin','elasticsearch-'+elasticversion,'bin','elasticsearch');
 	}else{
@@ -278,6 +306,7 @@ function install(){
 	},function(){
 		getJava();
 	});
+
 	/*
 	installer.hasJava().then(function(res){
 		hasElastic();
@@ -301,16 +330,23 @@ function elastic(home){
 	process.Yolk.storedMesssage = {
 		message:'Loading the database'
 	};
-
-	if(home){
+	console.log(home);
+	process.env.JAVA_HOME = home;
+	/*
+	if(os.platform()!=='darwin'){
 		process.env.JAVA_HOME = home;
+	}else{
+		//process.env.JAVA_HOME ="/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin";
+		//console.log(process.env.JAVA_HOME)
 	}
+	*/
 	if(os.platform()!=='win32'){
 		var args = [
 			'-Epath.conf='+path.join(boot.home,'elasticsearch','config'),
 			'-Epath.data='+path.join(boot.home,'elasticsearch','data'),
 			'-Epath.logs='+path.join(boot.home,'elasticsearch','logs')
 		];
+
 		process.Yolk.elasticsearch = child.spawn(process.Yolk.elasticpath,args);
 	}else{
 		var args = [

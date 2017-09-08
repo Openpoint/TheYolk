@@ -76,7 +76,7 @@ angular.module('yolk').factory('link',[function() {
 				return;
 			}
 			var win = new BrowserWindow({
-			    parent:Yolk.remote('win'),
+			    //parent:Yolk.remote('win'),
 			    show:false,
 				webPreferences:{
 				  nodeIntegration: false,
@@ -84,6 +84,7 @@ angular.module('yolk').factory('link',[function() {
 				  preload:path.join(Yolk.root,'core/modules/link/lib/tools/scraper.js')
 				}
 			});
+			//win.hide();
 			win.loadURL(url);
 			win.webContents.on('dom-ready',function(){
 				win.webContents.executeJavaScript('Yolk_scrape()').then(function(data){

@@ -37,6 +37,14 @@ installer.prototype.hasJava=function(Path){
 	var promise = new Promise(function(resolve,reject){
 		var jpath = path.join(Path,'bin','java');
 		/*
+		if(os.platform()==='darwin') {
+			resolve(true);
+			return;
+		}else{
+			var jpath = path.join(Path,'bin','java');
+		}
+		*/
+		/*
 		if(Path){
 			var jpath = path.join(Path,'bin','java');
 		}else{
@@ -164,12 +172,20 @@ installer.prototype.getJava = function(){
 installer.prototype.hasElastic=function(Path){
 
 	var promise = new Promise(function(resolve,reject){
+		console.log(Path)
+		if(!ft.isThere('file',Path)){
+			resolve(false);
+		}else{
+			resolve(true);
+		}
+		/*
 		var elastic = child.spawnSync(Path,['-V']);
 		if(elastic.error){
 			resolve(false);
 		}else{
 			resolve(true);
 		}
+		*/
 	})
 	return promise;
 }
