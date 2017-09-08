@@ -1,6 +1,6 @@
 osx_image: xcode8.3
 
-sudo: true
+sudo: required
 group: deprecated-2017Q3
 
 dist: trusty
