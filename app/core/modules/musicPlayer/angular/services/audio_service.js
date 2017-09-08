@@ -113,7 +113,7 @@ angular.module('yolk').factory('audio',['$timeout','$sce',function($timeout,$sce
 		if(this.youtube_position && this.youtube_window.setPosition){
 			this.youtube_window.setPosition(this.youtube_position[0],this.youtube_position[1])
 		}
-
+		
 		this.youtube_window.on('close',function(){
 			self.bgurl = self.youtube_window.getURL();
 			self.state='paused';

@@ -11,6 +11,7 @@ ipcMain.on('youtube_window', function(event){
 		width:300,
 		height:300,
 		center:true,
+		fullscreenable:false,
 		webPreferences:{
 		  nodeIntegration: false,
 		  webSecurity: true,
